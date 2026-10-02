@@ -9,6 +9,7 @@ import { Button } from '@/components/button';
 import { InfoNote } from '@/components/info-note';
 import { SafetyMenu } from '@/components/safety-menu';
 import { Screen } from '@/components/screen';
+import { displayName } from '@/data/types';
 import { endMatch, markSafetyTipSeen, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -57,7 +58,7 @@ export default function MatchScreen() {
       }>
       <View style={styles.topRow}>
         <Badge label="Matched! Go and talk" />
-        <SafetyMenu userId={other.id} firstName={other.firstName} />
+        <SafetyMenu userId={other.id} firstName={displayName(other)} />
       </View>
 
       <View style={[styles.center, { gap: spacing.md, paddingVertical: spacing.lg }]}>

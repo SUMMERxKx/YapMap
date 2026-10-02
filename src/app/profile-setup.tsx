@@ -9,7 +9,6 @@ export default function ProfileSetup() {
       <AppText variant="title" accessibilityRole="header">
         Create your profile
       </AppText>
-      <AppText color="textSecondary">Keep it friendly. You only need a photo, your first name and a short intro.</AppText>
       <ProfileForm submitLabel="Ready to yap" onSubmit={saveProfile} />
     </Screen>
   );
