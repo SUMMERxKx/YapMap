@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "YapMap",
-    "slug": "yapmap",
+    "name": "Yap",
+    "slug": "yap",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "yapmap",
+    "scheme": "yap",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -40,14 +40,14 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "YapMap uses your location only while you are available, to show you people who are up for a chat in the same place. Nobody sees where you are."
+          "locationWhenInUsePermission": "Yap uses your location only while you are available, to show you people who are up for a chat in the same place. Nobody sees where you are."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "YapMap uses your photo library so you can choose a profile photo.",
-          "cameraPermission": "YapMap uses the camera so you can take a profile photo."
+          "photosPermission": "Yap uses your photo library so you can choose a profile photo.",
+          "cameraPermission": "Yap uses the camera so you can take a profile photo."
         }
       ]
     ],

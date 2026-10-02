@@ -13,9 +13,9 @@ import { useTheme } from '@/theme';
 
 // Placeholder pages until the real ones are published.
 const LINKS = {
-  rules: 'https://example.com/yapmap/community-rules',
-  privacy: 'https://example.com/yapmap/privacy',
-  terms: 'https://example.com/yapmap/terms',
+  rules: 'https://example.com/yap/community-rules',
+  privacy: 'https://example.com/yap/privacy',
+  terms: 'https://example.com/yap/terms',
   support: 'mailto:support@example.com',
 };
 
@@ -94,7 +94,7 @@ export default function Profile() {
       ) : null}
 
       <AppText variant="caption" color="textSecondary" align="center">
-        YapMap {Constants.expoConfig?.version}
+        Yap {Constants.expoConfig?.version}
       </AppText>
     </Screen>
   );

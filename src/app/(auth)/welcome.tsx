@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
@@ -9,7 +8,7 @@ import { signInWithProvider } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Welcome() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, spacing } = useTheme();
 
   return (
     <Screen
@@ -37,29 +36,27 @@ export default function Welcome() {
           </AppText>
         </>
       }>
-      <View style={styles.hero}>
-        <View style={[styles.logo, { backgroundColor: colors.green, borderRadius: radius.xl }]}>
-          <Ionicons name="chatbubbles" size={44} color={colors.onGreen} />
-        </View>
-        <AppText variant="display" accessibilityRole="header">
-          YapMap
+      {/* Logo and background image come with the new design (issue #7). */}
+      <View style={[styles.hero, { gap: spacing.md }]}>
+        <AppText
+          accessibilityRole="header"
+          style={[styles.wordmark, { color: colors.green }]}
+          maxFontSizeMultiplier={1.2}>
+          Yap
         </AppText>
-        <AppText variant="body" color="textSecondary" align="center" style={{ maxWidth: 300 }}>
-          Turn green to have a spontaneous conversation with someone right here in the room.
+        <AppText variant="title" align="center">
+          The app that gets you off the app.
         </AppText>
-        <View style={[styles.chip, { backgroundColor: colors.surfaceMuted, borderRadius: radius.pill }]}>
-          <Ionicons name="cafe-outline" size={16} color={colors.greenText} />
-          <AppText variant="caption" color="textSecondary">
-            For cafés, lounges and common spaces
-          </AppText>
-        </View>
+        <AppText variant="body" color="textSecondary" align="center" style={styles.sub}>
+          Turn green for a spontaneous conversation with someone right here in the room.
+        </AppText>
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 14 },
-  logo: { width: 96, height: 96, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, paddingVertical: 8 },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  wordmark: { fontSize: 72, lineHeight: 80, fontWeight: '800', letterSpacing: -2 },
+  sub: { maxWidth: 320 },
 });

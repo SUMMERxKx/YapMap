@@ -74,7 +74,7 @@ export default function GoAvailable() {
 
       {location.denied ? (
         <InfoNote tone="warning" icon="location-outline" title="Location is off.">
-          YapMap needs your location only while you're available, to find people in the same place. You can
+          Yap needs your location only while you're available, to find people in the same place. You can
           turn it on in Settings.
         </InfoNote>
       ) : (
