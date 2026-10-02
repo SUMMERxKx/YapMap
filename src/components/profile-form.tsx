@@ -3,14 +3,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { Profile } from '@/data/types';
-import { LIMITS } from '@/data/types';
+import type { Gender, Profile } from '@/data/types';
+import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from './app-text';
 import { Avatar } from './avatar';
 import { Button } from './button';
 import { Checkbox } from './checkbox';
+import { Chip } from './chip';
 import { InfoNote } from './info-note';
 import { TextField } from './text-field';
 
@@ -26,14 +27,20 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const { colors, spacing } = useTheme();
   const [photoUri, setPhotoUri] = useState<string | null>(initial?.photoUri ?? null);
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
+  const [lastName, setLastName] = useState(initial?.lastName ?? '');
+  const [gender, setGender] = useState<Gender | null>(initial?.gender ?? null);
   const [intro, setIntro] = useState(initial?.intro ?? '');
+  const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
   const [isAdult, setIsAdult] = useState(initial?.isAdult ?? false);
   const [tried, setTried] = useState(false);
 
   const missing = [
     !photoUri && 'a photo',
     !firstName.trim() && 'your first name',
-    !intro.trim() && 'a one-line intro',
+    !lastName.trim() && 'your last name',
+    !gender && 'your gender',
+    !intro.trim() && 'an intro',
+    interests.length < INTEREST_RANGE.min && `at least ${INTEREST_RANGE.min} interests`,
     !isAdult && 'confirmation that you are 18 or older',
   ].filter(Boolean) as string[];
 
@@ -47,12 +54,31 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
     if (!result.canceled) setPhotoUri(result.assets[0]?.uri ?? null);
   };
 
+  const toggleInterest = (interest: string) =>
+    setInterests((current) =>
+      current.includes(interest)
+        ? current.filter((i) => i !== interest)
+        : current.length < INTEREST_RANGE.max
+          ? [...current, interest]
+          : current,
+    );
+
   const submit = () => {
     setTried(true);
-    if (missing.length === 0) {
-      onSubmit({ photoUri, firstName: firstName.trim(), intro: intro.trim(), isAdult });
+    if (missing.length === 0 && gender) {
+      onSubmit({
+        photoUri,
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        gender,
+        intro: intro.trim(),
+        interests,
+        isAdult,
+      });
     }
   };
+
+  const atMax = interests.length >= INTEREST_RANGE.max;
 
   return (
     <View style={{ gap: spacing.xl }}>
@@ -80,32 +106,99 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </View>
       </Pressable>
 
+      <View style={{ gap: spacing.sm }}>
+        <View style={styles.nameRow}>
+          <View style={styles.flex}>
+            <TextField
+              label="First name"
+              required
+              value={firstName}
+              onChangeText={setFirstName}
+              maxLength={LIMITS.firstName}
+              autoComplete="given-name"
+              textContentType="givenName"
+              placeholder="e.g. Samar"
+            />
+          </View>
+          <View style={styles.flex}>
+            <TextField
+              label="Last name"
+              required
+              value={lastName}
+              onChangeText={setLastName}
+              maxLength={LIMITS.lastName}
+              autoComplete="family-name"
+              textContentType="familyName"
+              placeholder="e.g. Khajuria"
+            />
+          </View>
+        </View>
+        <AppText variant="caption" color="textSecondary">
+          Others see your first name and last initial only.
+        </AppText>
+      </View>
+
+      <View style={{ gap: spacing.sm }}>
+        <AppText variant="caption">
+          Gender <AppText variant="caption" color="destructive">*</AppText>
+        </AppText>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={styles.wrap}>
+          {GENDERS.map((g) => (
+            <Chip
+              key={g.value}
+              role="radio"
+              label={g.label}
+              selected={gender === g.value}
+              onPress={() => setGender(g.value)}
+            />
+          ))}
+        </View>
+      </View>
+
       <TextField
-        label="First name"
-        required
-        value={firstName}
-        onChangeText={setFirstName}
-        maxLength={LIMITS.firstName}
-        autoComplete="given-name"
-        textContentType="givenName"
-        placeholder="e.g. Samar"
-      />
-      <TextField
-        label="One-line intro"
+        label="Intro"
         required
         value={intro}
-        onChangeText={(t) => setIntro(t.replace(/\n/g, ' '))}
+        onChangeText={setIntro}
         maxLength={LIMITS.intro}
         showCounter
         multiline
-        placeholder="e.g. Happy to talk about anything except work"
+        placeholder="e.g. Studying computer science, always up for talking about startups, films or the best coffee in town."
       />
+
+      <View style={{ gap: spacing.sm }}>
+        <View style={styles.labelRow}>
+          <AppText variant="caption">
+            Interests <AppText variant="caption" color="destructive">*</AppText>
+          </AppText>
+          <AppText variant="caption" color="textSecondary">
+            {interests.length}/{INTEREST_RANGE.max}
+          </AppText>
+        </View>
+        <AppText variant="caption" color="textSecondary">
+          Pick {INTEREST_RANGE.min} to {INTEREST_RANGE.max}, so people have something to talk about.
+        </AppText>
+        <View style={styles.wrap}>
+          {INTERESTS.map((interest) => {
+            const selected = interests.includes(interest);
+            return (
+              <Chip
+                key={interest}
+                label={interest}
+                selected={selected}
+                disabled={!selected && atMax}
+                onPress={() => toggleInterest(interest)}
+              />
+            );
+          })}
+        </View>
+      </View>
 
       {showAgeCheck ? (
         <Checkbox checked={isAdult} onChange={setIsAdult} label="I confirm I am 18 or older">
           <AppText variant="caption" color="textSecondary">
-            Yap is for adults only. By continuing you agree to the Community Rules on respectful,
-            safe conversations in public places.
+            Yap is for adults only. By continuing you agree to the Community Rules on respectful, safe
+            conversations in public places.
           </AppText>
         </Checkbox>
       ) : null}
@@ -122,6 +215,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   camera: {
     position: 'absolute',
@@ -134,4 +228,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  nameRow: { flexDirection: 'row', gap: 12 },
+  labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

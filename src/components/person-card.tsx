@@ -1,11 +1,12 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import type { NearbyPerson } from '@/data/types';
+import { displayName, type NearbyPerson } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from './app-text';
 import { Avatar } from './avatar';
 import { Badge } from './badge';
+import { InterestList } from './chip';
 
 type Props = { person: NearbyPerson; onPress: () => void };
 
@@ -14,7 +15,7 @@ export function PersonCard({ person, onPress }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${person.firstName}. ${person.intro}`}
+      accessibilityLabel={`${displayName(person)}. ${person.intro}. Interests: ${person.interests.join(', ')}`}
       accessibilityHint="Opens their profile so you can say hi"
       onPress={onPress}
       style={({ pressed }) => [
@@ -32,13 +33,16 @@ export function PersonCard({ person, onPress }: Props) {
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.titleRow}>
           <AppText variant="bodyStrong" style={{ flexShrink: 1 }}>
-            {person.firstName}
+            {displayName(person)}
           </AppText>
           <Badge label="here now" />
         </View>
-        <AppText variant="body" color="textSecondary" numberOfLines={3}>
+        <AppText variant="body" color="textSecondary" numberOfLines={2}>
           {person.intro}
         </AppText>
+        <View style={{ marginTop: 6 }}>
+          <InterestList interests={person.interests} max={3} />
+        </View>
       </View>
     </Pressable>
   );

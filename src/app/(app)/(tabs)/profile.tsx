@@ -42,7 +42,7 @@ export default function Profile() {
 
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${profile?.firstName}. Edit profile`}
+        accessibilityLabel={`${profile?.firstName} ${profile?.lastName}. Edit profile`}
         onPress={() => router.push('/edit-profile')}
         style={({ pressed }) => [
           styles.card,
@@ -55,7 +55,9 @@ export default function Profile() {
         ]}>
         <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={64} />
         <View style={{ flex: 1 }}>
-          <AppText variant="bodyStrong">{profile?.firstName}</AppText>
+          <AppText variant="bodyStrong">
+            {profile?.firstName} {profile?.lastName}
+          </AppText>
           <AppText variant="caption" color="textSecondary" numberOfLines={2}>
             {profile?.intro}
           </AppText>

@@ -5,6 +5,7 @@ import type {
   Availability,
   IncomingRequest,
   Match,
+  NearbyPerson,
   OutgoingRequest,
   Profile,
   ReportReason,
@@ -119,9 +120,8 @@ export function dismissExpired() {
 
 // ---------------------------------------------------------------- requests
 
-export async function sayHi(personId: string, firstName: string, intro: string, photoUri: string | null) {
+export async function sayHi(to: NearbyPerson) {
   if (state.outgoing?.status === 'pending') return; // one request at a time
-  const to = { id: personId, firstName, intro, photoUri };
   const { id } = await api.sendRequest(to);
   set({ outgoing: { id, to, expiresAt: Date.now() + REQUEST_WINDOW_MS, status: 'pending' } });
 

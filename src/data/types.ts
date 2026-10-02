@@ -1,7 +1,26 @@
+export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not';
+
+export const GENDERS: { value: Gender; label: string }[] = [
+  { value: 'woman', label: 'Woman' },
+  { value: 'man', label: 'Man' },
+  { value: 'non-binary', label: 'Non-binary' },
+  { value: 'prefer-not', label: 'Prefer not to say' },
+];
+
+export const INTERESTS = [
+  'Coffee', 'Books', 'Music', 'Movies', 'TV shows', 'Gaming', 'Tech', 'Startups',
+  'Design', 'Art', 'Photography', 'Writing', 'Science', 'History', 'Philosophy', 'Languages',
+  'Travel', 'Food', 'Cooking', 'Fitness', 'Running', 'Hiking', 'Yoga', 'Sports',
+  'Board games', 'Anime', 'Podcasts', 'Fashion', 'Volunteering', 'Pets', 'Nature', 'Comedy',
+] as const;
+
 export type Profile = {
   id: string;
   firstName: string;
-  intro: string; // max 80 characters
+  lastName: string; // only the initial is ever shown to other people
+  gender: Gender;
+  intro: string; // max 300 characters
+  interests: string[]; // 3 to 5 from INTERESTS
   photoUri: string | null;
   isAdult: boolean;
 };
@@ -10,9 +29,23 @@ export type Profile = {
 export type NearbyPerson = {
   id: string;
   firstName: string;
+  lastInitial: string;
+  gender: Gender | null; // null when they chose "Prefer not to say"
   intro: string;
+  interests: string[];
   photoUri: string | null;
 };
+
+/** How other people see a name: first name and last initial, e.g. "Sam K." */
+export function displayName(p: { firstName: string; lastInitial?: string; lastName?: string }) {
+  const initial = p.lastInitial ?? p.lastName?.trim().charAt(0) ?? '';
+  return initial ? `${p.firstName} ${initial.toUpperCase()}.` : p.firstName;
+}
+
+export function genderLabel(gender: Gender | null) {
+  if (!gender || gender === 'prefer-not') return null;
+  return GENDERS.find((g) => g.value === gender)?.label ?? null;
+}
 
 export type Availability = {
   minutes: 30 | 60 | 120;
@@ -61,4 +94,5 @@ export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
 export const DURATIONS = [30, 60, 120] as const;
 export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
 export const NEARBY_REFRESH_MS = 20 * 1000;
-export const LIMITS = { intro: 80, note: 60, firstName: 30 } as const;
+export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30 } as const;
+export const INTEREST_RANGE = { min: 3, max: 5 } as const;
