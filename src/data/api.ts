@@ -90,12 +90,6 @@ export async function nearby(blockedIds: string[]): Promise<NearbyPerson[]> {
   return MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id)).map(({ note: _note, ...p }) => p);
 }
 
-// Shown on the idle home screen. The server only reveals a count when it is 3 or more.
-export async function nearbyCount(): Promise<number | null> {
-  await wait(300);
-  return MOCK_PEOPLE.length >= 3 ? MOCK_PEOPLE.length : null;
-}
-
 export async function sendRequest(to: NearbyPerson) {
   await wait(400);
   return { id: `req_${Date.now()}`, to };

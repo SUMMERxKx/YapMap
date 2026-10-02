@@ -46,17 +46,3 @@ export function useNearby(enabled: boolean) {
 
   return { people: enabled ? people : null, refreshing, refresh, error };
 }
-
-/** The idle home screen's "3 people are up for a chat near you" count (null when under 3). */
-export function useNearbyCount(enabled: boolean) {
-  const [count, setCount] = useState<number | null>(null);
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    api.nearbyCount().then((n) => !cancelled && setCount(n));
-    return () => {
-      cancelled = true;
-    };
-  }, [enabled]);
-  return count;
-}
