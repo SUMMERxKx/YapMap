@@ -3,7 +3,7 @@ import { Tabs } from 'expo-router/js-tabs';
 
 import { useTheme } from '@/theme';
 
-// Two tabs for now. The Map tab (map meetups) gets added here if time permits.
+// Go live (the button), Nearby (the list) and Profile. A Map tab (map meetups) goes here if time permits.
 export default function TabsLayout() {
   const { colors } = useTheme();
   return (
@@ -17,6 +17,15 @@ export default function TabsLayout() {
       }}>
       <Tabs.Screen
         name="index"
+        options={{
+          title: 'Go live',
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons name={focused ? 'radio' : 'radio-outline'} size={26} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="nearby"
         options={{
           title: 'Nearby',
           tabBarIcon: ({ color, focused }) => (

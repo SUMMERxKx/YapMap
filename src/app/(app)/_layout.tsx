@@ -1,14 +1,22 @@
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
-import { useStore } from '@/state/store';
+import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function AppLayout() {
   const { colors } = useTheme();
   const incomingId = useStore((s) => s.incoming?.id);
   const matchId = useStore((s) => s.match?.id);
+  const expiresAt = useStore((s) => s.availability?.expiresAt);
   const shown = useRef<{ incoming?: string; match?: string }>({});
+
+  // Availability ends on time whichever screen is open.
+  useEffect(() => {
+    if (!expiresAt) return;
+    const timer = setTimeout(() => goOffline('expired'), Math.max(0, expiresAt - Date.now()));
+    return () => clearTimeout(timer);
+  }, [expiresAt]);
 
   // An incoming request or a new match takes over the screen, wherever the user is.
   // When push notifications are added, tapping one opens these same routes.
