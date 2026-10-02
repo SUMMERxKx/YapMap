@@ -15,7 +15,7 @@ import { Chip } from './chip';
 import { InfoNote } from './info-note';
 import { TextField } from './text-field';
 
-type Values = Omit<Profile, 'id'>;
+type Values = Omit<Profile, 'id' | 'verified'>;
 type Props = {
   initial?: Values;
   submitLabel: string;

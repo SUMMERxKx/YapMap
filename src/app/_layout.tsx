@@ -11,6 +11,7 @@ export default function RootLayout() {
   const { scheme, colors } = useTheme();
   const signedIn = useStore((s) => s.session !== null);
   const hasProfile = useStore((s) => s.profile !== null);
+  const verified = useStore((s) => s.profile?.verified === true);
 
   const navTheme = scheme === 'dark' ? DarkTheme : DefaultTheme;
 
@@ -33,10 +34,14 @@ export default function RootLayout() {
             <Stack.Protected guard={!signedIn}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
+            {/* Exactly one of these is allowed at a time, so the app always lands on the right step. */}
             <Stack.Protected guard={signedIn && !hasProfile}>
               <Stack.Screen name="profile-setup" />
             </Stack.Protected>
-            <Stack.Protected guard={signedIn && hasProfile}>
+            <Stack.Protected guard={signedIn && hasProfile && !verified}>
+              <Stack.Screen name="verify-face" />
+            </Stack.Protected>
+            <Stack.Protected guard={signedIn && hasProfile && verified}>
               <Stack.Screen name="(app)" />
             </Stack.Protected>
           </Stack>

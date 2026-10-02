@@ -71,8 +71,22 @@ export function signInWithProvider(provider: 'apple' | 'google') {
   set({ session: { email: `${provider}-user@example.com` } });
 }
 
-export function saveProfile(profile: Omit<Profile, 'id'>) {
-  set({ profile: { id: 'me', ...profile } });
+/** Saves the profile. A new or changed photo needs a new selfie check. */
+export function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
+  const previous = state.profile;
+  const verified = !!previous?.verified && previous.photoUri === values.photoUri;
+  set({ profile: { id: 'me', ...values, verified } });
+}
+
+export async function verifySelfie(selfieUri: string) {
+  const photo = state.profile?.photoUri;
+  if (!photo) throw new Error('Add a profile photo first.');
+  const { matched } = await api.verifySelfie(selfieUri, photo);
+  return matched;
+}
+
+export function markVerified() {
+  if (state.profile) set({ profile: { ...state.profile, verified: true } });
 }
 
 export function signOut() {

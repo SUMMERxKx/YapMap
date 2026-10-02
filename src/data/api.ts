@@ -15,6 +15,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     intro: 'Taking a study break from biochemistry. Keen to chat about books, music, or anything that isn\'t enzymes.',
     interests: ['Books', 'Music', 'Science'],
     photoUri: null,
+    verified: true,
     note: 'Counter table near the plants, black corduroy cap',
   },
   {
@@ -25,6 +26,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     intro: 'Sketching coffee cups. Would love opinions on urban illustration, or recommendations for the best flat white nearby.',
     interests: ['Art', 'Design', 'Coffee', 'Travel'],
     photoUri: null,
+    verified: true,
     note: 'Big table at the back, green notebook',
   },
   {
@@ -35,6 +37,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     intro: 'New in town from Montreal. Exploring local roasteries and looking for good hiking spots.',
     interests: ['Coffee', 'Hiking', 'Languages', 'Food'],
     photoUri: null,
+    verified: true,
     note: 'By the window, grey hoodie',
   },
   {
@@ -45,9 +48,18 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     intro: 'Taking a break from my laptop screen. Up for a 15-minute chat about startups, podcasts or board games.',
     interests: ['Startups', 'Podcasts', 'Board games'],
     photoUri: null,
+    verified: true,
     note: 'Bar seats facing the street, red scarf',
   },
 ];
+
+// Mock face match. The real version runs on the server (a Supabase Edge Function calling a
+// face-comparison service such as AWS Rekognition CompareFaces, with a liveness check).
+// The selfie is compared with the profile photo and deleted straight after; only the result is kept.
+export async function verifySelfie(_selfieUri: string, _profilePhotoUri: string): Promise<{ matched: boolean }> {
+  await wait(2500);
+  return { matched: true };
+}
 
 export async function requestEmailCode(email: string) {
   await wait(600);

@@ -7,6 +7,7 @@ import { useTheme } from '@/theme';
 import { AppText } from './app-text';
 import { Avatar } from './avatar';
 import { InterestList } from './chip';
+import { VerifiedBadge } from './verified-badge';
 
 type Props = { person: NearbyPerson; subtitle?: string };
 
@@ -23,6 +24,7 @@ export function PersonDetails({ person, subtitle }: Props) {
           {displayName(person)}
         </AppText>
         {gender ? <AppText color="textSecondary">{gender}</AppText> : null}
+        {person.verified ? <VerifiedBadge /> : null}
         {subtitle ? (
           <AppText color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
             {subtitle}
