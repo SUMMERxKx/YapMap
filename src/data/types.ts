@@ -23,6 +23,7 @@ export type Profile = {
   interests: string[]; // 3 to 5 from INTERESTS
   photoUri: string | null;
   isAdult: boolean;
+  verified: boolean; // selfie matched the profile photo
 };
 
 // What the server's `nearby` function returns: people, never positions or distances.
@@ -34,6 +35,7 @@ export type NearbyPerson = {
   intro: string;
   interests: string[];
   photoUri: string | null;
+  verified: boolean;
 };
 
 /** How other people see a name: first name and last initial, e.g. "Sam K." */
@@ -96,3 +98,11 @@ export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
 export const NEARBY_REFRESH_MS = 20 * 1000;
 export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30 } as const;
 export const INTEREST_RANGE = { min: 3, max: 5 } as const;
+
+// Random poses for the verification selfie, so an old photo can't be reused.
+export const VERIFICATION_POSES = [
+  { icon: 'thumbs-up-outline', text: 'Give a thumbs up next to your face' },
+  { icon: 'hand-left-outline', text: 'Hold up two fingers in a peace sign' },
+  { icon: 'happy-outline', text: 'Touch your nose with one finger' },
+  { icon: 'hand-right-outline', text: 'Rest your chin on your hand' },
+] as const;
