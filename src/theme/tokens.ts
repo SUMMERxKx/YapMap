@@ -1,4 +1,4 @@
-// YapMap design tokens.
+// Yap design tokens.
 // Based on the Stitch board ("YapMap Mobile UI Design System"), with contrast fixes:
 // every text/background pair below meets WCAG AA (4.5:1 for text, 3:1 for UI parts).
 

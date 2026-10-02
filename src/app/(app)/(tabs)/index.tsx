@@ -28,10 +28,9 @@ function IdleHome() {
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingHorizontal: spacing.xxl }]}>
-        <View style={[styles.logo, { backgroundColor: colors.green }]}>
-          <Ionicons name="chatbubbles" size={18} color={colors.onGreen} />
-        </View>
-        <AppText variant="heading">YapMap</AppText>
+        <AppText variant="heading" style={{ color: colors.green, fontWeight: '800' }}>
+          Yap
+        </AppText>
       </View>
 
       <View style={[styles.idleBody, { padding: spacing.xxl, gap: spacing.lg }]}>
@@ -184,7 +183,6 @@ function PendingRequestBar() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 56 },
-  logo: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
   idleBody: { flex: 1, alignItems: 'center' },
   countPill: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 999 },

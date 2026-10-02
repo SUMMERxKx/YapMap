@@ -41,7 +41,7 @@ export default function Report() {
           <AppText color="textSecondary" align="center">
             {alsoBlock
               ? `We'll review this. ${name} can't see you any more, and you won't see them.`
-              : "We'll review this. Thanks for helping keep YapMap safe."}
+              : "We'll review this. Thanks for helping keep Yap safe."}
           </AppText>
         </View>
       </Screen>
