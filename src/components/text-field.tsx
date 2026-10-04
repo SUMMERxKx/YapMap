@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from '@/theme';
@@ -6,6 +6,7 @@ import { useTheme } from '@/theme';
 import { AppText } from './app-text';
 
 type Props = Omit<TextInputProps, 'style'> & {
+  ref?: Ref<TextInput>;
   label: string;
   required?: boolean;
   error?: string | null;
