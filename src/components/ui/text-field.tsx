@@ -1,9 +1,11 @@
+// Labelled text input with focus/error borders and an optional character counter.
+
 import { useState, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Props = Omit<TextInputProps, 'style'> & {
   ref?: Ref<TextInput>;

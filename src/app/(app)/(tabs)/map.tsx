@@ -5,8 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
 import { loadEvents, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

@@ -1,12 +1,14 @@
+// A nearby person's profile sheet, with Say hi and the safety menu.
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, IconButton } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { PersonDetails } from '@/components/person-details';
-import { SafetyMenu } from '@/components/safety-menu';
+import { Button, IconButton } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { PersonDetails } from '@/components/profile/person-details';
+import { SafetyMenu } from '@/components/safety/safety-menu';
 import * as api from '@/data/api';
 import { displayName, type NearbyPerson } from '@/data/types';
 import { sayHi, useStore } from '@/state/store';

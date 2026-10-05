@@ -1,3 +1,5 @@
+// Buttons: one pill Button with variants, and a round IconButton for icon-only actions.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type { ComponentProps } from 'react';
@@ -5,7 +7,7 @@ import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from '
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'inverse' | 'destructive' | 'destructiveSoft';
 

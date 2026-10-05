@@ -1,3 +1,6 @@
+// The theming entry point: useTheme() hands every component the palette for the
+// current light/dark scheme plus the shared spacing, radius and type scales.
+
 import { useColorScheme } from 'react-native';
 
 import { elevation, palette, radius, spacing, touch, type, type Colors } from './tokens';

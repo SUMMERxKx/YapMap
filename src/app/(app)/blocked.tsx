@@ -1,8 +1,10 @@
+// The people you've blocked, with unblock.
+
 import { FlatList, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
 import { unblockUser, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

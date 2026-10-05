@@ -5,8 +5,8 @@ import { useCallback, useRef, useState } from 'react';
 import { FlatList, StyleSheet, useWindowDimensions, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
 import { markTutorialSeen } from '@/state/store';
 import { useTheme } from '@/theme';
 

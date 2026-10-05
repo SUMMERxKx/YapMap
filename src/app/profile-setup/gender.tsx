@@ -1,10 +1,12 @@
+// Setup step 2: gender, and whether to show it on the profile.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { SetupStep } from '@/components/setup-step';
-import { ToggleRow } from '@/components/toggle-row';
+import { AppText } from '@/components/ui/app-text';
+import { SetupStep } from '@/components/profile/setup-step';
+import { ToggleRow } from '@/components/ui/toggle-row';
 import { GENDERS } from '@/data/types';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';

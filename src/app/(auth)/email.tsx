@@ -1,11 +1,13 @@
+// Email sign-in, step 1: ask for the address and send a 6-digit code.
+
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button, IconButton } from '@/components/button';
-import { Screen } from '@/components/screen';
-import { TextField } from '@/components/text-field';
+import { AppText } from '@/components/ui/app-text';
+import { Button, IconButton } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
+import { TextField } from '@/components/ui/text-field';
 import * as api from '@/data/api';
 
 export default function Email() {

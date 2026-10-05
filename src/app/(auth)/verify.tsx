@@ -1,11 +1,13 @@
+// Email sign-in, step 2: enter the 6-digit code (one hidden input behind six boxes).
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button, IconButton } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Button, IconButton } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { Screen } from '@/components/ui/screen';
 import * as api from '@/data/api';
 import { signInWithEmail } from '@/state/store';
 import { useTheme } from '@/theme';

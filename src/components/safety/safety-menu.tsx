@@ -7,8 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { blockUser } from '@/state/store';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { IconButton } from './button';
+import { AppText } from '@/components/ui/app-text';
+import { IconButton } from '@/components/ui/button';
 
 type Props = {
   userId: string;

@@ -1,15 +1,17 @@
+// Profile tab: your profile, blocked people, legal links, sign out and account deletion.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
 import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
-import { ListGroup, ListRow } from '@/components/list-row';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
+import { ListGroup, ListRow } from '@/components/ui/list-row';
+import { Screen } from '@/components/ui/screen';
 import { FEATURES } from '@/config/features';
-import { VerifiedBadge } from '@/components/verified-badge';
+import { VerifiedBadge } from '@/components/profile/verified-badge';
 import { deleteAccount, signOut, simulateIncoming, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

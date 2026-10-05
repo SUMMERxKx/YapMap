@@ -1,12 +1,14 @@
+// Setup step 5: the profile picture.
+
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { router } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
 
-import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { SetupStep } from '@/components/setup-step';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { SetupStep } from '@/components/profile/setup-step';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 const PICKER: ImagePicker.ImagePickerOptions = {

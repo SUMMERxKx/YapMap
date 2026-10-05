@@ -1,10 +1,12 @@
+// First screen: the Yap pitch and the three ways to sign in.
+
 import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { GlassBackdrop } from '@/components/glass-backdrop';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { GlassBackdrop } from '@/components/ui/glass-backdrop';
+import { Screen } from '@/components/ui/screen';
 import { signInWithProvider } from '@/state/store';
 import { useTheme } from '@/theme';
 

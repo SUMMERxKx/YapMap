@@ -1,8 +1,10 @@
+// Edit profile: the same fields as setup, on one page.
+
 import { router } from 'expo-router';
 
-import { InfoNote } from '@/components/info-note';
-import { ProfileForm } from '@/components/profile-form';
-import { Screen } from '@/components/screen';
+import { InfoNote } from '@/components/ui/info-note';
+import { ProfileForm } from '@/components/profile/profile-form';
+import { Screen } from '@/components/ui/screen';
 import { FEATURES } from '@/config/features';
 import { saveProfile, useStore } from '@/state/store';
 

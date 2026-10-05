@@ -4,11 +4,11 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button, IconButton } from '@/components/button';
-import { SafetyMenu } from '@/components/safety-menu';
-import { formatEventTime } from '@/hooks/use-countdown';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button, IconButton } from '@/components/ui/button';
+import { SafetyMenu } from '@/components/safety/safety-menu';
+import { formatEventTime } from '@/lib/format-time';
 import { joinEvent, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

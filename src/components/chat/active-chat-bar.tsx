@@ -6,8 +6,8 @@ import { displayName } from '@/data/types';
 import { useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Avatar } from './avatar';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
 
 /** Shown on Go live and Nearby while a 1:1 chat is open, so leaving the chat never loses it. */
 export function ActiveChatBar() {

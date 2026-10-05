@@ -1,13 +1,15 @@
+// Report someone (and optionally block them at the same time).
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button, IconButton } from '@/components/button';
-import { Checkbox } from '@/components/checkbox';
-import { Screen } from '@/components/screen';
-import { TextField } from '@/components/text-field';
+import { AppText } from '@/components/ui/app-text';
+import { Button, IconButton } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Screen } from '@/components/ui/screen';
+import { TextField } from '@/components/ui/text-field';
 import { REPORT_REASONS, type ReportReason } from '@/data/types';
 import { blockUser, reportUser } from '@/state/store';
 import { useTheme } from '@/theme';

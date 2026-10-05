@@ -7,15 +7,15 @@ import type { Gender, Profile } from '@/data/types';
 import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS, PHOTO_RANGE } from '@/data/types';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Avatar } from './avatar';
-import { Button } from './button';
-import { Checkbox } from './checkbox';
-import { Chip } from './chip';
-import { InfoNote } from './info-note';
-import { PhotoGrid } from './photo-grid';
-import { TextField } from './text-field';
-import { ToggleRow } from './toggle-row';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Chip } from '@/components/ui/chip';
+import { InfoNote } from '@/components/ui/info-note';
+import { PhotoGrid } from '@/components/profile/photo-grid';
+import { TextField } from '@/components/ui/text-field';
+import { ToggleRow } from '@/components/ui/toggle-row';
 
 type Values = Omit<Profile, 'id' | 'verified'>;
 type Props = {

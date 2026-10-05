@@ -2,12 +2,13 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ActiveChatBar } from '@/components/active-chat-bar';
-import { AppText } from '@/components/app-text';
-import { GlassBackdrop } from '@/components/glass-backdrop';
-import { HeroButton } from '@/components/hero-button';
-import { InfoNote } from '@/components/info-note';
-import { formatMinutesLeft, useCountdown } from '@/hooks/use-countdown';
+import { ActiveChatBar } from '@/components/chat/active-chat-bar';
+import { AppText } from '@/components/ui/app-text';
+import { GlassBackdrop } from '@/components/ui/glass-backdrop';
+import { HeroButton } from '@/components/live/hero-button';
+import { InfoNote } from '@/components/ui/info-note';
+import { useCountdown } from '@/hooks/use-countdown';
+import { formatMinutesLeft } from '@/lib/format-time';
 import { dismissExpired, goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

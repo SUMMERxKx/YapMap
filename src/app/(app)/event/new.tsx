@@ -5,12 +5,12 @@ import { useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { TextField } from '@/components/text-field';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { TextField } from '@/components/ui/text-field';
 import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/types';
-import { formatStartTime } from '@/hooks/use-countdown';
+import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
 

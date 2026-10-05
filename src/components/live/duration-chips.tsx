@@ -1,9 +1,11 @@
+// The 30 / 60 / 120 minute choice on the go-live sheet.
+
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { DURATIONS } from '@/data/types';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Duration = (typeof DURATIONS)[number];
 type Props = { value: Duration; onChange: (value: Duration) => void };
