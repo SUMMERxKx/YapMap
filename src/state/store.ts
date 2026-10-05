@@ -3,9 +3,9 @@ import { useSyncExternalStore } from 'react';
 import * as api from '@/data/api';
 import type {
   Availability,
+  ChatSession,
   IncomingRequest,
   MapEvent,
-  Match,
   Message,
   NearbyPerson,
   OutgoingRequest,
@@ -25,7 +25,7 @@ type State = {
   availabilityExpired: boolean; // shows "Your time's up" until dismissed
   outgoing: OutgoingRequest | null;
   incoming: IncomingRequest | null;
-  match: Match | null;
+  chat: ChatSession | null; // the 1:1 chat with your current yap partner
   blockedIds: string[];
   blockedNames: Record<string, string>;
   safetyTipViews: number;
@@ -41,7 +41,7 @@ const initialState: State = {
   availabilityExpired: false,
   outgoing: null,
   incoming: null,
-  match: null,
+  chat: null,
   blockedIds: [],
   blockedNames: {},
   safetyTipViews: 0,
@@ -156,7 +156,7 @@ export async function sayHi(to: NearbyPerson) {
   if (outcome === 'accepted') {
     set({
       outgoing: { ...state.outgoing, status: 'accepted' },
-      match: { id, other: to, status: 'active', messages: [] },
+      chat: { id, other: to, status: 'active', messages: [] },
     });
   } else {
     set({ outgoing: { ...state.outgoing, status: 'not-this-time' } });
@@ -190,7 +190,7 @@ export async function respondToIncoming(accept: boolean) {
   await api.respond(incoming.id, accept);
   if (accept) {
     set({
-      match: { id: incoming.id, other: incoming.from, status: 'active', messages: [] },
+      chat: { id: incoming.id, other: incoming.from, status: 'active', messages: [] },
     });
   }
 }
@@ -204,38 +204,38 @@ export function expireIncoming() {
 // ---------------------------------------------------------------- chat
 
 function addMessage(message: Message) {
-  if (state.match) set({ match: { ...state.match, messages: [...state.match.messages, message] } });
+  if (state.chat) set({ chat: { ...state.chat, messages: [...state.chat.messages, message] } });
 }
 
 function receiveFromOther(kind: 'opener' | 'reply') {
-  const chatId = state.match?.id;
+  const chatId = state.chat?.id;
   if (!chatId) return;
   api.waitForReply(kind).then((text) => {
-    const other = state.match?.id === chatId ? state.match.other : null;
+    const other = state.chat?.id === chatId ? state.chat.other : null;
     if (!other) return; // chat ended meanwhile
     addMessage({ id: `m_${Date.now()}`, senderId: other.id, senderName: other.firstName, text, sentAt: Date.now() });
   });
 }
 
-/** Called when the chat opens: the mock other person says hello first. */
+/** Called when the chat opens: the mock yap partner says hello first. */
 export function startChat() {
-  if (state.match && state.match.messages.length === 0) receiveFromOther('opener');
+  if (state.chat && state.chat.messages.length === 0) receiveFromOther('opener');
 }
 
 export async function sendMessage(text: string) {
-  const match = state.match;
+  const chat = state.chat;
   const body = text.trim();
-  if (!match || !body) return;
+  if (!chat || !body) return;
   addMessage({ id: `m_${Date.now()}`, senderId: 'me', senderName: 'You', text: body, sentAt: Date.now() });
-  await api.sendMessage(match.id, body);
+  await api.sendMessage(chat.id, body);
   receiveFromOther('reply');
 }
 
-export async function endMatch(outcome: 'met' | 'cancelled') {
-  const match = state.match;
-  if (!match) return;
-  set({ match: null, outgoing: null });
-  await api.endMatch(match.id, outcome);
+export async function endChat(outcome: 'met' | 'cancelled') {
+  const chat = state.chat;
+  if (!chat) return;
+  set({ chat: null, outgoing: null });
+  await api.endChat(chat.id, outcome);
 }
 
 export function showNearbyAlert(alert: NearbyAlert) {
@@ -263,7 +263,7 @@ export async function blockUser(userId: string, firstName: string) {
     blockedNames: { ...state.blockedNames, [userId]: firstName },
     outgoing: state.outgoing?.to.id === userId ? null : state.outgoing,
     incoming: state.incoming?.from.id === userId ? null : state.incoming,
-    match: state.match?.other.id === userId ? null : state.match,
+    chat: state.chat?.other.id === userId ? null : state.chat,
   });
   await api.block(userId);
 }

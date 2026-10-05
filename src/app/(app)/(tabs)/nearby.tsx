@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ActiveChatBar } from '@/components/active-chat-bar';
 import { AppText } from '@/components/app-text';
 import { Button } from '@/components/button';
 import { InfoNote } from '@/components/info-note';
@@ -22,6 +23,9 @@ function NotLive() {
   const { colors, spacing } = useTheme();
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
+      <View style={{ padding: spacing.xxl, paddingBottom: 0 }}>
+        <ActiveChatBar />
+      </View>
       <View style={[styles.center, { padding: spacing.xxl, gap: spacing.md }]}>
         <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
         <AppText variant="title" align="center" accessibilityRole="header">
@@ -62,6 +66,7 @@ function NearbyList() {
                 </AppText>
               </View>
             </View>
+            <ActiveChatBar />
             <PendingRequestBar />
           </View>
         }

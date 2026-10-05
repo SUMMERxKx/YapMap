@@ -5,20 +5,20 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
 import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
+import { Button, IconButton } from '@/components/button';
 import { ChatThread } from '@/components/chat-thread';
 import { InfoNote } from '@/components/info-note';
 import { SafetyMenu } from '@/components/safety-menu';
 import { displayName } from '@/data/types';
-import { endMatch, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
+import { endChat, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 const SAFETY_TIP_TIMES = 3;
 
-/** The 1:1 chat that opens when a request is accepted. */
+/** The 1:1 chat with your yap partner, opened when a request is accepted. */
 export default function Chat() {
   const { colors, spacing } = useTheme();
-  const match = useStore((s) => s.match);
+  const chat = useStore((s) => s.chat);
   const tipViews = useStore((s) => s.safetyTipViews);
   const [showTip, setShowTip] = useState(() => tipViews < SAFETY_TIP_TIMES); // decided once per chat
 
@@ -26,12 +26,13 @@ export default function Chat() {
     startChat();
   }, []);
 
+  // The chat ended (by either side, or a block): close this screen.
   useEffect(() => {
-    if (!match && router.canGoBack()) router.back();
-  }, [match]);
+    if (!chat && router.canGoBack()) router.back();
+  }, [chat]);
 
-  if (!match) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
-  const { other } = match;
+  if (!chat) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
+  const { other } = chat;
 
   const end = () =>
     Alert.alert('End chat?', `Did you meet ${other.firstName}?`, [
@@ -42,12 +43,14 @@ export default function Chat() {
 
   const finish = (outcome: 'met' | 'cancelled') => {
     if (showTip) markSafetyTipSeen();
-    endMatch(outcome);
+    endChat(outcome);
   };
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border, paddingHorizontal: spacing.lg, gap: spacing.md }]}>
+      <View style={[styles.header, { borderBottomColor: colors.border, paddingHorizontal: spacing.md, gap: spacing.sm }]}>
+        {/* Going back keeps the chat alive; the bar on Go live and Nearby reopens it. */}
+        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${displayName(other)}. View profile`}
@@ -59,7 +62,7 @@ export default function Chat() {
               {displayName(other)}
             </AppText>
             <AppText variant="caption" color="greenText">
-              Matched, go and say hi
+              Your yap partner — go say hi
             </AppText>
           </View>
         </Pressable>
@@ -68,10 +71,10 @@ export default function Chat() {
       </View>
 
       <ChatThread
-        messages={match.messages}
+        messages={chat.messages}
         onSend={sendMessage}
         placeholder={`Message ${other.firstName}`}
-        disabled={match.status === 'other-cancelled'}
+        disabled={chat.status === 'other-cancelled'}
         disabledText={`${other.firstName} ended the chat`}
         header={
           showTip ? (

@@ -18,7 +18,7 @@ export default function PersonSheet() {
   const insets = useSafeAreaInsets();
   const blockedIds = useStore((s) => s.blockedIds);
   const outgoing = useStore((s) => s.outgoing);
-  const chattingWith = useStore((s) => s.match?.other.id);
+  const chattingWith = useStore((s) => s.chat?.other.id);
   const [person, setPerson] = useState<NearbyPerson | null>(null);
 
   useEffect(() => {
