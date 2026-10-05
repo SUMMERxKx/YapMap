@@ -22,7 +22,9 @@ Block and report are always two taps away.
 
 - React Native with Expo (SDK 57) and TypeScript
 - Expo Router for navigation
-- Backend: Supabase (planned). The app currently runs on a mock backend in `src/data/api.ts`.
+- Backend: Supabase — Postgres (+PostGIS) with row-level security, database functions for
+  every write, Realtime for requests and chat, and private photo storage. The SQL lives in
+  `supabase/migrations/`.
 
 ## Run it
 
@@ -32,10 +34,11 @@ npm install
 npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
 ```
 
-Testing with the mock backend:
-- Any 6-digit code signs you in. `000000` shows the error state.
-- After "Say hi", the mock answers in about 6 seconds.
-- In development builds, Profile has "Simulate an incoming request".
+Testing against the real backend:
+- Sign in with a real email address: a 6-digit code is sent to it. The built-in email
+  sender only allows a few codes per hour, so use it sparingly until custom SMTP is set up.
+- The core loop needs two phones signed in with different emails, within ~100 m of each
+  other (same room counts), both live.
 
 ## Code tour
 

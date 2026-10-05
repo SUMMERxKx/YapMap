@@ -6,6 +6,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { GlassBackdrop } from '@/components/ui/glass-backdrop';
+import { FEATURES } from '@/config/features';
 import { Screen } from '@/components/ui/screen';
 import { signInWithProvider } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -20,7 +21,7 @@ export default function Welcome() {
         <>
           {/* Sign in with Apple is iOS-only (expo-apple-authentication). Swap in its official
               AppleAuthenticationButton when Supabase Auth is connected. */}
-          {Platform.OS === 'ios' ? (
+          {FEATURES.socialSignIn && Platform.OS === 'ios' ? (
             <Button
               label="Continue with Apple"
               icon="logo-apple"
@@ -28,13 +29,15 @@ export default function Welcome() {
               onPress={() => signInWithProvider('apple')}
             />
           ) : null}
-          <Button
-            label="Continue with Google"
-            icon="logo-google"
-            variant="secondary"
-            onPress={() => signInWithProvider('google')}
-          />
-          <Button label="Continue with email" icon="mail-outline" variant="ghost" onPress={() => router.push('/email')} />
+          {FEATURES.socialSignIn ? (
+            <Button
+              label="Continue with Google"
+              icon="logo-google"
+              variant="secondary"
+              onPress={() => signInWithProvider('google')}
+            />
+          ) : null}
+          <Button label="Continue with email" icon="mail-outline" onPress={() => router.push('/email')} />
           <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.sm }}>
             By continuing you agree to the Community Rules and Privacy Policy.
           </AppText>

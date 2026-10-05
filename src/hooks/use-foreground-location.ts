@@ -2,7 +2,7 @@ import * as Location from 'expo-location';
 import { useCallback, useState } from 'react';
 
 type Result =
-  | { ok: true; latitude: number | null; longitude: number | null }
+  | { ok: true; latitude: number | null; longitude: number | null; accuracy: number | null }
   | { ok: false; reason: 'denied' };
 
 /** Foreground ("while using the app") location only. Never background. */
@@ -26,9 +26,11 @@ export function useForegroundLocation() {
         ok: true,
         latitude: position?.coords.latitude ?? null,
         longitude: position?.coords.longitude ?? null,
+        // The server widens the "nearby" radius a little when the fix is poor.
+        accuracy: position?.coords.accuracy ?? null,
       };
     } catch {
-      return { ok: true, latitude: null, longitude: null };
+      return { ok: true, latitude: null, longitude: null, accuracy: null };
     }
   }, []);
 

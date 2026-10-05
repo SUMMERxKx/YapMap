@@ -12,7 +12,7 @@ import { ListGroup, ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { FEATURES } from '@/config/features';
 import { VerifiedBadge } from '@/components/profile/verified-badge';
-import { deleteAccount, signOut, simulateIncoming, useStore } from '@/state/store';
+import { deleteAccount, signOut, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Placeholder pages until the real ones are published.
@@ -94,15 +94,6 @@ export default function Profile() {
         <Button label="Sign out" variant="secondary" onPress={signOut} />
         <Button label="Delete account" variant="destructiveSoft" onPress={confirmDelete} />
       </View>
-
-      {__DEV__ ? (
-        <View style={{ gap: spacing.sm }}>
-          <AppText variant="label" color="textSecondary">
-            DEVELOPMENT ONLY
-          </AppText>
-          <Button label="Simulate an incoming request" variant="secondary" icon="flask-outline" onPress={simulateIncoming} />
-        </View>
-      ) : null}
 
       <AppText variant="caption" color="textSecondary" align="center">
         Yap {Constants.expoConfig?.version}

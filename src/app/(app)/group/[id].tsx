@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,7 +9,7 @@ import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
 import { formatEventTime } from '@/lib/format-time';
-import { blockUser, leaveEvent, sendGroupMessage, useStore } from '@/state/store';
+import { blockUser, enterEventChat, leaveEvent, leaveEventChat, sendGroupMessage, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 /** Group chat for a map event. Long-press someone's message to report or block them. */
@@ -17,6 +18,12 @@ export default function GroupChat() {
   const { colors, spacing } = useTheme();
   const event = useStore((s) => s.events.find((e) => e.id === id));
   const blockedIds = useStore((s) => s.blockedIds);
+
+  // Load the chat history and listen for new messages while this screen is open.
+  useEffect(() => {
+    if (id) void enterEventChat(id);
+    return () => leaveEventChat();
+  }, [id]);
 
   if (!event) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
 

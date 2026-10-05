@@ -1,8 +1,10 @@
 // All app state and the actions that change it, in one small external store
 // (useSyncExternalStore). Screens read slices with useStore(selector) and call the
-// exported actions; nothing outside this file writes state. Each section below mirrors
-// a backend concept, so swapping the mock api for Supabase mostly touches data/api.ts.
+// exported actions; nothing outside this file writes state. Actions talk to the backend
+// through src/data/api.ts, and this file also owns the Realtime subscriptions (incoming
+// requests, chat messages, event messages).
 
+import { Alert } from 'react-native';
 import { useSyncExternalStore } from 'react';
 
 import * as api from '@/data/api';
@@ -11,19 +13,19 @@ import type {
   ChatSession,
   IncomingRequest,
   MapEvent,
-  Message,
   NearbyPerson,
   OutgoingRequest,
   Profile,
   ReportReason,
 } from '@/data/types';
-import { REQUEST_WINDOW_MS } from '@/data/types';
 
 export type NearbyAlert =
   | { id: string; kind: 'summary'; count: number }
   | { id: string; kind: 'person'; person: NearbyPerson };
 
 type State = {
+  booted: boolean; // the stored session and profile have been loaded
+  myId: string | null;
   session: { email: string } | null;
   profile: Profile | null;
   availability: Availability | null;
@@ -40,6 +42,8 @@ type State = {
 };
 
 const initialState: State = {
+  booted: false,
+  myId: null,
   session: null,
   profile: null,
   availability: null,
@@ -76,23 +80,108 @@ export function useStore<T>(selector: (s: State) => T): T {
   return useSyncExternalStore(subscribe, () => selector(state), () => selector(state));
 }
 
+// ---------------------------------------------------------------- realtime plumbing
+
+// Unsubscribe functions for the channels this store keeps open. Only ever one of each.
+let stopIncoming: (() => void) | null = null;
+let stopChatMessages: (() => void) | null = null;
+let stopEventMessages: (() => void) | null = null;
+
+function teardownRealtime() {
+  stopIncoming?.();
+  stopChatMessages?.();
+  stopEventMessages?.();
+  stopIncoming = stopChatMessages = stopEventMessages = null;
+}
+
+// ---------------------------------------------------------------- boot
+
+let initStarted = false;
+
+/** Called once from the root layout: restore the session, profile and live state. */
+export async function init() {
+  if (initStarted) return;
+  initStarted = true;
+
+  // Sign-out (from anywhere, including account deletion) resets the app.
+  api.onAuthStateChange((signedIn) => {
+    if (!signedIn) {
+      teardownRealtime();
+      set({ ...initialState, booted: true });
+    }
+  });
+
+  try {
+    const user = await api.getSessionUser();
+    if (user) {
+      set({ myId: user.id, session: { email: user.email ?? '' } });
+      await refreshAfterAuth();
+    }
+  } catch {
+    // Offline at launch: stay signed out visually; the next sign-in sorts it out.
+  }
+  set({ booted: true });
+}
+
+/** Load everything a signed-in session needs; safe to call again after sign-in. */
+async function refreshAfterAuth() {
+  const user = await api.getSessionUser();
+  if (!user) return;
+  set({ myId: user.id, session: { email: user.email ?? '' } });
+
+  const profile = await api.fetchMyProfile();
+  set({ profile });
+  if (!profile) return; // the layout sends them to profile setup
+
+  const blocked = await api.blockedList();
+  set({
+    blockedIds: blocked.map((b) => b.id),
+    blockedNames: Object.fromEntries(blocked.map((b) => [b.id, `${b.firstName} ${b.lastInitial}.`])),
+  });
+
+  // New say-hi requests arrive over Realtime for the whole session.
+  stopIncoming?.();
+  stopIncoming = api.subscribeIncoming(user.id, (request) => void onIncoming(request));
+
+  // If the app was killed while live or mid-chat, pick up where things stand.
+  const status = await api.myStatus();
+  if (status.live) {
+    set({
+      availability: {
+        minutes: nearestDuration(status.live.expiresAt - status.live.startedAt),
+        note: status.live.note,
+        startedAt: status.live.startedAt,
+        expiresAt: status.live.expiresAt,
+      },
+    });
+  }
+  if (status.chatId) await openChat(status.chatId);
+}
+
+function nearestDuration(ms: number): Availability['minutes'] {
+  const minutes = Math.round(ms / 60000);
+  if (minutes <= 30) return 30;
+  return minutes <= 60 ? 60 : 120;
+}
+
 // ---------------------------------------------------------------- auth & profile
 
 export async function signInWithEmail(email: string, code: string) {
   await api.verifyEmailCode(email, code);
-  set({ session: { email } });
+  await refreshAfterAuth();
 }
 
-// Apple and Google sign-in are mocked until Supabase Auth is connected.
-export function signInWithProvider(provider: 'apple' | 'google') {
-  set({ session: { email: `${provider}-user@example.com` } });
+// Hidden behind FEATURES.socialSignIn until Apple/Google are configured in Supabase Auth.
+export function signInWithProvider(_provider: 'apple' | 'google') {
+  Alert.alert('Not available yet', 'Use email sign-in for now.');
 }
 
-/** Saves the profile. A new or changed photo needs a new selfie check. */
-export function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
+/** Saves the profile (uploads photos first). A changed photo re-triggers the selfie check. */
+export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   const previous = state.profile;
+  const stored = await api.saveProfile(values);
   const verified = !!previous?.verified && previous.photoUri === values.photoUri;
-  set({ profile: { id: 'me', ...values, verified } });
+  set({ profile: { ...stored, verified: stored.verified || verified } });
 }
 
 export async function verifySelfie(selfieUri: string) {
@@ -106,13 +195,12 @@ export function markVerified() {
   if (state.profile) set({ profile: { ...state.profile, verified: true } });
 }
 
-export function signOut() {
-  set(initialState);
+export async function signOut() {
+  await api.signOut(); // the auth listener resets the state
 }
 
 export async function deleteAccount() {
-  await api.deleteAccount();
-  set(initialState);
+  await api.deleteAccount(); // signs out too; the auth listener resets the state
 }
 
 // ---------------------------------------------------------------- availability
@@ -122,6 +210,7 @@ export async function goGreen(args: {
   note: string;
   latitude: number | null;
   longitude: number | null;
+  accuracy?: number | null;
 }) {
   await api.goGreen(args);
   const now = Date.now();
@@ -136,33 +225,43 @@ export async function goGreen(args: {
   });
 }
 
-export function updateNote(note: string) {
-  if (state.availability) set({ availability: { ...state.availability, note } });
+export async function updateNote(note: string) {
+  if (!state.availability) return;
+  set({ availability: { ...state.availability, note } });
+  await api.updateNote(note);
 }
 
 export async function goOffline(reason: 'done' | 'expired' = 'done') {
   set({ availability: null, outgoing: null, nearbyAlert: null, availabilityExpired: reason === 'expired' });
-  await api.goOffline();
+  try {
+    await api.goOffline();
+  } catch {
+    // The cron job cleans up server-side if this call doesn't get through.
+  }
 }
 
 export function dismissExpired() {
   set({ availabilityExpired: false });
 }
 
-// ---------------------------------------------------------------- requests
+// ---------------------------------------------------------------- say hi
 
+/** Sends the request (throws if the server refuses), then waits for the answer. */
 export async function sayHi(to: NearbyPerson) {
   if (state.outgoing?.status === 'pending') return; // one request at a time
-  const { id } = await api.sendRequest(to);
-  set({ outgoing: { id, to, expiresAt: Date.now() + REQUEST_WINDOW_MS, status: 'pending' } });
+  const { id, expiresAt } = await api.sendRequest(to);
+  set({ outgoing: { id, to, expiresAt, status: 'pending' } });
+  void watchAnswer(id, to);
+}
 
-  const outcome = await api.waitForAnswer(id);
+async function watchAnswer(id: string, to: NearbyPerson) {
+  const outgoing = state.outgoing;
+  if (!outgoing) return;
+  const outcome = await api.waitForAnswer(id, outgoing.expiresAt);
   if (state.outgoing?.id !== id) return; // cancelled meanwhile
   if (outcome === 'accepted') {
-    set({
-      outgoing: { ...state.outgoing, status: 'accepted' },
-      chat: { id, other: to, status: 'active', messages: [] },
-    });
+    set({ outgoing: { ...state.outgoing, status: 'accepted' } });
+    await openChat(id, to);
   } else {
     set({ outgoing: { ...state.outgoing, status: 'not-this-time' } });
   }
@@ -182,65 +281,85 @@ export function clearOutgoing() {
   set({ outgoing: null });
 }
 
-// Development helper: pretend someone nearby sent us a request.
-export function simulateIncoming() {
-  const { id, from } = api.randomIncoming(state.blockedIds);
-  set({ incoming: { id, from, expiresAt: Date.now() + REQUEST_WINDOW_MS } });
+async function onIncoming(request: { id: string; expiresAt: number }) {
+  // One thing at a time: while a request or chat is on screen, later ones just expire
+  // on the server and their senders see the usual "not this time".
+  if (state.incoming || state.chat) return;
+  try {
+    const from = await api.requestPerson(request.id);
+    if (from && !state.incoming && !state.chat) {
+      set({ incoming: { id: request.id, from, expiresAt: request.expiresAt } });
+    }
+  } catch {
+    // The request may have expired while we fetched the sender; nothing to show.
+  }
 }
 
 export async function respondToIncoming(accept: boolean) {
   const incoming = state.incoming;
   if (!incoming) return;
   set({ incoming: null });
-  await api.respond(incoming.id, accept);
-  if (accept) {
-    set({
-      chat: { id: incoming.id, other: incoming.from, status: 'active', messages: [] },
-    });
+  try {
+    await api.respond(incoming.id, accept);
+  } catch {
+    return; // expired just before answering; the sender sees "not this time" anyway
   }
+  if (accept) await openChat(incoming.id, incoming.from);
 }
 
 export function expireIncoming() {
   set({ incoming: null });
 }
 
-// ---------------------------------------------------------------- match
-
 // ---------------------------------------------------------------- chat
 
-function addMessage(message: Message) {
-  if (state.chat) set({ chat: { ...state.chat, messages: [...state.chat.messages, message] } });
-}
+/** Opens the 1:1 chat: load the partner and history, then listen for new messages. */
+async function openChat(chatId: string, other?: NearbyPerson) {
+  const partner = other ?? (await api.requestPerson(chatId));
+  if (!partner || !state.myId) return;
+  const messages = await api.fetchChatMessages(chatId);
+  set({ chat: { id: chatId, other: partner, status: 'active', messages } });
 
-function receiveFromOther(kind: 'opener' | 'reply') {
-  const chatId = state.chat?.id;
-  if (!chatId) return;
-  api.waitForReply(kind).then((text) => {
-    const other = state.chat?.id === chatId ? state.chat.other : null;
-    if (!other) return; // chat ended meanwhile
-    addMessage({ id: `m_${Date.now()}`, senderId: other.id, senderName: other.firstName, text, sentAt: Date.now() });
+  stopChatMessages?.();
+  stopChatMessages = api.subscribeMessages('request_id', chatId, state.myId, (message) => {
+    const chat = state.chat;
+    if (chat?.id !== chatId) return;
+    if (chat.messages.some((m) => m.id === message.id)) return;
+    set({ chat: { ...chat, messages: [...chat.messages, message] } });
   });
 }
 
-/** Called when the chat opens: the mock yap partner says hello first. */
-export function startChat() {
-  if (state.chat && state.chat.messages.length === 0) receiveFromOther('opener');
+/** Called when the chat screen opens: re-sync history in case Realtime missed anything. */
+export async function startChat() {
+  const chat = state.chat;
+  if (!chat) return;
+  const messages = await api.fetchChatMessages(chat.id);
+  if (state.chat?.id === chat.id) set({ chat: { ...state.chat, messages } });
 }
 
 export async function sendMessage(text: string) {
   const chat = state.chat;
   const body = text.trim();
   if (!chat || !body) return;
-  addMessage({ id: `m_${Date.now()}`, senderId: 'me', senderName: 'You', text: body, sentAt: Date.now() });
-  await api.sendMessage(chat.id, body);
-  receiveFromOther('reply');
+  try {
+    // The message appears when Realtime echoes it back, so both sides stay in sync.
+    await api.sendMessage(chat.id, body);
+  } catch (e) {
+    Alert.alert('Message not sent', e instanceof Error ? e.message : 'Try again.');
+  }
 }
 
 export async function endChat(outcome: 'met' | 'cancelled') {
   const chat = state.chat;
   if (!chat) return;
+  stopChatMessages?.();
+  stopChatMessages = null;
   set({ chat: null, outgoing: null });
-  await api.endChat(chat.id, outcome);
+  try {
+    await api.endChat(chat.id, outcome);
+  } catch {
+    // Already ended by the other side or a block; local state is correct either way.
+  }
 }
 
 export function showNearbyAlert(alert: NearbyAlert) {
@@ -262,18 +381,23 @@ export function markSafetyTipSeen() {
 // ---------------------------------------------------------------- safety
 
 export async function blockUser(userId: string, firstName: string) {
-  // Blocking is instant and mutual: it also cancels any request or match between the two.
+  // Server first: it cancels any request or chat between the two.
+  await api.block(userId);
+  if (state.chat?.other.id === userId) {
+    stopChatMessages?.();
+    stopChatMessages = null;
+  }
   set({
-    blockedIds: [...state.blockedIds, userId],
+    blockedIds: [...new Set([...state.blockedIds, userId])],
     blockedNames: { ...state.blockedNames, [userId]: firstName },
     outgoing: state.outgoing?.to.id === userId ? null : state.outgoing,
     incoming: state.incoming?.from.id === userId ? null : state.incoming,
     chat: state.chat?.other.id === userId ? null : state.chat,
   });
-  await api.block(userId);
 }
 
-export function unblockUser(userId: string) {
+export async function unblockUser(userId: string) {
+  await api.unblock(userId);
   const { [userId]: _removed, ...rest } = state.blockedNames;
   set({ blockedIds: state.blockedIds.filter((id) => id !== userId), blockedNames: rest });
 }
@@ -286,9 +410,14 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 
 export async function loadEvents(center: { latitude: number; longitude: number }) {
   const nearby = await api.eventsNear(center);
-  // Keep events you created or joined; refresh the rest.
-  const mine = state.events.filter((e) => e.host.id === 'me' || e.joined);
-  set({ events: [...mine, ...nearby.filter((e) => !mine.some((m) => m.id === e.id))] });
+  // Keep the loaded chat history of events we're in; refresh everything else.
+  const current = new Map(state.events.map((e) => [e.id, e]));
+  set({
+    events: nearby.map((e) => {
+      const existing = current.get(e.id);
+      return existing ? { ...e, messages: existing.messages } : e;
+    }),
+  });
 }
 
 export async function createEvent(input: {
@@ -299,11 +428,9 @@ export async function createEvent(input: {
   longitude: number;
   startsAt: number;
 }) {
-  const me = state.profile;
-  const host = { id: 'me', firstName: me?.firstName ?? 'You', lastInitial: me?.lastName.charAt(0) ?? '', photoUri: me?.photoUri ?? null };
-  const { id } = await api.createEvent({ ...input, host });
-  set({ events: [{ ...input, id, host, memberCount: 1, joined: true, messages: [] }, ...state.events] });
-  return id;
+  const event = await api.createEvent(input);
+  set({ events: [event, ...state.events.filter((e) => e.id !== event.id)] });
+  return event.id;
 }
 
 function updateEvent(id: string, patch: (e: MapEvent) => Partial<MapEvent>) {
@@ -316,25 +443,41 @@ export async function joinEvent(id: string) {
 }
 
 export async function leaveEvent(id: string) {
+  const event = state.events.find((e) => e.id === id);
   await api.leaveEvent(id);
-  updateEvent(id, (e) => ({ joined: false, memberCount: Math.max(0, e.memberCount - 1), messages: [] }));
+  if (event && event.host.id === state.myId) {
+    // Leaving your own event deletes it.
+    set({ events: state.events.filter((e) => e.id !== id) });
+  } else {
+    updateEvent(id, (e) => ({ joined: false, memberCount: Math.max(0, e.memberCount - 1), messages: [] }));
+  }
+}
+
+/** Called when a group chat screen opens: load history and listen for new messages. */
+export async function enterEventChat(eventId: string) {
+  if (!state.myId) return;
+  const messages = await api.fetchEventMessages(eventId);
+  updateEvent(eventId, () => ({ messages }));
+
+  stopEventMessages?.();
+  stopEventMessages = api.subscribeMessages('event_id', eventId, state.myId, (message) => {
+    const event = state.events.find((e) => e.id === eventId);
+    if (!event || event.messages.some((m) => m.id === message.id)) return;
+    updateEvent(eventId, (e) => ({ messages: [...e.messages, message] }));
+  });
+}
+
+export function leaveEventChat() {
+  stopEventMessages?.();
+  stopEventMessages = null;
 }
 
 export async function sendGroupMessage(eventId: string, text: string) {
   const body = text.trim();
   if (!body) return;
-  const mine: Message = { id: `g_${Date.now()}`, senderId: 'me', senderName: 'You', text: body, sentAt: Date.now() };
-  updateEvent(eventId, (e) => ({ messages: [...e.messages, mine] }));
-  const { sender, text: reply } = await api.waitForGroupReply();
-  if (state.blockedIds.includes(sender.id)) return;
-  updateEvent(eventId, (e) =>
-    e.joined
-      ? {
-          messages: [
-            ...e.messages,
-            { id: `g_${Date.now()}`, senderId: sender.id, senderName: `${sender.firstName} ${sender.lastInitial}.`, text: reply, sentAt: Date.now() },
-          ],
-        }
-      : {},
-  );
+  try {
+    await api.sendEventMessage(eventId, body); // appears via the Realtime echo
+  } catch (e) {
+    Alert.alert('Message not sent', e instanceof Error ? e.message : 'Try again.');
+  }
 }

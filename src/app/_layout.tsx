@@ -2,23 +2,34 @@
 // (sign in -> profile setup -> selfie check, when enabled -> the app) with guarded stacks.
 
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OfflineBanner } from '@/components/ui/offline-banner';
 import { FEATURES } from '@/config/features';
-import { useStore } from '@/state/store';
+import { init, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function RootLayout() {
   const { scheme, colors } = useTheme();
+  const booted = useStore((s) => s.booted);
   const signedIn = useStore((s) => s.session !== null);
   const hasProfile = useStore((s) => s.profile !== null);
   // With verification switched off, everyone with a profile counts as verified.
   const verified = useStore((s) => s.profile?.verified === true) || !FEATURES.selfieVerification;
 
   const navTheme = scheme === 'dark' ? DarkTheme : DefaultTheme;
+
+  // Restore the stored session and profile once, before showing any screen.
+  useEffect(() => {
+    void init();
+  }, []);
+
+  if (!booted) {
+    return <View style={{ flex: 1, backgroundColor: colors.background }} />;
+  }
 
   return (
     <SafeAreaProvider>

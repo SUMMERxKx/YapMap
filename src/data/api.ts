@@ -1,228 +1,504 @@
-// Mock backend. Every function here matches a planned Supabase database function
-// (go_green, go_offline, nearby, send_request, respond, end_chat, block, report),
-// so replacing the mock with Supabase only touches this file.
+// The app's only doorway to the backend. Every function here wraps a Supabase call -
+// mostly the database functions from supabase/migrations, which enforce all the rules
+// server-side (proximity, blocks, rate limits). Screens and the store never import
+// supabase directly; they call these.
 
-import type { MapEvent, NearbyPerson, ReportReason } from './types';
+import { File } from 'expo-file-system';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+import { supabase } from '@/lib/supabase';
 
-const MOCK_PEOPLE: NearbyPerson[] = [
-  {
-    id: 'u_sam',
-    firstName: 'Sam',
-    lastInitial: 'K',
-    gender: 'man',
-    intro: 'Taking a study break from biochemistry. Keen to chat about books, music, or anything that isn\'t enzymes.',
-    interests: ['Books', 'Music', 'Science'],
-    photoUri: null,
-    photos: ['https://picsum.photos/seed/u_sam1/600/800', 'https://picsum.photos/seed/u_sam2/600/800', 'https://picsum.photos/seed/u_sam3/600/800', 'https://picsum.photos/seed/u_sam4/600/800'],
-    verified: true,
-    note: 'Here till 5, come say hi',
-  },
-  {
-    id: 'u_maya',
-    firstName: 'Maya',
-    lastInitial: 'R',
-    gender: 'woman',
-    intro: 'Sketching coffee cups. Would love opinions on urban illustration, or recommendations for the best flat white nearby.',
-    interests: ['Art', 'Design', 'Coffee', 'Travel'],
-    photoUri: null,
-    photos: ['https://picsum.photos/seed/u_maya1/600/800', 'https://picsum.photos/seed/u_maya2/600/800', 'https://picsum.photos/seed/u_maya3/600/800', 'https://picsum.photos/seed/u_maya4/600/800'],
-    verified: true,
-    note: 'Sketching, but always happy to chat',
-  },
-  {
-    id: 'u_liam',
-    firstName: 'Liam',
-    lastInitial: 'T',
-    gender: null,
-    intro: 'New in town from Montreal. Exploring local roasteries and looking for good hiking spots.',
-    interests: ['Coffee', 'Hiking', 'Languages', 'Food'],
-    photoUri: null,
-    photos: ['https://picsum.photos/seed/u_liam1/600/800', 'https://picsum.photos/seed/u_liam2/600/800', 'https://picsum.photos/seed/u_liam3/600/800', 'https://picsum.photos/seed/u_liam4/600/800'],
-    verified: true,
-    note: 'New here, show me around?',
-  },
-  {
-    id: 'u_chloe',
-    firstName: 'Chloe',
-    lastInitial: 'B',
-    gender: 'woman',
-    intro: 'Taking a break from my laptop screen. Up for a 15-minute chat about startups, podcasts or board games.',
-    interests: ['Startups', 'Podcasts', 'Board games'],
-    photoUri: null,
-    photos: ['https://picsum.photos/seed/u_chloe1/600/800', 'https://picsum.photos/seed/u_chloe2/600/800', 'https://picsum.photos/seed/u_chloe3/600/800', 'https://picsum.photos/seed/u_chloe4/600/800'],
-    verified: true,
-    note: 'Coffee break for 20 min',
-  },
-];
+import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
 
-// Mock face match. The real version runs on the server (a Supabase Edge Function calling a
-// face-comparison service such as AWS Rekognition CompareFaces, with a liveness check).
-// The selfie is compared with the profile photo and deleted straight after; only the result is kept.
+// ---------------------------------------------------------------- auth
+
+export async function requestEmailCode(email: string) {
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw new Error(friendlyAuthError(error.message));
+}
+
+export async function verifyEmailCode(email: string, code: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
+  if (error) throw new Error('Invalid or expired code. Please request a new one.');
+}
+
+/** The signed-in user, or null. */
+export async function getSessionUser() {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user ?? null;
+}
+
+/** Fires on sign-in and sign-out. Returns an unsubscribe function. */
+export function onAuthStateChange(onChange: (signedIn: boolean) => void) {
+  const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    onChange(session !== null);
+  });
+  return () => data.subscription.unsubscribe();
+}
+
+export async function signOut() {
+  await supabase.auth.signOut();
+}
+
+function friendlyAuthError(message: string) {
+  if (/rate limit/i.test(message)) {
+    return 'Too many codes requested. Please wait a bit and try again.';
+  }
+  return message;
+}
+
+async function requireUserId(): Promise<string> {
+  const user = await getSessionUser();
+  if (!user) throw new Error('Not signed in.');
+  return user.id;
+}
+
+// ---------------------------------------------------------------- photos
+
+// Photos live in the private `photos` bucket under <userId>/..., and are shown through
+// short-lived signed URLs. Storage policies only let a user write their own folder.
+
+const SIGNED_URL_SECONDS = 60 * 60;
+
+/** Turn storage paths into display URLs, in one round trip. */
+async function signPaths(paths: string[]): Promise<Record<string, string>> {
+  const unique = [...new Set(paths)].filter(Boolean);
+  if (unique.length === 0) return {};
+  const { data, error } = await supabase.storage.from('photos').createSignedUrls(unique, SIGNED_URL_SECONDS);
+  if (error) throw error;
+  const byPath: Record<string, string> = {};
+  for (const entry of data) {
+    if (entry.signedUrl && entry.path) byPath[entry.path] = entry.signedUrl;
+  }
+  return byPath;
+}
+
+/** Recover the storage path from a signed URL (so an unchanged photo isn't re-uploaded). */
+function pathFromSignedUrl(url: string): string | null {
+  const match = url.match(/\/object\/sign\/photos\/([^?]+)/);
+  return match ? decodeURIComponent(match[1]!) : null;
+}
+
+/**
+ * Make sure a photo is in storage and return its path.
+ * A `file://` URI (fresh from the picker) is resized to ~1080 px, re-encoded as JPEG and
+ * uploaded; an `https://` URI is one of our signed URLs, so its path is reused as-is.
+ */
+async function ensureUploaded(uri: string, slot: string, userId: string): Promise<string> {
+  if (!uri.startsWith('file:')) {
+    const existing = pathFromSignedUrl(uri);
+    if (existing) return existing;
+    throw new Error('Unexpected photo location.');
+  }
+  const context = ImageManipulator.manipulate(uri);
+  context.resize({ width: 1080 });
+  const rendered = await context.renderAsync();
+  const saved = await rendered.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  const bytes = await new File(saved.uri).bytes();
+  const path = `${userId}/${slot}-${Date.now()}.jpg`;
+  const { error } = await supabase.storage.from('photos').upload(path, bytes, { contentType: 'image/jpeg' });
+  if (error) throw error;
+  return path;
+}
+
+// ---------------------------------------------------------------- profile
+
+export async function fetchMyProfile(): Promise<Profile | null> {
+  const userId = await requireUserId();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const urls = await signPaths([data.photo_path ?? '', ...data.photo_paths]);
+  return {
+    id: data.id,
+    firstName: data.first_name,
+    lastName: data.last_name,
+    gender: data.gender as Gender,
+    showGender: data.show_gender,
+    intro: data.intro,
+    interests: data.interests,
+    photoUri: data.photo_path ? (urls[data.photo_path] ?? null) : null,
+    photos: data.photo_paths.map((p) => urls[p]).filter((u): u is string => !!u),
+    isAdult: data.is_adult,
+    verified: data.verified,
+  };
+}
+
+/** Uploads any new photos, saves the row, and returns the stored profile. */
+export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Promise<Profile> {
+  const userId = await requireUserId();
+  if (!values.photoUri) throw new Error('A profile picture is required.');
+
+  const photoPath = await ensureUploaded(values.photoUri, 'profile', userId);
+  const photoPaths: string[] = [];
+  for (let i = 0; i < values.photos.length; i += 1) {
+    photoPaths.push(await ensureUploaded(values.photos[i]!, `photo${i}`, userId));
+  }
+
+  const { error } = await supabase.from('profiles').upsert({
+    id: userId,
+    first_name: values.firstName,
+    last_name: values.lastName,
+    gender: values.gender,
+    show_gender: values.showGender,
+    intro: values.intro,
+    interests: values.interests,
+    photo_path: photoPath,
+    photo_paths: photoPaths,
+    is_adult: values.isAdult,
+  });
+  if (error) throw error;
+
+  const profile = await fetchMyProfile();
+  if (!profile) throw new Error('Profile failed to save.');
+  return profile;
+}
+
+// Selfie verification is switched off (src/config/features.ts). When it returns, this
+// becomes an Edge Function doing a real face comparison server-side; see issue #17.
 export async function verifySelfie(_selfieUri: string, _profilePhotoUri: string): Promise<{ matched: boolean }> {
-  await wait(2500);
   return { matched: true };
 }
 
-// Someone who "arrives" about 25 seconds after you go live, so the nearby prompt can be tested.
-const LATE_ARRIVAL: NearbyPerson = {
-  id: 'u_noah',
-  firstName: 'Noah',
-  lastInitial: 'P',
-  gender: 'man',
-  intro: 'Just finished a lecture on climate policy. Happy to talk about that, football or good ramen spots.',
-  interests: ['Science', 'Sports', 'Food'],
-  photoUri: null,
-  photos: ['https://picsum.photos/seed/u_noah1/600/800', 'https://picsum.photos/seed/u_noah2/600/800', 'https://picsum.photos/seed/u_noah3/600/800', 'https://picsum.photos/seed/u_noah4/600/800'],
-  note: 'Grabbing a coffee, say hi',
-  verified: true,
+// ---------------------------------------------------------------- person cards
+
+// The server's "person card" (camelCase jsonb from private.person_card) with photo
+// paths; here they become signed display URLs.
+type PersonCard = {
+  id: string;
+  firstName: string;
+  lastInitial: string;
+  gender: Gender | null;
+  intro: string;
+  interests: string[];
+  photoPath: string | null;
+  photoPaths: string[];
+  note: string;
+  verified: boolean;
 };
-const LATE_ARRIVAL_AFTER_MS = 25 * 1000;
-let liveSince: number | null = null;
 
-export async function requestEmailCode(email: string) {
-  await wait(600);
-  if (!email.includes('@')) throw new Error('Enter a valid email address.');
+async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
+  const urls = await signPaths(cards.flatMap((c) => [c.photoPath ?? '', ...c.photoPaths]));
+  return cards.map((c) => ({
+    id: c.id,
+    firstName: c.firstName,
+    lastInitial: c.lastInitial,
+    gender: c.gender,
+    intro: c.intro,
+    interests: c.interests,
+    photoUri: c.photoPath ? (urls[c.photoPath] ?? null) : null,
+    photos: c.photoPaths.map((p) => urls[p]).filter((u): u is string => !!u),
+    note: c.note,
+    verified: c.verified,
+  }));
 }
 
-// Mock rule: any 6 digits sign you in, except 000000, which tests the error state.
-export async function verifyEmailCode(_email: string, code: string) {
-  await wait(700);
-  if (code === '000000') throw new Error('Invalid or expired code. Please request a new one.');
-}
+// ---------------------------------------------------------------- going live
 
-export async function goGreen(_args: {
+export async function goGreen(args: {
   latitude: number | null;
   longitude: number | null;
+  accuracy?: number | null;
   minutes: number;
   note: string;
 }) {
-  await wait(500);
-  liveSince = Date.now();
+  if (args.latitude === null || args.longitude === null) {
+    throw new Error("We couldn't get your location. Try again in a moment.");
+  }
+  const { error } = await supabase.rpc('go_green', {
+    lat: args.latitude,
+    lng: args.longitude,
+    // 0 means a perfect fix; the server adds the accuracy to its 100 m base radius.
+    accuracy: args.accuracy ?? 0,
+    minutes: args.minutes,
+    note: args.note,
+  });
+  if (error) throw error;
+}
+
+export async function updateNote(note: string) {
+  const { error } = await supabase.rpc('update_note', { note });
+  if (error) throw error;
 }
 
 export async function goOffline() {
-  liveSince = null;
-  await wait(200);
+  const { error } = await supabase.rpc('go_offline');
+  if (error) throw error;
 }
 
-export async function nearby(blockedIds: string[]): Promise<NearbyPerson[]> {
-  await wait(500);
-  const arrived = liveSince !== null && Date.now() - liveSince > LATE_ARRIVAL_AFTER_MS;
-  const people = arrived ? [...MOCK_PEOPLE, LATE_ARRIVAL] : MOCK_PEOPLE;
-  return people.filter((p) => !blockedIds.includes(p.id));
+/** Who's live near me. The server already filters blocks, so the argument is unused. */
+export async function nearby(_blockedIds: string[]): Promise<NearbyPerson[]> {
+  const { data, error } = await supabase.rpc('nearby');
+  if (error) throw error;
+  return toPeople((data ?? []) as PersonCard[]);
 }
 
-export async function sendRequest(to: NearbyPerson) {
-  await wait(400);
-  return { id: `req_${Date.now()}`, to };
+// ---------------------------------------------------------------- say hi
+
+export async function sendRequest(to: NearbyPerson): Promise<{ id: string; expiresAt: number }> {
+  const { data, error } = await supabase.rpc('send_request', { target: to.id });
+  if (error) throw error;
+  const result = data as { id: string; expiresAt: number };
+  return { id: result.id, expiresAt: result.expiresAt };
 }
 
-// Mock outcome for a request we sent: most are accepted after a few seconds.
-export async function waitForAnswer(_requestId: string): Promise<'accepted' | 'not-this-time'> {
-  await wait(6000);
-  return Math.random() < 0.7 ? 'accepted' : 'not-this-time';
+/**
+ * Resolves when the recipient answers: Realtime delivers the status change, a slow poll
+ * covers dropped connections, and a timeout turns an unanswered request into the same
+ * silent "not this time".
+ */
+export function waitForAnswer(requestId: string, expiresAt: number): Promise<'accepted' | 'not-this-time'> {
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const finish = (outcome: 'accepted' | 'not-this-time') => {
+      if (settled) return;
+      settled = true;
+      supabase.removeChannel(channel);
+      clearInterval(poll);
+      clearTimeout(timeout);
+      resolve(outcome);
+    };
+
+    const onStatus = (status: string | undefined) => {
+      if (status === 'accepted') finish('accepted');
+      else if (status && status !== 'pending') finish('not-this-time');
+    };
+
+    const channel = supabase
+      .channel(`request-${requestId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'chat_requests', filter: `id=eq.${requestId}` },
+        (payload) => onStatus((payload.new as { status?: string }).status),
+      )
+      .subscribe();
+
+    const poll = setInterval(async () => {
+      const { data } = await supabase.from('chat_requests').select('status').eq('id', requestId).maybeSingle();
+      onStatus(data?.status);
+    }, 7000);
+
+    const timeout = setTimeout(() => finish('not-this-time'), Math.max(0, expiresAt - Date.now()) + 3000);
+  });
 }
 
-export function randomIncoming(blockedIds: string[]) {
-  const options = MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id));
-  const from = options[Math.floor(Math.random() * options.length)] ?? MOCK_PEOPLE[0];
-  return { id: `in_${Date.now()}`, from };
+export async function respond(requestId: string, accept: boolean) {
+  const { error } = await supabase.rpc('respond', { request_id: requestId, accept });
+  if (error) throw error;
 }
 
-export async function respond(_requestId: string, _accept: boolean) {
-  await wait(400);
+/** The other participant of a request, as a person card. */
+export async function requestPerson(requestId: string): Promise<NearbyPerson | null> {
+  const { data, error } = await supabase.rpc('request_person', { request_id: requestId });
+  if (error) throw error;
+  if (!data) return null;
+  const [person] = await toPeople([data as unknown as PersonCard]);
+  return person ?? null;
 }
 
-const OPENERS = [
-  'Hey! Glad you said hi 👋',
-  'Hi! I’m around, come over whenever.',
-  'Hey, nice to meet you! Want to grab a seat together?',
-];
-const REPLIES = [
-  'Sounds good!',
-  'Ha, same here.',
-  'I’ll wave when I see you.',
-  'Nice, see you in a sec.',
-  'Oh cool, tell me more when we meet!',
-];
-const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)]!;
-
-// Mock chat. With Supabase this becomes inserts into a `messages` table, delivered with Realtime.
-export async function sendMessage(_chatId: string, _text: string) {
-  await wait(150);
+/** New requests for me, delivered over Realtime. Returns an unsubscribe function. */
+export function subscribeIncoming(userId: string, onRequest: (request: { id: string; expiresAt: number }) => void) {
+  const channel = supabase
+    .channel('incoming-requests')
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'chat_requests', filter: `to_user=eq.${userId}` },
+      (payload) => {
+        const row = payload.new as { id: string; expires_at: string; status: string };
+        if (row.status === 'pending') onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
+      },
+    )
+    .subscribe();
+  return () => void supabase.removeChannel(channel);
 }
 
-/** Mock: your yap partner's first message, and their replies. */
-export async function waitForReply(kind: 'opener' | 'reply'): Promise<string> {
-  await wait(kind === 'opener' ? 1500 : 1800 + Math.random() * 1500);
-  return pick(kind === 'opener' ? OPENERS : REPLIES);
+// ---------------------------------------------------------------- chat
+
+export async function endChat(chatId: string, outcome: 'met' | 'cancelled') {
+  const { error } = await supabase.rpc('end_chat', { request_id: chatId, outcome });
+  if (error) throw error;
 }
 
-export async function endChat(_chatId: string, _outcome: 'met' | 'cancelled') {
-  await wait(300);
+export async function sendMessage(chatId: string, text: string) {
+  const { error } = await supabase.rpc('send_chat_message', { request_id: chatId, body: text });
+  if (error) throw error;
 }
 
-export async function block(_userId: string) {
-  await wait(300);
+export async function sendEventMessage(eventId: string, text: string) {
+  const { error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
+  if (error) throw error;
 }
 
-export async function report(_userId: string, _reason: ReportReason, _details: string) {
-  await wait(500);
+type MessageRow = {
+  id: string;
+  sender: string;
+  sender_name: string;
+  body: string;
+  created_at: string;
+};
+
+function toMessage(row: MessageRow, myId: string): Message {
+  return {
+    id: row.id,
+    senderId: row.sender === myId ? 'me' : row.sender,
+    senderName: row.sender === myId ? 'You' : row.sender_name,
+    text: row.body,
+    sentAt: Date.parse(row.created_at),
+  };
+}
+
+async function fetchMessages(column: 'request_id' | 'event_id', id: string): Promise<Message[]> {
+  const myId = await requireUserId();
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, sender, sender_name, body, created_at')
+    .eq(column, id)
+    .order('created_at', { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return (data ?? []).map((row) => toMessage(row, myId));
+}
+
+export const fetchChatMessages = (chatId: string) => fetchMessages('request_id', chatId);
+export const fetchEventMessages = (eventId: string) => fetchMessages('event_id', eventId);
+
+/** New messages in a chat or event, over Realtime. Returns an unsubscribe function. */
+export function subscribeMessages(
+  column: 'request_id' | 'event_id',
+  id: string,
+  myId: string,
+  onMessage: (message: Message) => void,
+) {
+  const channel = supabase
+    .channel(`messages-${column}-${id}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `${column}=eq.${id}` },
+      (payload) => onMessage(toMessage(payload.new as MessageRow, myId)),
+    )
+    .subscribe();
+  return () => void supabase.removeChannel(channel);
+}
+
+// ---------------------------------------------------------------- safety
+
+export async function block(userId: string) {
+  const { error } = await supabase.rpc('block_user', { target: userId });
+  if (error) throw error;
+}
+
+export async function unblock(userId: string) {
+  const myId = await requireUserId();
+  const { error } = await supabase.from('blocks').delete().eq('blocker', myId).eq('blocked', userId);
+  if (error) throw error;
+}
+
+export async function blockedList(): Promise<{ id: string; firstName: string; lastInitial: string }[]> {
+  const { data, error } = await supabase.rpc('blocked_list');
+  if (error) throw error;
+  return (data ?? []) as { id: string; firstName: string; lastInitial: string }[];
+}
+
+export async function report(userId: string, reason: ReportReason, details: string) {
+  const { error } = await supabase.rpc('report_user', { target: userId, reason, details });
+  if (error) throw error;
 }
 
 export async function deleteAccount() {
-  await wait(800);
+  const { error } = await supabase.rpc('delete_account');
+  if (error) throw error;
+  await supabase.auth.signOut();
 }
 
-// ---------------------------------------------------------------- map events (mock)
-// With Supabase: an `events` table with a PostGIS point, `event_members`, and group messages
-// in the same `messages` table as 1:1 chats, delivered with Realtime.
+// ---------------------------------------------------------------- restart
 
-const HOSTS = MOCK_PEOPLE.map(({ id, firstName, lastInitial, photoUri }) => ({ id, firstName, lastInitial, photoUri }));
+/** Whether I'm live and whether I have an open chat - for restoring state on app start. */
+export async function myStatus(): Promise<{
+  live: { note: string; startedAt: number; expiresAt: number } | null;
+  chatId: string | null;
+}> {
+  const { data, error } = await supabase.rpc('my_status');
+  if (error) throw error;
+  const status = data as { live: { note: string; startedAt: number; expiresAt: number } | null; chatId: string | null };
+  return { live: status?.live ?? null, chatId: status?.chatId ?? null };
+}
 
-/** A few mock events scattered around `center`, so there's always something nearby to try. */
-export async function eventsNear(center: { latitude: number; longitude: number }): Promise<MapEvent[]> {
-  await wait(400);
-  const now = Date.now();
-  const spots = [
-    { dLat: 0.004, dLng: -0.006, emoji: '☕', title: 'Coffee and chats', description: 'Grabbing a flat white, anyone welcome.', in: 10 },
-    { dLat: -0.005, dLng: 0.004, emoji: '🚶', title: 'Study break walk', description: 'Quick walk around the block, back in 30.', in: 30 },
-    { dLat: 0.007, dLng: 0.008, emoji: '🎲', title: 'Board games', description: 'Bringing Catan and Codenames. Beginners welcome!', in: 60 },
-  ];
-  return spots.map((spot, i) => ({
-    id: `ev_mock_${i}`,
-    emoji: spot.emoji,
-    title: spot.title,
-    description: spot.description,
-    latitude: center.latitude + spot.dLat,
-    longitude: center.longitude + spot.dLng,
-    startsAt: now + spot.in * 60 * 1000,
-    host: HOSTS[i % HOSTS.length]!,
-    memberCount: 2 + i,
-    joined: false,
+// ---------------------------------------------------------------- map events
+
+type EventCard = {
+  id: string;
+  emoji: string;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  startsAt: number;
+  host: { id: string; firstName: string; lastInitial: string; photoPath: string | null };
+  memberCount: number;
+  joined: boolean;
+};
+
+async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
+  const urls = await signPaths(cards.map((c) => c.host.photoPath ?? ''));
+  return cards.map((c) => ({
+    id: c.id,
+    emoji: c.emoji,
+    title: c.title,
+    description: c.description,
+    latitude: c.latitude,
+    longitude: c.longitude,
+    startsAt: c.startsAt,
+    host: {
+      id: c.host.id,
+      firstName: c.host.firstName,
+      lastInitial: c.host.lastInitial,
+      photoUri: c.host.photoPath ? (urls[c.host.photoPath] ?? null) : null,
+    },
+    memberCount: c.memberCount,
+    joined: c.joined,
     messages: [],
   }));
 }
 
-export async function createEvent(_event: Omit<MapEvent, 'id' | 'messages' | 'memberCount' | 'joined'>) {
-  await wait(400);
-  return { id: `ev_${Date.now()}` };
+export async function eventsNear(center: { latitude: number; longitude: number }): Promise<MapEvent[]> {
+  const { data, error } = await supabase.rpc('events_near', { lat: center.latitude, lng: center.longitude });
+  if (error) throw error;
+  return toEvents((data ?? []) as EventCard[]);
 }
 
-export async function joinEvent(_eventId: string) {
-  await wait(300);
+export async function createEvent(input: {
+  emoji: string;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  startsAt: number;
+}): Promise<MapEvent> {
+  const { data, error } = await supabase.rpc('create_event', {
+    emoji: input.emoji,
+    title: input.title,
+    description: input.description,
+    lat: input.latitude,
+    lng: input.longitude,
+    starts_at_ms: input.startsAt,
+  });
+  if (error) throw error;
+  const [event] = await toEvents([data as unknown as EventCard]);
+  if (!event) throw new Error('Event failed to save.');
+  return event;
 }
 
-export async function leaveEvent(_eventId: string) {
-  await wait(200);
+export async function joinEvent(eventId: string) {
+  const { error } = await supabase.rpc('join_event', { event_id: eventId });
+  if (error) throw error;
 }
 
-const GROUP_REPLIES = ['Count me in!', 'On my way 🙌', 'Where exactly are you?', 'Love this idea', 'See you all there'];
-
-/** Mock: someone in the group replies. */
-export async function waitForGroupReply(): Promise<{ sender: (typeof HOSTS)[number]; text: string }> {
-  await wait(2000 + Math.random() * 2000);
-  return { sender: HOSTS[Math.floor(Math.random() * HOSTS.length)]!, text: pick(GROUP_REPLIES) };
+export async function leaveEvent(eventId: string) {
+  const { error } = await supabase.rpc('leave_event', { event_id: eventId });
+  if (error) throw error;
 }

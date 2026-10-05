@@ -2,7 +2,7 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, IconButton } from '@/components/ui/button';
@@ -20,12 +20,23 @@ export default function PersonSheet() {
   const insets = useSafeAreaInsets();
   const blockedIds = useStore((s) => s.blockedIds);
   const outgoing = useStore((s) => s.outgoing);
-  const chattingWith = useStore((s) => s.chat?.other.id);
-  const [person, setPerson] = useState<NearbyPerson | null>(null);
+  const chatPartner = useStore((s) => s.chat?.other);
+  const incomingFrom = useStore((s) => s.incoming?.from);
+  const chattingWith = chatPartner?.id;
+  const [fetched, setFetched] = useState<NearbyPerson | null>(null);
+
+  // The person is usually in the nearby list, but a chat partner or an incoming sender
+  // may not be (people in a chat are hidden from nearby) - the store already has them.
+  const known = [chatPartner, incomingFrom].find((p) => p?.id === id) ?? null;
+  const person = known ?? fetched;
 
   useEffect(() => {
-    api.nearby(blockedIds).then((list) => setPerson(list.find((p) => p.id === id) ?? null));
-  }, [id, blockedIds]);
+    if (known) return;
+    api.nearby(blockedIds).then(
+      (list) => setFetched(list.find((p) => p.id === id) ?? null),
+      () => setFetched(null),
+    );
+  }, [id, blockedIds, known]);
 
   const alreadyWaiting = outgoing?.status === 'pending';
 
@@ -33,9 +44,13 @@ export default function PersonSheet() {
     return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
   }
 
-  const send = () => {
-    sayHi(person);
-    router.replace('/waiting');
+  const send = async () => {
+    try {
+      await sayHi(person); // the server checks proximity, blocks and rate limits
+      router.replace('/waiting');
+    } catch (e) {
+      Alert.alert("Couldn't say hi", e instanceof Error ? e.message : 'Try again.');
+    }
   };
 
   return (
@@ -58,7 +73,7 @@ export default function PersonSheet() {
               {`You're already waiting for ${outgoing ? displayName(outgoing.to) : ''}. You can only have one request waiting at a time.`}
             </InfoNote>
           ) : null}
-          <Button label="Say hi" icon="chatbubble-ellipses-outline" onPress={send} disabled={alreadyWaiting} haptic />
+          <Button label="Say hi" icon="chatbubble-ellipses-outline" onPress={() => void send()} disabled={alreadyWaiting} haptic />
         </>
       )}
     </ScrollView>
