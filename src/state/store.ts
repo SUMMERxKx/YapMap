@@ -4,6 +4,7 @@ import * as api from '@/data/api';
 import type {
   Availability,
   IncomingRequest,
+  MapEvent,
   Match,
   Message,
   NearbyPerson,
@@ -30,6 +31,7 @@ type State = {
   safetyTipViews: number;
   seenTutorial: boolean;
   nearbyAlert: NearbyAlert | null;
+  events: MapEvent[];
 };
 
 const initialState: State = {
@@ -45,6 +47,7 @@ const initialState: State = {
   safetyTipViews: 0,
   seenTutorial: false,
   nearbyAlert: null,
+  events: [],
 };
 
 let state = initialState;
@@ -272,4 +275,60 @@ export function unblockUser(userId: string) {
 
 export async function reportUser(userId: string, reason: ReportReason, details: string) {
   await api.report(userId, reason, details);
+}
+
+// ---------------------------------------------------------------- map events
+
+export async function loadEvents(center: { latitude: number; longitude: number }) {
+  const nearby = await api.eventsNear(center);
+  // Keep events you created or joined; refresh the rest.
+  const mine = state.events.filter((e) => e.host.id === 'me' || e.joined);
+  set({ events: [...mine, ...nearby.filter((e) => !mine.some((m) => m.id === e.id))] });
+}
+
+export async function createEvent(input: {
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  startsAt: number;
+}) {
+  const me = state.profile;
+  const host = { id: 'me', firstName: me?.firstName ?? 'You', lastInitial: me?.lastName.charAt(0) ?? '', photoUri: me?.photoUri ?? null };
+  const { id } = await api.createEvent({ ...input, host });
+  set({ events: [{ ...input, id, host, memberCount: 1, joined: true, messages: [] }, ...state.events] });
+  return id;
+}
+
+function updateEvent(id: string, patch: (e: MapEvent) => Partial<MapEvent>) {
+  set({ events: state.events.map((e) => (e.id === id ? { ...e, ...patch(e) } : e)) });
+}
+
+export async function joinEvent(id: string) {
+  await api.joinEvent(id);
+  updateEvent(id, (e) => ({ joined: true, memberCount: e.memberCount + 1 }));
+}
+
+export async function leaveEvent(id: string) {
+  await api.leaveEvent(id);
+  updateEvent(id, (e) => ({ joined: false, memberCount: Math.max(0, e.memberCount - 1), messages: [] }));
+}
+
+export async function sendGroupMessage(eventId: string, text: string) {
+  const body = text.trim();
+  if (!body) return;
+  const mine: Message = { id: `g_${Date.now()}`, senderId: 'me', senderName: 'You', text: body, sentAt: Date.now() };
+  updateEvent(eventId, (e) => ({ messages: [...e.messages, mine] }));
+  const { sender, text: reply } = await api.waitForGroupReply();
+  if (state.blockedIds.includes(sender.id)) return;
+  updateEvent(eventId, (e) =>
+    e.joined
+      ? {
+          messages: [
+            ...e.messages,
+            { id: `g_${Date.now()}`, senderId: sender.id, senderName: `${sender.firstName} ${sender.lastInitial}.`, text: reply, sentAt: Date.now() },
+          ],
+        }
+      : {},
+  );
 }

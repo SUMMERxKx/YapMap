@@ -78,6 +78,27 @@ export default function AppLayout() {
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
+        <Stack.Screen
+          name="event/new"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.9],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+        <Stack.Screen
+          name="event/[id]"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.75],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+        <Stack.Screen name="group/[id]" />
         <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
         <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />

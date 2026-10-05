@@ -36,3 +36,12 @@ export function formatMinutesLeft(ms: number) {
   }
   return `${minutes} min left`;
 }
+
+/** "Starting now", "Starts in 25 min", "Started 10 min ago" for map events. */
+export function formatEventTime(startsAt: number, now = Date.now()) {
+  const diff = Math.round((startsAt - now) / 60000);
+  if (Math.abs(diff) <= 1) return 'Starting now';
+  if (diff > 0) return diff >= 60 ? `Starts in ${Math.floor(diff / 60)} h ${diff % 60 ? `${diff % 60} min` : ''}`.trim() : `Starts in ${diff} min`;
+  const ago = -diff;
+  return ago >= 60 ? `Started ${Math.floor(ago / 60)} h ago` : `Started ${ago} min ago`;
+}

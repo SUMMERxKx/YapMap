@@ -36,6 +36,12 @@ const PAGES: Page[] = [
     body: 'Say hi to one person at a time. If they accept, you chat, then go and talk in person.',
   },
   {
+    key: 'map',
+    icon: 'map',
+    title: 'Make plans on the map',
+    body: 'Drop an event on the map, like a coffee or a study break. Anyone can join and chat as a group.',
+  },
+  {
     key: 'control',
     icon: 'shield-checkmark',
     title: 'You’re in control',

@@ -2,7 +2,7 @@
 // (go_green, go_offline, nearby, send_request, respond, end_match, block, report),
 // so replacing the mock with Supabase only touches this file.
 
-import type { NearbyPerson, ReportReason } from './types';
+import type { MapEvent, NearbyPerson, ReportReason } from './types';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -174,4 +174,54 @@ export async function report(_userId: string, _reason: ReportReason, _details: s
 
 export async function deleteAccount() {
   await wait(800);
+}
+
+// ---------------------------------------------------------------- map events (mock)
+// With Supabase: an `events` table with a PostGIS point, `event_members`, and group messages
+// in the same `messages` table as 1:1 chats, delivered with Realtime.
+
+const HOSTS = MOCK_PEOPLE.map(({ id, firstName, lastInitial, photoUri }) => ({ id, firstName, lastInitial, photoUri }));
+
+/** A few mock events scattered around `center`, so there's always something nearby to try. */
+export async function eventsNear(center: { latitude: number; longitude: number }): Promise<MapEvent[]> {
+  await wait(400);
+  const now = Date.now();
+  const spots = [
+    { dLat: 0.004, dLng: -0.006, title: 'Coffee and chats', description: 'Grabbing a flat white, anyone welcome.', in: 10 },
+    { dLat: -0.005, dLng: 0.004, title: 'Study break walk', description: 'Quick walk around the block, back in 30.', in: 30 },
+    { dLat: 0.007, dLng: 0.008, title: 'Board games', description: 'Bringing Catan and Codenames. Beginners welcome!', in: 60 },
+  ];
+  return spots.map((spot, i) => ({
+    id: `ev_mock_${i}`,
+    title: spot.title,
+    description: spot.description,
+    latitude: center.latitude + spot.dLat,
+    longitude: center.longitude + spot.dLng,
+    startsAt: now + spot.in * 60 * 1000,
+    host: HOSTS[i % HOSTS.length]!,
+    memberCount: 2 + i,
+    joined: false,
+    messages: [],
+  }));
+}
+
+export async function createEvent(_event: Omit<MapEvent, 'id' | 'messages' | 'memberCount' | 'joined'>) {
+  await wait(400);
+  return { id: `ev_${Date.now()}` };
+}
+
+export async function joinEvent(_eventId: string) {
+  await wait(300);
+}
+
+export async function leaveEvent(_eventId: string) {
+  await wait(200);
+}
+
+const GROUP_REPLIES = ['Count me in!', 'On my way 🙌', 'Where exactly are you?', 'Love this idea', 'See you all there'];
+
+/** Mock: someone in the group replies. */
+export async function waitForGroupReply(): Promise<{ sender: (typeof HOSTS)[number]; text: string }> {
+  await wait(2000 + Math.random() * 2000);
+  return { sender: HOSTS[Math.floor(Math.random() * HOSTS.length)]!, text: pick(GROUP_REPLIES) };
 }
