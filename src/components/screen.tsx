@@ -8,11 +8,12 @@ type Props = {
   children: ReactNode;
   scroll?: boolean;
   footer?: ReactNode; // pinned to the bottom, above the home indicator
+  backdrop?: ReactNode; // decorative layer behind everything (e.g. <GlassBackdrop />)
   edges?: Edge[];
   surface?: 'background' | 'surface';
 };
 
-export function Screen({ children, scroll, footer, edges = ['top', 'bottom'], surface = 'background' }: Props) {
+export function Screen({ children, scroll, footer, backdrop, edges = ['top', 'bottom'], surface = 'background' }: Props) {
   const { colors, spacing } = useTheme();
   const body = scroll ? (
     <ScrollView
@@ -26,6 +27,7 @@ export function Screen({ children, scroll, footer, edges = ['top', 'bottom'], su
 
   return (
     <SafeAreaView edges={edges} style={[styles.flex, { backgroundColor: colors[surface] }]}>
+      {backdrop}
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
