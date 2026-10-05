@@ -65,6 +65,22 @@ export async function verifySelfie(_selfieUri: string, _profilePhotoUri: string)
   return { matched: true };
 }
 
+// Someone who "arrives" about 25 seconds after you go live, so the nearby prompt can be tested.
+const LATE_ARRIVAL: NearbyPerson = {
+  id: 'u_noah',
+  firstName: 'Noah',
+  lastInitial: 'P',
+  gender: 'man',
+  intro: 'Just finished a lecture on climate policy. Happy to talk about that, football or good ramen spots.',
+  interests: ['Science', 'Sports', 'Food'],
+  photoUri: null,
+  photos: ['https://picsum.photos/seed/u_noah1/600/800', 'https://picsum.photos/seed/u_noah2/600/800', 'https://picsum.photos/seed/u_noah3/600/800', 'https://picsum.photos/seed/u_noah4/600/800'],
+  note: 'Grabbing a coffee, say hi',
+  verified: true,
+};
+const LATE_ARRIVAL_AFTER_MS = 25 * 1000;
+let liveSince: number | null = null;
+
 export async function requestEmailCode(email: string) {
   await wait(600);
   if (!email.includes('@')) throw new Error('Enter a valid email address.');
@@ -83,15 +99,19 @@ export async function goGreen(_args: {
   note: string;
 }) {
   await wait(500);
+  liveSince = Date.now();
 }
 
 export async function goOffline() {
+  liveSince = null;
   await wait(200);
 }
 
 export async function nearby(blockedIds: string[]): Promise<NearbyPerson[]> {
   await wait(500);
-  return MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id));
+  const arrived = liveSince !== null && Date.now() - liveSince > LATE_ARRIVAL_AFTER_MS;
+  const people = arrived ? [...MOCK_PEOPLE, LATE_ARRIVAL] : MOCK_PEOPLE;
+  return people.filter((p) => !blockedIds.includes(p.id));
 }
 
 export async function sendRequest(to: NearbyPerson) {

@@ -1,6 +1,9 @@
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { View } from 'react-native';
 
+import { NearbyToast } from '@/components/nearby-toast';
+import { useNearbyAlerts } from '@/hooks/use-nearby-alerts';
 import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -11,6 +14,9 @@ export default function AppLayout() {
   const expiresAt = useStore((s) => s.availability?.expiresAt);
   const seenTutorial = useStore((s) => s.seenTutorial);
   const shown = useRef<{ incoming?: string; match?: string }>({});
+
+  // While live: "someone is near you" prompts.
+  useNearbyAlerts();
 
   // First time in the app: show how it works.
   useEffect(() => {
@@ -42,42 +48,45 @@ export default function AppLayout() {
   }, [matchId]);
 
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: colors.background },
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.textPrimary,
-        headerShadowVisible: false,
-      }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="go-available"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.85],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 24,
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
-      <Stack.Screen
-        name="person/[id]"
-        options={{
-          presentation: 'formSheet',
-          sheetAllowedDetents: [0.85],
-          sheetGrabberVisible: true,
-          sheetCornerRadius: 24,
-          contentStyle: { backgroundColor: colors.surface },
-        }}
-      />
-      <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-      <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-      <Stack.Screen name="match" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-      <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
-      <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
-      <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />
-    </Stack>
+    <View style={{ flex: 1 }}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.textPrimary,
+          headerShadowVisible: false,
+        }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="go-available"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.85],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+        <Stack.Screen
+          name="person/[id]"
+          options={{
+            presentation: 'formSheet',
+            sheetAllowedDetents: [0.85],
+            sheetGrabberVisible: true,
+            sheetCornerRadius: 24,
+            contentStyle: { backgroundColor: colors.surface },
+          }}
+        />
+        <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="match" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
+        <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />
+      </Stack>
+      <NearbyToast />
+    </View>
   );
 }

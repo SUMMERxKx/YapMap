@@ -12,6 +12,10 @@ import type {
 } from '@/data/types';
 import { REQUEST_WINDOW_MS } from '@/data/types';
 
+export type NearbyAlert =
+  | { id: string; kind: 'summary'; count: number }
+  | { id: string; kind: 'person'; person: NearbyPerson };
+
 type State = {
   session: { email: string } | null;
   profile: Profile | null;
@@ -24,6 +28,7 @@ type State = {
   blockedNames: Record<string, string>;
   safetyTipViews: number;
   seenTutorial: boolean;
+  nearbyAlert: NearbyAlert | null;
 };
 
 const initialState: State = {
@@ -38,6 +43,7 @@ const initialState: State = {
   blockedNames: {},
   safetyTipViews: 0,
   seenTutorial: false,
+  nearbyAlert: null,
 };
 
 let state = initialState;
@@ -126,7 +132,7 @@ export function updateNote(note: string) {
 }
 
 export async function goOffline(reason: 'done' | 'expired' = 'done') {
-  set({ availability: null, outgoing: null, availabilityExpired: reason === 'expired' });
+  set({ availability: null, outgoing: null, nearbyAlert: null, availabilityExpired: reason === 'expired' });
   await api.goOffline();
 }
 
@@ -200,6 +206,14 @@ export async function endMatch(outcome: 'met' | 'cancelled') {
   if (!match) return;
   set({ match: null, outgoing: null });
   await api.endMatch(match.id, outcome);
+}
+
+export function showNearbyAlert(alert: NearbyAlert) {
+  set({ nearbyAlert: alert });
+}
+
+export function dismissNearbyAlert() {
+  set({ nearbyAlert: null });
 }
 
 export function markTutorialSeen() {
