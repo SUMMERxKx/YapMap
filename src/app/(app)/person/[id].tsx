@@ -18,6 +18,7 @@ export default function PersonSheet() {
   const insets = useSafeAreaInsets();
   const blockedIds = useStore((s) => s.blockedIds);
   const outgoing = useStore((s) => s.outgoing);
+  const chattingWith = useStore((s) => s.match?.other.id);
   const [person, setPerson] = useState<NearbyPerson | null>(null);
 
   useEffect(() => {
@@ -46,13 +47,18 @@ export default function PersonSheet() {
 
       <PersonDetails person={person} />
 
-      {alreadyWaiting ? (
-        <InfoNote>
-          {`You're already waiting for ${outgoing ? displayName(outgoing.to) : ''}. You can only have one request waiting at a time.`}
-        </InfoNote>
-      ) : null}
-
-      <Button label="Say hi" icon="chatbubble-ellipses-outline" onPress={send} disabled={alreadyWaiting} haptic />
+      {chattingWith === person.id ? (
+        <InfoNote icon="chatbubbles-outline">{`You're already chatting with ${person.firstName}.`}</InfoNote>
+      ) : (
+        <>
+          {alreadyWaiting ? (
+            <InfoNote>
+              {`You're already waiting for ${outgoing ? displayName(outgoing.to) : ''}. You can only have one request waiting at a time.`}
+            </InfoNote>
+          ) : null}
+          <Button label="Say hi" icon="chatbubble-ellipses-outline" onPress={send} disabled={alreadyWaiting} haptic />
+        </>
+      )}
     </ScrollView>
   );
 }

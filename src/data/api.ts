@@ -135,6 +135,31 @@ export async function respond(_requestId: string, _accept: boolean) {
   await wait(400);
 }
 
+const OPENERS = [
+  'Hey! Glad you said hi 👋',
+  'Hi! I’m around, come over whenever.',
+  'Hey, nice to meet you! Want to grab a seat together?',
+];
+const REPLIES = [
+  'Sounds good!',
+  'Ha, same here.',
+  'I’ll wave when I see you.',
+  'Nice, see you in a sec.',
+  'Oh cool, tell me more when we meet!',
+];
+const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)]!;
+
+// Mock chat. With Supabase this becomes inserts into a `messages` table, delivered with Realtime.
+export async function sendMessage(_chatId: string, _text: string) {
+  await wait(150);
+}
+
+/** Mock: the other person's first message after a match, and their replies. */
+export async function waitForReply(kind: 'opener' | 'reply'): Promise<string> {
+  await wait(kind === 'opener' ? 1500 : 1800 + Math.random() * 1500);
+  return pick(kind === 'opener' ? OPENERS : REPLIES);
+}
+
 export async function endMatch(_matchId: string, _outcome: 'met' | 'cancelled') {
   await wait(300);
 }

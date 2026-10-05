@@ -5,6 +5,7 @@ import type {
   Availability,
   IncomingRequest,
   Match,
+  Message,
   NearbyPerson,
   OutgoingRequest,
   Profile,
@@ -152,7 +153,7 @@ export async function sayHi(to: NearbyPerson) {
   if (outcome === 'accepted') {
     set({
       outgoing: { ...state.outgoing, status: 'accepted' },
-      match: { id, other: to, status: 'active' },
+      match: { id, other: to, status: 'active', messages: [] },
     });
   } else {
     set({ outgoing: { ...state.outgoing, status: 'not-this-time' } });
@@ -186,11 +187,7 @@ export async function respondToIncoming(accept: boolean) {
   await api.respond(incoming.id, accept);
   if (accept) {
     set({
-      match: {
-        id: incoming.id,
-        other: incoming.from,
-        status: 'active',
-      },
+      match: { id: incoming.id, other: incoming.from, status: 'active', messages: [] },
     });
   }
 }
@@ -200,6 +197,36 @@ export function expireIncoming() {
 }
 
 // ---------------------------------------------------------------- match
+
+// ---------------------------------------------------------------- chat
+
+function addMessage(message: Message) {
+  if (state.match) set({ match: { ...state.match, messages: [...state.match.messages, message] } });
+}
+
+function receiveFromOther(kind: 'opener' | 'reply') {
+  const chatId = state.match?.id;
+  if (!chatId) return;
+  api.waitForReply(kind).then((text) => {
+    const other = state.match?.id === chatId ? state.match.other : null;
+    if (!other) return; // chat ended meanwhile
+    addMessage({ id: `m_${Date.now()}`, senderId: other.id, senderName: other.firstName, text, sentAt: Date.now() });
+  });
+}
+
+/** Called when the chat opens: the mock other person says hello first. */
+export function startChat() {
+  if (state.match && state.match.messages.length === 0) receiveFromOther('opener');
+}
+
+export async function sendMessage(text: string) {
+  const match = state.match;
+  const body = text.trim();
+  if (!match || !body) return;
+  addMessage({ id: `m_${Date.now()}`, senderId: 'me', senderName: 'You', text: body, sentAt: Date.now() });
+  await api.sendMessage(match.id, body);
+  receiveFromOther('reply');
+}
 
 export async function endMatch(outcome: 'met' | 'cancelled') {
   const match = state.match;
