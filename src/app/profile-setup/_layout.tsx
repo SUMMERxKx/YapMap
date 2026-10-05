@@ -19,6 +19,7 @@ export default function ProfileSetupLayout() {
         <Stack.Screen name="about" />
         <Stack.Screen name="interests" />
         <Stack.Screen name="photo" />
+        <Stack.Screen name="photos" />
       </Stack>
     </ProfileDraftProvider>
   );

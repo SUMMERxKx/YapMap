@@ -22,7 +22,8 @@ export type Profile = {
   showGender: boolean; // when false, other people don't see gender
   intro: string; // max 300 characters
   interests: string[]; // 3 to 5 from INTERESTS
-  photoUri: string | null;
+  photoUri: string | null; // profile picture
+  photos: string[]; // more photos, 4 to 6
   isAdult: boolean;
   verified: boolean; // selfie matched the profile photo
 };
@@ -36,6 +37,7 @@ export type NearbyPerson = {
   intro: string;
   interests: string[];
   photoUri: string | null;
+  photos: string[];
   verified: boolean;
 };
 
@@ -99,6 +101,7 @@ export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
 export const NEARBY_REFRESH_MS = 20 * 1000;
 export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30 } as const;
 export const INTEREST_RANGE = { min: 3, max: 5 } as const;
+export const PHOTO_RANGE = { min: 4, max: 6 } as const; // on top of the profile picture
 
 // Random poses for the verification selfie, so an old photo can't be reused.
 export const VERIFICATION_POSES = [

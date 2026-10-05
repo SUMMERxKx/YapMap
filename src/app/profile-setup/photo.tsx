@@ -1,14 +1,13 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
+import { router } from 'expo-router';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { InfoNote } from '@/components/info-note';
 import { SetupStep } from '@/components/setup-step';
-import { FEATURES } from '@/config/features';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
-import { saveProfile } from '@/state/store';
 
 const PICKER: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -37,33 +36,14 @@ export default function PhotoStep() {
     if (!result.canceled) update({ photoUri: result.assets[0]?.uri ?? null });
   };
 
-  const finish = () => {
-    const { gender, photoUri } = draft;
-    if (!gender || !photoUri) return;
-    // Saving moves the app on to the next step (the app, or the selfie check when it's on).
-    saveProfile({
-      ...draft,
-      gender,
-      photoUri,
-      firstName: draft.firstName.trim(),
-      lastName: draft.lastName.trim(),
-      intro: draft.intro.trim(),
-    });
-  };
-
   return (
     <SetupStep
       step={5}
       total={SETUP_STEPS}
-      title="Add a photo of you"
-      subtitle={
-        FEATURES.selfieVerification
-          ? "A clear photo of your face, so people can spot you. Next, a quick selfie confirms it's really you."
-          : 'A clear photo of your face, so people can spot you.'
-      }
-      nextLabel="Finish"
+      title="Your profile picture"
+      subtitle="A clear photo of your face. It's the first thing people see, and how they spot you."
       canContinue={draft.photoUri !== null}
-      onNext={finish}>
+      onNext={() => router.push('/profile-setup/photos')}>
       <View style={styles.center}>
         <Avatar name={draft.firstName || '?'} photoUri={draft.photoUri} size={180} />
       </View>

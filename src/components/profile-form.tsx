@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { Gender, Profile } from '@/data/types';
-import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS } from '@/data/types';
+import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS, PHOTO_RANGE } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from './app-text';
@@ -13,6 +13,7 @@ import { Button } from './button';
 import { Checkbox } from './checkbox';
 import { Chip } from './chip';
 import { InfoNote } from './info-note';
+import { PhotoGrid } from './photo-grid';
 import { TextField } from './text-field';
 import { ToggleRow } from './toggle-row';
 
@@ -27,6 +28,7 @@ type Props = {
 export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = true }: Props) {
   const { colors, spacing } = useTheme();
   const [photoUri, setPhotoUri] = useState<string | null>(initial?.photoUri ?? null);
+  const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [lastName, setLastName] = useState(initial?.lastName ?? '');
   const [gender, setGender] = useState<Gender | null>(initial?.gender ?? null);
@@ -37,7 +39,8 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const [tried, setTried] = useState(false);
 
   const missing = [
-    !photoUri && 'a photo',
+    !photoUri && 'a profile picture',
+    photos.length < PHOTO_RANGE.min && `at least ${PHOTO_RANGE.min} more photos`,
     !firstName.trim() && 'your first name',
     !lastName.trim() && 'your last name',
     !gender && 'your gender',
@@ -70,6 +73,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
     if (missing.length === 0 && gender) {
       onSubmit({
         photoUri,
+        photos,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         gender,
@@ -98,7 +102,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </View>
         <View style={{ flex: 1, gap: 2 }}>
           <AppText variant="bodyStrong">
-            Profile photo <AppText variant="bodyStrong" color="destructive">*</AppText>
+            Profile picture <AppText variant="bodyStrong" color="destructive">*</AppText>
           </AppText>
           <AppText variant="caption" color="textSecondary">
             A clear photo of your face, so people can spot you.
@@ -108,6 +112,16 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
           </AppText>
         </View>
       </Pressable>
+
+      <View style={{ gap: spacing.sm }}>
+        <AppText variant="caption">
+          More photos <AppText variant="caption" color="destructive">*</AppText>
+        </AppText>
+        <AppText variant="caption" color="textSecondary">
+          At least {PHOTO_RANGE.min}, up to {PHOTO_RANGE.max}.
+        </AppText>
+        <PhotoGrid photos={photos} onChange={setPhotos} />
+      </View>
 
       <View style={{ gap: spacing.sm }}>
         <View style={styles.nameRow}>
