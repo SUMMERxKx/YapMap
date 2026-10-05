@@ -11,6 +11,7 @@ const empty: ProfileDraft = {
   firstName: '',
   lastName: '',
   gender: null,
+  showGender: true,
   intro: '',
   interests: [],
   photoUri: null,

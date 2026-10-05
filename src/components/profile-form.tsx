@@ -14,6 +14,7 @@ import { Checkbox } from './checkbox';
 import { Chip } from './chip';
 import { InfoNote } from './info-note';
 import { TextField } from './text-field';
+import { ToggleRow } from './toggle-row';
 
 type Values = Omit<Profile, 'id' | 'verified'>;
 type Props = {
@@ -29,6 +30,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
   const [lastName, setLastName] = useState(initial?.lastName ?? '');
   const [gender, setGender] = useState<Gender | null>(initial?.gender ?? null);
+  const [showGender, setShowGender] = useState(initial?.showGender ?? true);
   const [intro, setIntro] = useState(initial?.intro ?? '');
   const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
   const [isAdult, setIsAdult] = useState(initial?.isAdult ?? false);
@@ -71,6 +73,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         gender,
+        showGender,
         intro: intro.trim(),
         interests,
         isAdult,
@@ -153,6 +156,12 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
             />
           ))}
         </View>
+        <ToggleRow
+          label="Show my gender on my profile"
+          value={showGender && gender !== 'prefer-not'}
+          onChange={setShowGender}
+          disabled={gender === 'prefer-not'}
+        />
       </View>
 
       <TextField

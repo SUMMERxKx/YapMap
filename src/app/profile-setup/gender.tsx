@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { SetupStep } from '@/components/setup-step';
+import { ToggleRow } from '@/components/toggle-row';
 import { GENDERS } from '@/data/types';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
@@ -17,7 +18,6 @@ export default function GenderStep() {
       step={2}
       total={SETUP_STEPS}
       title="What's your gender?"
-      subtitle={'If you choose "Prefer not to say", it won\'t be shown to anyone.'}
       canContinue={draft.gender !== null}
       onNext={() => router.push('/profile-setup/about')}>
       <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={{ gap: 10 }}>
@@ -51,6 +51,17 @@ export default function GenderStep() {
           );
         })}
       </View>
+      <ToggleRow
+        label="Show my gender on my profile"
+        description={
+          draft.gender === 'prefer-not'
+            ? 'Nothing is shown when you choose "Prefer not to say".'
+            : 'Turn this off to keep it private. You can change it later.'
+        }
+        value={draft.showGender && draft.gender !== 'prefer-not'}
+        onChange={(showGender) => update({ showGender })}
+        disabled={draft.gender === 'prefer-not'}
+      />
     </SetupStep>
   );
 }
