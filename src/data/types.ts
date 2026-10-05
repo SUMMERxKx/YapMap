@@ -19,6 +19,7 @@ export type Profile = {
   firstName: string;
   lastName: string; // only the initial is ever shown to other people
   gender: Gender;
+  showGender: boolean; // when false, other people don't see gender
   intro: string; // max 300 characters
   interests: string[]; // 3 to 5 from INTERESTS
   photoUri: string | null;
@@ -31,7 +32,7 @@ export type NearbyPerson = {
   id: string;
   firstName: string;
   lastInitial: string;
-  gender: Gender | null; // null when they chose "Prefer not to say"
+  gender: Gender | null; // null when hidden ("Prefer not to say" or the toggle is off)
   intro: string;
   interests: string[];
   photoUri: string | null;
