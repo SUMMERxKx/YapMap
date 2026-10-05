@@ -287,6 +287,7 @@ export async function loadEvents(center: { latitude: number; longitude: number }
 }
 
 export async function createEvent(input: {
+  emoji: string;
   title: string;
   description: string;
   latitude: number;

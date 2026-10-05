@@ -93,6 +93,7 @@ export type Match = {
 /** An event someone put on the map. Its location is the place the host chose, never anyone's live position. */
 export type MapEvent = {
   id: string;
+  emoji: string; // the event's face on the map pin
   title: string;
   description: string;
   latitude: number;
@@ -104,12 +105,11 @@ export type MapEvent = {
   messages: Message[];
 };
 
-export const EVENT_STARTS = [
-  { label: 'Now', minutes: 0 },
-  { label: 'In 30 min', minutes: 30 },
-  { label: 'In 1 hour', minutes: 60 },
-  { label: 'In 2 hours', minutes: 120 },
-] as const;
+/** Emojis a host can give their event; the first is the default. */
+export const EVENT_EMOJIS = ['☕', '🍕', '🎲', '📚', '💻', '🏀', '🎸', '🚶', '🧘', '🎬', '🎨', '🍻'] as const;
+
+/** Events can be planned at most this far ahead. */
+export const EVENT_MAX_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
 
 export type ReportReason =
   | 'inappropriate-photo'

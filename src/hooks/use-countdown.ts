@@ -43,3 +43,13 @@ export function formatEventTime(startsAt: number, now = Date.now()) {
   const ago = -diff;
   return ago >= 60 ? `Started ${Math.floor(ago / 60)} h ago` : `Started ${ago} min ago`;
 }
+
+/** A chosen start time, the way a person would say it. */
+export function formatStartTime(ts: number, now = Date.now()) {
+  if (ts - now < 2 * 60 * 1000) return 'Now';
+  const date = new Date(ts);
+  const time = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  if (date.toDateString() === new Date(now).toDateString()) return `Today ${time}`;
+  if (date.toDateString() === new Date(now + 86400000).toDateString()) return `Tomorrow ${time}`;
+  return `${date.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })}, ${time}`;
+}
