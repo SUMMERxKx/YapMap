@@ -9,7 +9,13 @@ export default function AppLayout() {
   const incomingId = useStore((s) => s.incoming?.id);
   const matchId = useStore((s) => s.match?.id);
   const expiresAt = useStore((s) => s.availability?.expiresAt);
+  const seenTutorial = useStore((s) => s.seenTutorial);
   const shown = useRef<{ incoming?: string; match?: string }>({});
+
+  // First time in the app: show how it works.
+  useEffect(() => {
+    if (!seenTutorial) router.push('/tutorial');
+  }, [seenTutorial]);
 
   // Availability ends on time whichever screen is open.
   useEffect(() => {
@@ -65,6 +71,7 @@ export default function AppLayout() {
           contentStyle: { backgroundColor: colors.surface },
         }}
       />
+      <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
       <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
       <Stack.Screen name="match" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />

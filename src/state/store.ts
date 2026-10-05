@@ -23,6 +23,7 @@ type State = {
   blockedIds: string[];
   blockedNames: Record<string, string>;
   safetyTipViews: number;
+  seenTutorial: boolean;
 };
 
 const initialState: State = {
@@ -36,6 +37,7 @@ const initialState: State = {
   blockedIds: [],
   blockedNames: {},
   safetyTipViews: 0,
+  seenTutorial: false,
 };
 
 let state = initialState;
@@ -198,6 +200,10 @@ export async function endMatch(outcome: 'met' | 'cancelled') {
   if (!match) return;
   set({ match: null, outgoing: null });
   await api.endMatch(match.id, outcome);
+}
+
+export function markTutorialSeen() {
+  set({ seenTutorial: true });
 }
 
 export function markSafetyTipSeen() {
