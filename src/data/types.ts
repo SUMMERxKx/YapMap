@@ -90,6 +90,27 @@ export type Match = {
   messages: Message[];
 };
 
+/** An event someone put on the map. Its location is the place the host chose, never anyone's live position. */
+export type MapEvent = {
+  id: string;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  startsAt: number;
+  host: { id: string; firstName: string; lastInitial: string; photoUri: string | null };
+  memberCount: number;
+  joined: boolean;
+  messages: Message[];
+};
+
+export const EVENT_STARTS = [
+  { label: 'Now', minutes: 0 },
+  { label: 'In 30 min', minutes: 30 },
+  { label: 'In 1 hour', minutes: 60 },
+  { label: 'In 2 hours', minutes: 120 },
+] as const;
+
 export type ReportReason =
   | 'inappropriate-photo'
   | 'harassment'
@@ -110,7 +131,7 @@ export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
 export const DURATIONS = [30, 60, 120] as const;
 export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
 export const NEARBY_REFRESH_MS = 20 * 1000;
-export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30, message: 1000 } as const;
+export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30, message: 1000, eventTitle: 60, eventDescription: 200 } as const;
 export const INTEREST_RANGE = { min: 3, max: 5 } as const;
 export const PHOTO_RANGE = { min: 4, max: 6 } as const; // on top of the profile picture
 
