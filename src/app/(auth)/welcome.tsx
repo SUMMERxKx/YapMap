@@ -3,6 +3,7 @@ import { Platform, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/app-text';
 import { Button } from '@/components/button';
+import { GlassBackdrop } from '@/components/glass-backdrop';
 import { Screen } from '@/components/screen';
 import { signInWithProvider } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -12,6 +13,7 @@ export default function Welcome() {
 
   return (
     <Screen
+      backdrop={<GlassBackdrop />}
       footer={
         <>
           {/* Sign in with Apple is iOS-only (expo-apple-authentication). Swap in its official

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/app-text';
+import { GlassBackdrop } from '@/components/glass-backdrop';
 import { HeroButton } from '@/components/hero-button';
 import { InfoNote } from '@/components/info-note';
 import { formatMinutesLeft, useCountdown } from '@/hooks/use-countdown';
@@ -19,6 +20,7 @@ export default function GoLive() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
+      <GlassBackdrop tint={live ? 'live' : 'green'} />
       <View style={[styles.header, { paddingHorizontal: spacing.xxl }]}>
         <AppText variant="heading" style={{ color: colors.green, fontWeight: '800' }}>
           Yap

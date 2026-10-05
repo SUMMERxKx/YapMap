@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/app-text';
 import { Button } from '@/components/button';
 import { Checkbox } from '@/components/checkbox';
+import { GlassBackdrop } from '@/components/glass-backdrop';
 import { Screen } from '@/components/screen';
 import { useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
@@ -15,6 +16,7 @@ export default function SetupStart() {
 
   return (
     <Screen
+      backdrop={<GlassBackdrop />}
       footer={
         <>
           <Checkbox checked={draft.isAdult} onChange={(isAdult) => update({ isAdult })} label="I'm 18 or older">
