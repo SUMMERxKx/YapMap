@@ -1,6 +1,7 @@
 // Edit profile: the same fields as setup, on one page.
 
 import { router } from 'expo-router';
+import { Alert } from 'react-native';
 
 import { InfoNote } from '@/components/ui/info-note';
 import { ProfileForm } from '@/components/profile/profile-form';
@@ -21,11 +22,15 @@ export default function EditProfile() {
         initial={profile ?? undefined}
         submitLabel="Save"
         showAgeCheck={false}
-        onSubmit={(values) => {
+        onSubmit={async (values) => {
           const photoChanged = values.photoUri !== profile?.photoUri;
-          // A new photo means a new selfie check: the root layout moves to it automatically.
-          if (!photoChanged || !FEATURES.selfieVerification) router.back();
-          saveProfile({ ...values, isAdult: profile?.isAdult ?? values.isAdult });
+          try {
+            await saveProfile({ ...values, isAdult: profile?.isAdult ?? values.isAdult });
+            // A new photo means a new selfie check: the root layout moves to it automatically.
+            if (!photoChanged || !FEATURES.selfieVerification) router.back();
+          } catch (e) {
+            Alert.alert('Could not save', e instanceof Error ? e.message : 'Try again.');
+          }
         }}
       />
     </Screen>

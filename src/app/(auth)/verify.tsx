@@ -13,7 +13,7 @@ import { signInWithEmail } from '@/state/store';
 import { useTheme } from '@/theme';
 
 const LENGTH = 6;
-const RESEND_SECONDS = 30;
+const RESEND_SECONDS = 60; // Supabase sends at most one code per minute
 
 export default function Verify() {
   const { email = '' } = useLocalSearchParams<{ email: string }>();
@@ -47,7 +47,11 @@ export default function Verify() {
     setCooldown(RESEND_SECONDS);
     setError(null);
     setCode('');
-    await api.requestEmailCode(email);
+    try {
+      await api.requestEmailCode(email);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not resend the code.');
+    }
   };
 
   return (

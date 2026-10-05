@@ -2,7 +2,7 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Linking, ScrollView, View } from 'react-native';
+import { Alert, Linking, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
@@ -38,9 +38,14 @@ export default function GoAvailable() {
       setBusy(false);
       return;
     }
-    await goGreen({ minutes, note: note.trim(), latitude: result.latitude, longitude: result.longitude });
-    setBusy(false);
-    router.back();
+    try {
+      await goGreen({ minutes, note: note.trim(), latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy });
+      router.back();
+    } catch (e) {
+      Alert.alert('Could not go live', e instanceof Error ? e.message : 'Try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
