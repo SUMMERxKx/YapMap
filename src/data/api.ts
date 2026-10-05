@@ -187,12 +187,13 @@ export async function eventsNear(center: { latitude: number; longitude: number }
   await wait(400);
   const now = Date.now();
   const spots = [
-    { dLat: 0.004, dLng: -0.006, title: 'Coffee and chats', description: 'Grabbing a flat white, anyone welcome.', in: 10 },
-    { dLat: -0.005, dLng: 0.004, title: 'Study break walk', description: 'Quick walk around the block, back in 30.', in: 30 },
-    { dLat: 0.007, dLng: 0.008, title: 'Board games', description: 'Bringing Catan and Codenames. Beginners welcome!', in: 60 },
+    { dLat: 0.004, dLng: -0.006, emoji: '☕', title: 'Coffee and chats', description: 'Grabbing a flat white, anyone welcome.', in: 10 },
+    { dLat: -0.005, dLng: 0.004, emoji: '🚶', title: 'Study break walk', description: 'Quick walk around the block, back in 30.', in: 30 },
+    { dLat: 0.007, dLng: 0.008, emoji: '🎲', title: 'Board games', description: 'Bringing Catan and Codenames. Beginners welcome!', in: 60 },
   ];
   return spots.map((spot, i) => ({
     id: `ev_mock_${i}`,
+    emoji: spot.emoji,
     title: spot.title,
     description: spot.description,
     latitude: center.latitude + spot.dLat,

@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -61,10 +60,12 @@ export default function EventsMap() {
             key={event.id}
             coordinate={{ latitude: event.latitude, longitude: event.longitude }}
             onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
-            accessibilityLabel={`${event.title}, ${event.memberCount} going`}
+            accessibilityLabel={`${event.emoji} ${event.title}, ${event.memberCount} going`}
             tracksViewChanges={false}>
             <View style={[styles.pin, elevation.card, { backgroundColor: event.joined ? colors.green : colors.surface, borderColor: colors.green }]}>
-              <Ionicons name="people" size={14} color={event.joined ? colors.onGreen : colors.greenText} />
+              <AppText style={styles.pinEmoji} maxFontSizeMultiplier={1}>
+                {event.emoji}
+              </AppText>
               <AppText variant="caption" numberOfLines={1} style={{ color: event.joined ? colors.onGreen : colors.textPrimary, fontWeight: '700', maxWidth: 140 }}>
                 {event.title}
               </AppText>
@@ -108,4 +109,5 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     borderWidth: 1.5,
   },
+  pinEmoji: { fontSize: 15, lineHeight: 19 },
 });

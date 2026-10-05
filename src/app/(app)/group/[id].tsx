@@ -53,7 +53,7 @@ export default function GroupChat() {
         <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
         <View style={styles.flex}>
           <AppText variant="bodyStrong" numberOfLines={1} accessibilityRole="header">
-            {event.title}
+            {event.emoji} {event.title}
           </AppText>
           <AppText variant="caption" color="textSecondary">
             {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}

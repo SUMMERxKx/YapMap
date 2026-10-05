@@ -42,7 +42,7 @@ export default function EventDetails() {
 
       <View style={{ gap: spacing.sm }}>
         <AppText variant="title" accessibilityRole="header">
-          {event.title}
+          {event.emoji} {event.title}
         </AppText>
         <View style={styles.meta}>
           <Ionicons name="time-outline" size={18} color={colors.greenText} />
