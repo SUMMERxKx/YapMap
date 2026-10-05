@@ -3,11 +3,11 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { Screen } from '@/components/ui/screen';
 import { VERIFICATION_POSES } from '@/data/types';
 import { markVerified, useStore, verifySelfie } from '@/state/store';
 import { useTheme } from '@/theme';

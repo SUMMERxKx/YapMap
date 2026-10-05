@@ -1,10 +1,12 @@
+// A labelled checkbox card (used for the 18+ confirmation and "also block").
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Props = {
   checked: boolean;

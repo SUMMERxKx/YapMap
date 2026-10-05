@@ -1,9 +1,11 @@
+// Setup step 4: pick 3 to 5 interests.
+
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Chip } from '@/components/chip';
-import { SetupStep } from '@/components/setup-step';
+import { AppText } from '@/components/ui/app-text';
+import { Chip } from '@/components/ui/chip';
+import { SetupStep } from '@/components/profile/setup-step';
 import { INTEREST_RANGE, INTERESTS } from '@/data/types';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 

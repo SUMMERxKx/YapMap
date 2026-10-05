@@ -1,13 +1,16 @@
+// After "Say hi": waiting for the answer, with the 5-minute window and the silent "Not this time".
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { Screen } from '@/components/screen';
-import { formatClock, useCountdown } from '@/hooks/use-countdown';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { Screen } from '@/components/ui/screen';
+import { useCountdown } from '@/hooks/use-countdown';
+import { formatClock } from '@/lib/format-time';
 import { cancelRequest, clearOutgoing, expireOutgoing, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

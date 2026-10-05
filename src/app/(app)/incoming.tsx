@@ -1,15 +1,18 @@
+// Someone said hi: their profile, with Accept and Not now carrying equal weight.
+
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { PersonDetails } from '@/components/person-details';
-import { SafetyMenu } from '@/components/safety-menu';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { PersonDetails } from '@/components/profile/person-details';
+import { SafetyMenu } from '@/components/safety/safety-menu';
+import { Screen } from '@/components/ui/screen';
 import { displayName } from '@/data/types';
-import { formatClock, useCountdown } from '@/hooks/use-countdown';
+import { useCountdown } from '@/hooks/use-countdown';
+import { formatClock } from '@/lib/format-time';
 import { expireIncoming, respondToIncoming, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

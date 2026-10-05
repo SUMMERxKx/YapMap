@@ -9,8 +9,8 @@ import { displayName } from '@/data/types';
 import { dismissNearbyAlert, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Avatar } from './avatar';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
 
 const SHOW_FOR_MS = 8000;
 

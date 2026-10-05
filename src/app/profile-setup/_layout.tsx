@@ -1,3 +1,5 @@
+// Profile setup: one question per screen, sliding left; answers live in the shared draft.
+
 import { Stack } from 'expo-router';
 
 import { ProfileDraftProvider } from '@/state/profile-draft';

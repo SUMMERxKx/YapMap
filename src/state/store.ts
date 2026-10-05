@@ -1,3 +1,8 @@
+// All app state and the actions that change it, in one small external store
+// (useSyncExternalStore). Screens read slices with useStore(selector) and call the
+// exported actions; nothing outside this file writes state. Each section below mirrors
+// a backend concept, so swapping the mock api for Supabase mostly touches data/api.ts.
+
 import { useSyncExternalStore } from 'react';
 
 import * as api from '@/data/api';

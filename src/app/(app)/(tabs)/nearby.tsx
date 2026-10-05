@@ -1,14 +1,17 @@
+// Nearby tab: the people who are live around you. You only see them while you're live too.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ActiveChatBar } from '@/components/active-chat-bar';
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { InfoNote } from '@/components/info-note';
-import { PersonCard, PersonCardSkeleton } from '@/components/person-card';
-import { formatClock, formatMinutesLeft, useCountdown } from '@/hooks/use-countdown';
+import { ActiveChatBar } from '@/components/chat/active-chat-bar';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { InfoNote } from '@/components/ui/info-note';
+import { PersonCard, PersonCardSkeleton } from '@/components/profile/person-card';
+import { useCountdown } from '@/hooks/use-countdown';
+import { formatClock, formatMinutesLeft } from '@/lib/format-time';
 import { useNearby } from '@/hooks/use-nearby';
 import { clearOutgoing, useStore } from '@/state/store';
 import { useTheme } from '@/theme';

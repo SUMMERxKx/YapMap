@@ -1,12 +1,14 @@
+// Setup greeting: the hello and the 18+ confirmation before the questions start.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { Checkbox } from '@/components/checkbox';
-import { GlassBackdrop } from '@/components/glass-backdrop';
-import { Screen } from '@/components/screen';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { GlassBackdrop } from '@/components/ui/glass-backdrop';
+import { Screen } from '@/components/ui/screen';
 import { useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
 

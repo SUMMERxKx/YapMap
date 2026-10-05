@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 /** Shown on profiles whose selfie matched their photo. */
 export function VerifiedBadge({ align = 'center' }: { align?: 'center' | 'flex-start' }) {

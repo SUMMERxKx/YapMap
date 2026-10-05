@@ -6,10 +6,10 @@ import { displayName, genderLabel } from '@/data/types';
 import { FEATURES } from '@/config/features';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Avatar } from './avatar';
-import { InterestList } from './chip';
-import { VerifiedBadge } from './verified-badge';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { InterestList } from '@/components/ui/chip';
+import { VerifiedBadge } from '@/components/profile/verified-badge';
 
 type Props = { person: NearbyPerson; subtitle?: string };
 

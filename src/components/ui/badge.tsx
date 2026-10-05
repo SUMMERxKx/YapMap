@@ -1,8 +1,10 @@
+// Small pill label, e.g. "here now".
+
 import { View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Props = { label: string; tone?: 'green' | 'neutral' };
 

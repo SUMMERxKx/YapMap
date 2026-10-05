@@ -1,13 +1,15 @@
+// The go-live sheet: pick a duration and an optional note, then turn green.
+
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Linking, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Button } from '@/components/button';
-import { DurationChips } from '@/components/duration-chips';
-import { InfoNote } from '@/components/info-note';
-import { TextField } from '@/components/text-field';
+import { AppText } from '@/components/ui/app-text';
+import { Button } from '@/components/ui/button';
+import { DurationChips } from '@/components/live/duration-chips';
+import { InfoNote } from '@/components/ui/info-note';
+import { TextField } from '@/components/ui/text-field';
 import { LIMITS } from '@/data/types';
 import { useForegroundLocation } from '@/hooks/use-foreground-location';
 import { goGreen, updateNote, useStore } from '@/state/store';

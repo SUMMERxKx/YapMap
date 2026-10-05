@@ -37,6 +37,19 @@ Testing with the mock backend:
 - After "Say hi", the mock answers in about 6 seconds.
 - In development builds, Profile has "Simulate an incoming request".
 
+## Code tour
+
+- **Entry point:** `src/app/_layout.tsx` (Expo Router). It routes people through sign-in, profile
+  setup and into the app with guarded stacks.
+- **Screens** live in `src/app/` — a file is a route, a `_layout.tsx` is a navigator. The signed-in
+  tabs are Go live, Nearby, Map and Profile.
+- **State** lives in `src/state/store.ts`: one small store; screens read slices with
+  `useStore(selector)` and call its exported actions.
+- **Backend** calls go through `src/data/api.ts` — currently a mock whose functions mirror the
+  planned Supabase functions, so swapping in the real backend touches that file, not screens.
+- **Components** are grouped by purpose in `src/components/` (`ui`, `profile`, `live`, `chat`,
+  `safety`); colours, spacing and type come from `src/theme`.
+
 ## Checks
 
 ```bash

@@ -1,12 +1,14 @@
+// A person in the Nearby list: photo, name, note, intro and interests. Never a location.
+
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { displayName, type NearbyPerson } from '@/data/types';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Avatar } from './avatar';
-import { Badge } from './badge';
-import { InterestList } from './chip';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Badge } from '@/components/ui/badge';
+import { InterestList } from '@/components/ui/chip';
 
 type Props = { person: NearbyPerson; onPress: () => void };
 

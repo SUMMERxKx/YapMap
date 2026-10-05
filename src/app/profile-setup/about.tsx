@@ -1,7 +1,9 @@
+// Setup step 3: the intro.
+
 import { router } from 'expo-router';
 
-import { SetupStep } from '@/components/setup-step';
-import { TextField } from '@/components/text-field';
+import { SetupStep } from '@/components/profile/setup-step';
+import { TextField } from '@/components/ui/text-field';
 import { LIMITS } from '@/data/types';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 

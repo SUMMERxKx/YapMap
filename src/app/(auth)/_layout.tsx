@@ -1,3 +1,5 @@
+// The signed-out stack: welcome, email entry, code verification.
+
 import { Stack } from 'expo-router';
 
 import { useTheme } from '@/theme';

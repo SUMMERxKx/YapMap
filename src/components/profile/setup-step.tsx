@@ -4,9 +4,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
-import { Button, IconButton } from './button';
-import { Screen } from './screen';
+import { AppText } from '@/components/ui/app-text';
+import { Button, IconButton } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
 
 type Props = {
   step: number; // 1-based

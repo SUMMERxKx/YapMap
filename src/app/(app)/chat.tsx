@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Avatar } from '@/components/avatar';
-import { Button, IconButton } from '@/components/button';
-import { ChatThread } from '@/components/chat-thread';
-import { InfoNote } from '@/components/info-note';
-import { SafetyMenu } from '@/components/safety-menu';
+import { AppText } from '@/components/ui/app-text';
+import { Avatar } from '@/components/profile/avatar';
+import { Button, IconButton } from '@/components/ui/button';
+import { ChatThread } from '@/components/chat/chat-thread';
+import { InfoNote } from '@/components/ui/info-note';
+import { SafetyMenu } from '@/components/safety/safety-menu';
 import { displayName } from '@/data/types';
 import { endChat, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
 import { useTheme } from '@/theme';

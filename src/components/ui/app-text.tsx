@@ -1,3 +1,5 @@
+// The only Text the app uses: themed colours, type scale, and capped font scaling.
+
 import { Text, type TextProps } from 'react-native';
 
 import { useTheme, type ColorName, type TypeVariant } from '@/theme';

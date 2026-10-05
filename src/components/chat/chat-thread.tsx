@@ -7,7 +7,7 @@ import type { Message } from '@/data/types';
 import { LIMITS } from '@/data/types';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Props = {
   messages: Message[];

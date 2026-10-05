@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
-import { NearbyToast } from '@/components/nearby-toast';
+import { NearbyToast } from '@/components/live/nearby-toast';
 import { useNearbyAlerts } from '@/hooks/use-nearby-alerts';
 import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';

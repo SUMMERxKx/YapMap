@@ -14,7 +14,7 @@ import Animated, {
 
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
+import { AppText } from '@/components/ui/app-text';
 
 type Props = {
   onPress: () => void;

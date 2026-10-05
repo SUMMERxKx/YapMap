@@ -2,12 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { AppText } from '@/components/app-text';
-import { Button, IconButton } from '@/components/button';
-import { ChatThread } from '@/components/chat-thread';
-import { InfoNote } from '@/components/info-note';
+import { AppText } from '@/components/ui/app-text';
+import { Button, IconButton } from '@/components/ui/button';
+import { ChatThread } from '@/components/chat/chat-thread';
+import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
-import { formatEventTime } from '@/hooks/use-countdown';
+import { formatEventTime } from '@/lib/format-time';
 import { blockUser, leaveEvent, sendGroupMessage, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

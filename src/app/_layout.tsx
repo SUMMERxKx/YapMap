@@ -1,9 +1,12 @@
+// Root layout: themes the app and routes people to the right step
+// (sign in -> profile setup -> selfie check, when enabled -> the app) with guarded stacks.
+
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { OfflineBanner } from '@/components/offline-banner';
+import { OfflineBanner } from '@/components/ui/offline-banner';
 import { FEATURES } from '@/config/features';
 import { useStore } from '@/state/store';
 import { useTheme } from '@/theme';

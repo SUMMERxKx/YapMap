@@ -1,3 +1,5 @@
+// Page scaffold: safe areas, padding, keyboard avoidance, an optional pinned footer and backdrop.
+
 import type { ReactNode } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';

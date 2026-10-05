@@ -1,6 +1,8 @@
-import { AppText } from '@/components/app-text';
-import { PhotoGrid } from '@/components/photo-grid';
-import { SetupStep } from '@/components/setup-step';
+// Setup step 6: at least 4 more photos, then finish.
+
+import { AppText } from '@/components/ui/app-text';
+import { PhotoGrid } from '@/components/profile/photo-grid';
+import { SetupStep } from '@/components/profile/setup-step';
 import { FEATURES } from '@/config/features';
 import { PHOTO_RANGE } from '@/data/types';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
