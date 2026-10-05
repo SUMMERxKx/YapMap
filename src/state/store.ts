@@ -144,7 +144,7 @@ export async function sayHi(to: NearbyPerson) {
   if (outcome === 'accepted') {
     set({
       outgoing: { ...state.outgoing, status: 'accepted' },
-      match: { id, other: { ...to, note: api.noteFor(to.id) }, status: 'active' },
+      match: { id, other: to, status: 'active' },
     });
   } else {
     set({ outgoing: { ...state.outgoing, status: 'not-this-time' } });
@@ -180,7 +180,7 @@ export async function respondToIncoming(accept: boolean) {
     set({
       match: {
         id: incoming.id,
-        other: { ...incoming.from, note: api.noteFor(incoming.from.id) },
+        other: incoming.from,
         status: 'active',
       },
     });

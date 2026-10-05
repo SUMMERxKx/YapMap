@@ -51,7 +51,7 @@ export default function GoAvailable() {
         </AppText>
         <AppText color="textSecondary">
           {editing
-            ? 'People see this only after you both say yes.'
+            ? 'People near you see this while you\'re live.'
             : 'Pick how long you want to be visible to people nearby.'}
         </AppText>
       </View>
@@ -64,12 +64,12 @@ export default function GoAvailable() {
       )}
 
       <TextField
-        label='"How to find me" note (optional)'
+        label="Note (optional)"
         value={note}
         onChangeText={setNote}
         maxLength={LIMITS.note}
         showCounter
-        placeholder="e.g. window seat, blue sweater"
+        placeholder="e.g. Here till 4, happy to talk about anything"
       />
 
       {location.denied ? (
@@ -88,7 +88,7 @@ export default function GoAvailable() {
         {location.denied ? (
           <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />
         ) : (
-          <Button label={editing ? 'Save note' : 'Turn green'} onPress={confirm} loading={busy} haptic />
+          <Button label={editing ? 'Save note' : 'Go live'} onPress={confirm} loading={busy} haptic />
         )}
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
       </View>

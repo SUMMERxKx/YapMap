@@ -38,6 +38,7 @@ export type NearbyPerson = {
   interests: string[];
   photoUri: string | null;
   photos: string[];
+  note: string; // their optional note while live
   verified: boolean;
 };
 
@@ -54,7 +55,7 @@ export function genderLabel(gender: Gender | null) {
 
 export type Availability = {
   minutes: 30 | 60 | 120;
-  note: string; // "How to find me", max 60 characters, shown only after a match
+  note: string; // optional, max 60 characters, shown to people nearby while live
   startedAt: number;
   expiresAt: number;
 };
@@ -75,7 +76,7 @@ export type IncomingRequest = {
 
 export type Match = {
   id: string;
-  other: NearbyPerson & { note: string };
+  other: NearbyPerson;
   status: 'active' | 'other-cancelled';
 };
 

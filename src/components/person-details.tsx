@@ -27,6 +27,11 @@ export function PersonDetails({ person, subtitle }: Props) {
         </AppText>
         {gender ? <AppText color="textSecondary">{gender}</AppText> : null}
         {FEATURES.selfieVerification && person.verified ? <VerifiedBadge /> : null}
+        {person.note ? (
+          <AppText variant="bodyStrong" color="greenText" align="center">
+            {`"${person.note}"`}
+          </AppText>
+        ) : null}
         {subtitle ? (
           <AppText color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
             {subtitle}
