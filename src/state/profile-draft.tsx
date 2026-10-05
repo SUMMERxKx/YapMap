@@ -2,8 +2,8 @@ import { createContext, useContext, useState, type ReactNode } from 'react';
 
 import type { Profile } from '@/data/types';
 
-/** Numbered setup steps: name, gender, intro, interests, photo. */
-export const SETUP_STEPS = 5;
+/** Numbered setup steps: name, gender, intro, interests, profile picture, photos. */
+export const SETUP_STEPS = 6;
 
 export type ProfileDraft = Omit<Profile, 'id' | 'verified' | 'gender'> & { gender: Profile['gender'] | null };
 
@@ -15,6 +15,7 @@ const empty: ProfileDraft = {
   intro: '',
   interests: [],
   photoUri: null,
+  photos: [],
   isAdult: false,
 };
 

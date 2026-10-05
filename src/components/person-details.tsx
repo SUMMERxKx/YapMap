@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import type { NearbyPerson } from '@/data/types';
 import { displayName, genderLabel } from '@/data/types';
@@ -33,6 +34,25 @@ export function PersonDetails({ person, subtitle }: Props) {
         ) : null}
       </View>
 
+      {person.photos.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm }}
+          accessibilityLabel={`${person.photos.length} photos of ${person.firstName}`}>
+          {person.photos.map((uri, i) => (
+            <Image
+              key={uri}
+              source={{ uri }}
+              accessibilityLabel={`Photo ${i + 1} of ${person.firstName}`}
+              style={[styles.photo, { borderRadius: radius.lg, backgroundColor: colors.surfaceMuted }]}
+              contentFit="cover"
+              transition={150}
+            />
+          ))}
+        </ScrollView>
+      ) : null}
+
       <View
         style={[
           styles.box,
@@ -56,4 +76,5 @@ export function PersonDetails({ person, subtitle }: Props) {
 
 const styles = StyleSheet.create({
   box: { gap: 6, borderWidth: StyleSheet.hairlineWidth },
+  photo: { width: 150, height: 200 },
 });
