@@ -74,10 +74,20 @@ export type IncomingRequest = {
   expiresAt: number;
 };
 
+export type Message = {
+  id: string;
+  senderId: string; // 'me' for your own messages
+  senderName: string;
+  text: string;
+  sentAt: number;
+};
+
+/** A 1:1 chat that opens when a request is accepted. */
 export type Match = {
   id: string;
   other: NearbyPerson;
   status: 'active' | 'other-cancelled';
+  messages: Message[];
 };
 
 export type ReportReason =
@@ -100,7 +110,7 @@ export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
 export const DURATIONS = [30, 60, 120] as const;
 export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
 export const NEARBY_REFRESH_MS = 20 * 1000;
-export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30 } as const;
+export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30, message: 1000 } as const;
 export const INTEREST_RANGE = { min: 3, max: 5 } as const;
 export const PHOTO_RANGE = { min: 4, max: 6 } as const; // on top of the profile picture
 

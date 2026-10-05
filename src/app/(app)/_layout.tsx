@@ -43,7 +43,7 @@ export default function AppLayout() {
     if (matchId && shown.current.match !== matchId) {
       shown.current.match = matchId;
       router.dismissTo('/');
-      router.push('/match');
+      router.push('/chat');
     }
   }, [matchId]);
 
@@ -81,7 +81,7 @@ export default function AppLayout() {
         <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
         <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="match" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="chat" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
         <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />
