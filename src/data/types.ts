@@ -82,8 +82,8 @@ export type Message = {
   sentAt: number;
 };
 
-/** A 1:1 chat that opens when a request is accepted. */
-export type Match = {
+/** A 1:1 chat that opens when a request is accepted — you and your yap partner. */
+export type ChatSession = {
   id: string;
   other: NearbyPerson;
   status: 'active' | 'other-cancelled';

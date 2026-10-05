@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ActiveChatBar } from '@/components/active-chat-bar';
 import { AppText } from '@/components/app-text';
 import { GlassBackdrop } from '@/components/glass-backdrop';
 import { HeroButton } from '@/components/hero-button';
@@ -25,6 +26,10 @@ export default function GoLive() {
         <AppText variant="heading" style={{ color: colors.green, fontWeight: '800' }}>
           Yap
         </AppText>
+      </View>
+
+      <View style={{ paddingHorizontal: spacing.xxl }}>
+        <ActiveChatBar />
       </View>
 
       {expired && !live ? (

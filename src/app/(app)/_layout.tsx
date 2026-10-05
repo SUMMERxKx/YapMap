@@ -10,10 +10,10 @@ import { useTheme } from '@/theme';
 export default function AppLayout() {
   const { colors } = useTheme();
   const incomingId = useStore((s) => s.incoming?.id);
-  const matchId = useStore((s) => s.match?.id);
+  const chatId = useStore((s) => s.chat?.id);
   const expiresAt = useStore((s) => s.availability?.expiresAt);
   const seenTutorial = useStore((s) => s.seenTutorial);
-  const shown = useRef<{ incoming?: string; match?: string }>({});
+  const shown = useRef<{ incoming?: string; chat?: string }>({});
 
   // While live: "someone is near you" prompts.
   useNearbyAlerts();
@@ -30,7 +30,7 @@ export default function AppLayout() {
     return () => clearTimeout(timer);
   }, [expiresAt]);
 
-  // An incoming request or a new match takes over the screen, wherever the user is.
+  // An incoming request or a newly opened chat takes over the screen, wherever the user is.
   // When push notifications are added, tapping one opens these same routes.
   useEffect(() => {
     if (incomingId && shown.current.incoming !== incomingId) {
@@ -40,12 +40,12 @@ export default function AppLayout() {
   }, [incomingId]);
 
   useEffect(() => {
-    if (matchId && shown.current.match !== matchId) {
-      shown.current.match = matchId;
+    if (chatId && shown.current.chat !== chatId) {
+      shown.current.chat = chatId;
       router.dismissTo('/');
       router.push('/chat');
     }
-  }, [matchId]);
+  }, [chatId]);
 
   return (
     <View style={{ flex: 1 }}>
@@ -102,7 +102,11 @@ export default function AppLayout() {
         <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
         <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
-        <Stack.Screen name="chat" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        {/* A normal pushed screen: the back gesture works, and the status bar inset is
+            handled like everywhere else (the old full-screen modal hid the header behind
+            the notch on some iPhones). Leaving doesn't end the chat; the ActiveChatBar
+            on Go live and Nearby reopens it. */}
+        <Stack.Screen name="chat" />
         <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
         <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />

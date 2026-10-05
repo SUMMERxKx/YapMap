@@ -1,5 +1,5 @@
 // Mock backend. Every function here matches a planned Supabase database function
-// (go_green, go_offline, nearby, send_request, respond, end_match, block, report),
+// (go_green, go_offline, nearby, send_request, respond, end_chat, block, report),
 // so replacing the mock with Supabase only touches this file.
 
 import type { MapEvent, NearbyPerson, ReportReason } from './types';
@@ -154,13 +154,13 @@ export async function sendMessage(_chatId: string, _text: string) {
   await wait(150);
 }
 
-/** Mock: the other person's first message after a match, and their replies. */
+/** Mock: your yap partner's first message, and their replies. */
 export async function waitForReply(kind: 'opener' | 'reply'): Promise<string> {
   await wait(kind === 'opener' ? 1500 : 1800 + Math.random() * 1500);
   return pick(kind === 'opener' ? OPENERS : REPLIES);
 }
 
-export async function endMatch(_matchId: string, _outcome: 'met' | 'cancelled') {
+export async function endChat(_chatId: string, _outcome: 'met' | 'cancelled') {
   await wait(300);
 }
 
