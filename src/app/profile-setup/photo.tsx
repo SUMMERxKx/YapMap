@@ -6,6 +6,7 @@ import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { InfoNote } from '@/components/info-note';
 import { SetupStep } from '@/components/setup-step';
+import { FEATURES } from '@/config/features';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { saveProfile } from '@/state/store';
 
@@ -39,7 +40,7 @@ export default function PhotoStep() {
   const finish = () => {
     const { gender, photoUri } = draft;
     if (!gender || !photoUri) return;
-    // Saving moves the app on to the selfie check automatically.
+    // Saving moves the app on to the next step (the app, or the selfie check when it's on).
     saveProfile({
       ...draft,
       gender,
@@ -55,7 +56,11 @@ export default function PhotoStep() {
       step={5}
       total={SETUP_STEPS}
       title="Add a photo of you"
-      subtitle="A clear photo of your face, so people can spot you. Next, a quick selfie confirms it's really you."
+      subtitle={
+        FEATURES.selfieVerification
+          ? "A clear photo of your face, so people can spot you. Next, a quick selfie confirms it's really you."
+          : 'A clear photo of your face, so people can spot you.'
+      }
       nextLabel="Finish"
       canContinue={draft.photoUri !== null}
       onNext={finish}>
