@@ -8,6 +8,7 @@ import { Avatar } from '@/components/avatar';
 import { Button } from '@/components/button';
 import { ListGroup, ListRow } from '@/components/list-row';
 import { Screen } from '@/components/screen';
+import { FEATURES } from '@/config/features';
 import { VerifiedBadge } from '@/components/verified-badge';
 import { deleteAccount, signOut, simulateIncoming, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -62,7 +63,7 @@ export default function Profile() {
           <AppText variant="caption" color="textSecondary" numberOfLines={2}>
             {profile?.intro}
           </AppText>
-          {profile?.verified ? (
+          {FEATURES.selfieVerification && profile?.verified ? (
             <View style={{ marginTop: 4 }}>
               <VerifiedBadge align="flex-start" />
             </View>

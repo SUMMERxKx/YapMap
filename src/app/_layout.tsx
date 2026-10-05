@@ -4,6 +4,7 @@ import { View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { OfflineBanner } from '@/components/offline-banner';
+import { FEATURES } from '@/config/features';
 import { useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -11,7 +12,8 @@ export default function RootLayout() {
   const { scheme, colors } = useTheme();
   const signedIn = useStore((s) => s.session !== null);
   const hasProfile = useStore((s) => s.profile !== null);
-  const verified = useStore((s) => s.profile?.verified === true);
+  // With verification switched off, everyone with a profile counts as verified.
+  const verified = useStore((s) => s.profile?.verified === true) || !FEATURES.selfieVerification;
 
   const navTheme = scheme === 'dark' ? DarkTheme : DefaultTheme;
 

@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 
 import type { NearbyPerson } from '@/data/types';
 import { displayName, genderLabel } from '@/data/types';
+import { FEATURES } from '@/config/features';
 import { useTheme } from '@/theme';
 
 import { AppText } from './app-text';
@@ -24,7 +25,7 @@ export function PersonDetails({ person, subtitle }: Props) {
           {displayName(person)}
         </AppText>
         {gender ? <AppText color="textSecondary">{gender}</AppText> : null}
-        {person.verified ? <VerifiedBadge /> : null}
+        {FEATURES.selfieVerification && person.verified ? <VerifiedBadge /> : null}
         {subtitle ? (
           <AppText color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
             {subtitle}
