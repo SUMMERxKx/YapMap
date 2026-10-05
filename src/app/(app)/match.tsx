@@ -78,10 +78,10 @@ export default function MatchScreen() {
 
       <View style={[styles.note, { backgroundColor: colors.greenSoft, borderRadius: radius.lg, padding: spacing.lg }]}>
         <AppText variant="label" color="greenText">
-          {`HOW TO FIND ${other.firstName.toUpperCase()}`}
+          {`${other.firstName.toUpperCase()}'S NOTE`}
         </AppText>
         <AppText variant="heading" color="greenText">
-          {other.note ? `"${other.note}"` : `${other.firstName} didn't add a note. Look for their photo.`}
+          {other.note ? `"${other.note}"` : `${other.firstName} didn't add a note. Look out for their photo.`}
         </AppText>
       </View>
 

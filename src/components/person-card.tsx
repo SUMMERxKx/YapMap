@@ -37,6 +37,11 @@ export function PersonCard({ person, onPress }: Props) {
           </AppText>
           <Badge label="here now" />
         </View>
+        {person.note ? (
+          <AppText variant="bodyStrong" color="greenText" numberOfLines={1}>
+            {`"${person.note}"`}
+          </AppText>
+        ) : null}
         <AppText variant="body" color="textSecondary" numberOfLines={2}>
           {person.intro}
         </AppText>

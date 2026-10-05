@@ -6,7 +6,7 @@ import type { NearbyPerson, ReportReason } from './types';
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
+const MOCK_PEOPLE: NearbyPerson[] = [
   {
     id: 'u_sam',
     firstName: 'Sam',
@@ -17,7 +17,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     photoUri: null,
     photos: ['https://picsum.photos/seed/u_sam1/600/800', 'https://picsum.photos/seed/u_sam2/600/800', 'https://picsum.photos/seed/u_sam3/600/800', 'https://picsum.photos/seed/u_sam4/600/800'],
     verified: true,
-    note: 'Counter table near the plants, black corduroy cap',
+    note: 'Here till 5, come say hi',
   },
   {
     id: 'u_maya',
@@ -29,7 +29,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     photoUri: null,
     photos: ['https://picsum.photos/seed/u_maya1/600/800', 'https://picsum.photos/seed/u_maya2/600/800', 'https://picsum.photos/seed/u_maya3/600/800', 'https://picsum.photos/seed/u_maya4/600/800'],
     verified: true,
-    note: 'Big table at the back, green notebook',
+    note: 'Sketching, but always happy to chat',
   },
   {
     id: 'u_liam',
@@ -41,7 +41,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     photoUri: null,
     photos: ['https://picsum.photos/seed/u_liam1/600/800', 'https://picsum.photos/seed/u_liam2/600/800', 'https://picsum.photos/seed/u_liam3/600/800', 'https://picsum.photos/seed/u_liam4/600/800'],
     verified: true,
-    note: 'By the window, grey hoodie',
+    note: 'New here, show me around?',
   },
   {
     id: 'u_chloe',
@@ -53,7 +53,7 @@ const MOCK_PEOPLE: (NearbyPerson & { note: string })[] = [
     photoUri: null,
     photos: ['https://picsum.photos/seed/u_chloe1/600/800', 'https://picsum.photos/seed/u_chloe2/600/800', 'https://picsum.photos/seed/u_chloe3/600/800', 'https://picsum.photos/seed/u_chloe4/600/800'],
     verified: true,
-    note: 'Bar seats facing the street, red scarf',
+    note: 'Coffee break for 20 min',
   },
 ];
 
@@ -91,7 +91,7 @@ export async function goOffline() {
 
 export async function nearby(blockedIds: string[]): Promise<NearbyPerson[]> {
   await wait(500);
-  return MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id)).map(({ note: _note, ...p }) => p);
+  return MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id));
 }
 
 export async function sendRequest(to: NearbyPerson) {
@@ -105,13 +105,9 @@ export async function waitForAnswer(_requestId: string): Promise<'accepted' | 'n
   return Math.random() < 0.7 ? 'accepted' : 'not-this-time';
 }
 
-export function noteFor(personId: string) {
-  return MOCK_PEOPLE.find((p) => p.id === personId)?.note ?? '';
-}
-
 export function randomIncoming(blockedIds: string[]) {
   const options = MOCK_PEOPLE.filter((p) => !blockedIds.includes(p.id));
-  const { note: _note, ...from } = options[Math.floor(Math.random() * options.length)] ?? MOCK_PEOPLE[0];
+  const from = options[Math.floor(Math.random() * options.length)] ?? MOCK_PEOPLE[0];
   return { id: `in_${Date.now()}`, from };
 }
 
