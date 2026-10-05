@@ -6,7 +6,6 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { PHOTO_RANGE } from '@/data/types';
 import { useTheme } from '@/theme';
 
-import { AppText } from './app-text';
 
 type Props = { photos: string[]; onChange: (photos: string[]) => void };
 
@@ -72,11 +71,6 @@ export function PhotoGrid({ photos, onChange }: Props) {
             ) : (
               <>
                 <Ionicons name="add" size={28} color={colors.textSecondary} />
-                {required ? (
-                  <AppText variant="caption" color="textSecondary">
-                    Required
-                  </AppText>
-                ) : null}
               </>
             )}
           </Pressable>
