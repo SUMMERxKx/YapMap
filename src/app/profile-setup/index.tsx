@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
@@ -30,9 +31,12 @@ export default function SetupStart() {
         </>
       }>
       <View style={[styles.center, { gap: spacing.md }]}>
-        <AppText style={[styles.wave]} accessibilityElementsHidden importantForAccessibility="no">
-          👋
-        </AppText>
+        <View
+          style={[styles.mark, { backgroundColor: colors.greenSoft }]}
+          accessibilityElementsHidden
+          importantForAccessibility="no">
+          <Ionicons name="chatbubbles" size={52} color={colors.greenText} />
+        </View>
         <AppText variant="display" align="center" accessibilityRole="header">
           Hey! Let's create your profile
         </AppText>
@@ -47,6 +51,6 @@ export default function SetupStart() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  wave: { fontSize: 64, lineHeight: 76 },
+  mark: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' },
   rule: { width: 48, height: 4, borderRadius: 2, marginTop: 8 },
 });
