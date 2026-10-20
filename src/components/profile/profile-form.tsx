@@ -3,8 +3,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { GENDERS, INTERESTS, INTEREST_RANGE, LIMITS, PHOTO_RANGE } from '@/data/constants';
 import type { Gender, Profile } from '@/data/types';
-import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS, PHOTO_RANGE } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
@@ -38,16 +38,16 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const [isAdult, setIsAdult] = useState(initial?.isAdult ?? false);
   const [tried, setTried] = useState(false);
 
-  const missing = [
-    !photoUri && 'a profile picture',
-    photos.length < PHOTO_RANGE.min && `at least ${PHOTO_RANGE.min} more photos`,
-    !firstName.trim() && 'your first name',
-    !lastName.trim() && 'your last name',
-    !gender && 'your gender',
-    !intro.trim() && 'an intro',
-    interests.length < INTEREST_RANGE.min && `at least ${INTEREST_RANGE.min} interests`,
-    !isAdult && 'confirmation that you are 18 or older',
-  ].filter(Boolean) as string[];
+  // Everything still needed before the form can be submitted, in the order shown to the user.
+  const missing: string[] = [];
+  if (!photoUri) missing.push('a profile picture');
+  if (photos.length < PHOTO_RANGE.min) missing.push(`at least ${PHOTO_RANGE.min} more photos`);
+  if (!firstName.trim()) missing.push('your first name');
+  if (!lastName.trim()) missing.push('your last name');
+  if (!gender) missing.push('your gender');
+  if (!intro.trim()) missing.push('an intro');
+  if (interests.length < INTEREST_RANGE.min) missing.push(`at least ${INTEREST_RANGE.min} interests`);
+  if (!isAdult) missing.push('confirmation that you are 18 or older');
 
   const pick = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -56,17 +56,21 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (!result.canceled) setPhotoUri(result.assets[0]?.uri ?? null);
+    if (result.canceled) return;
+    setPhotoUri(result.assets[0]?.uri ?? null);
   };
 
-  const toggleInterest = (interest: string) =>
-    setInterests((current) =>
-      current.includes(interest)
-        ? current.filter((i) => i !== interest)
-        : current.length < INTEREST_RANGE.max
-          ? [...current, interest]
-          : current,
-    );
+  const toggleInterest = (interest: string) => {
+    setInterests((current) => {
+      if (current.includes(interest)) {
+        return current.filter((item) => item !== interest);
+      }
+      if (current.length < INTEREST_RANGE.max) {
+        return [...current, interest];
+      }
+      return current; // already at the maximum
+    });
+  };
 
   const submit = () => {
     setTried(true);
@@ -87,11 +91,20 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
 
   const atMax = interests.length >= INTEREST_RANGE.max;
 
+  let photoButtonLabel = 'Add profile photo';
+  let photoActionText = 'Add photo';
+  if (photoUri) {
+    photoButtonLabel = 'Change profile photo';
+    photoActionText = 'Change photo';
+  }
+
+  const showMissing = tried && missing.length > 0;
+
   return (
     <View style={{ gap: spacing.xl }}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={photoUri ? 'Change profile photo' : 'Add profile photo'}
+        accessibilityLabel={photoButtonLabel}
         onPress={pick}
         style={styles.photoRow}>
         <View>
@@ -108,7 +121,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
             A clear photo of your face, so people can spot you.
           </AppText>
           <AppText variant="bodyStrong" color="greenText">
-            {photoUri ? 'Change photo' : 'Add photo'}
+            {photoActionText}
           </AppText>
         </View>
       </Pressable>
@@ -160,13 +173,13 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
           Gender <AppText variant="caption" color="destructive">*</AppText>
         </AppText>
         <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={styles.wrap}>
-          {GENDERS.map((g) => (
+          {GENDERS.map((option) => (
             <Chip
-              key={g.value}
+              key={option.value}
               role="radio"
-              label={g.label}
-              selected={gender === g.value}
-              onPress={() => setGender(g.value)}
+              label={option.label}
+              selected={gender === option.value}
+              onPress={() => setGender(option.value)}
             />
           ))}
         </View>
@@ -217,20 +230,20 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </View>
       </View>
 
-      {showAgeCheck ? (
+      {showAgeCheck && (
         <Checkbox checked={isAdult} onChange={setIsAdult} label="I confirm I am 18 or older">
           <AppText variant="caption" color="textSecondary">
             Yap is for adults only. By continuing you agree to the Community Rules on respectful, safe
             conversations in public places.
           </AppText>
         </Checkbox>
-      ) : null}
+      )}
 
-      {tried && missing.length > 0 ? (
+      {showMissing && (
         <InfoNote tone="danger" icon="alert-circle-outline">
           {`Add ${missing.join(', ')} to continue.`}
         </InfoNote>
-      ) : null}
+      )}
 
       <Button label={submitLabel} onPress={submit} />
     </View>

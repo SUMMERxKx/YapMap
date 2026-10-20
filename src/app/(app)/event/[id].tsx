@@ -16,12 +16,17 @@ export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, radius, spacing } = useTheme();
   const insets = useSafeAreaInsets();
-  const event = useStore((s) => s.events.find((e) => e.id === id));
+  const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const [joining, setJoining] = useState(false);
 
   if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
-  const hostName = event.host.id === 'me' ? 'You' : `${event.host.firstName} ${event.host.lastInitial}.`;
+  const hostedByMe = event.host.id === 'me';
+  let hostName = `${event.host.firstName} ${event.host.lastInitial}.`;
+  if (hostedByMe) {
+    hostName = 'You';
+  }
+
   const openChat = () => router.replace({ pathname: '/group/[id]', params: { id: event.id } });
 
   const join = async () => {
@@ -31,13 +36,22 @@ export default function EventDetails() {
     openChat();
   };
 
+  let mainButton;
+  if (event.joined) {
+    mainButton = <Button label="Open group chat" icon="chatbubbles-outline" onPress={openChat} />;
+  } else {
+    mainButton = (
+      <Button label="Join and open chat" icon="add-circle-outline" onPress={join} loading={joining} haptic />
+    );
+  }
+
   return (
     <ScrollView
       style={{ backgroundColor: colors.surface }}
       contentContainerStyle={{ padding: spacing.xxl, paddingBottom: insets.bottom + spacing.xxl, gap: spacing.xl }}>
       <View style={styles.topRow}>
         <IconButton icon="close" label="Close" onPress={() => router.back()} />
-        {event.host.id !== 'me' ? <SafetyMenu userId={event.host.id} firstName={hostName} onBlocked={() => router.back()} /> : null}
+        {!hostedByMe && <SafetyMenu userId={event.host.id} firstName={hostName} onBlocked={() => router.back()} />}
       </View>
 
       <View style={{ gap: spacing.sm }}>
@@ -56,11 +70,20 @@ export default function EventDetails() {
         </View>
       </View>
 
-      {event.description ? (
-        <View style={[styles.box, { backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg }]}>
+      {event.description !== '' && (
+        <View
+          style={[
+            styles.box,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              padding: spacing.lg,
+            },
+          ]}>
           <AppText>{event.description}</AppText>
         </View>
-      ) : null}
+      )}
 
       <View style={[styles.host, { gap: spacing.md }]}>
         <Avatar name={event.host.firstName} photoUri={event.host.photoUri} size={48} />
@@ -72,11 +95,7 @@ export default function EventDetails() {
         </View>
       </View>
 
-      {event.joined ? (
-        <Button label="Open group chat" icon="chatbubbles-outline" onPress={openChat} />
-      ) : (
-        <Button label="Join and open chat" icon="add-circle-outline" onPress={join} loading={joining} haptic />
-      )}
+      {mainButton}
     </ScrollView>
   );
 }

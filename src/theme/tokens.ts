@@ -83,8 +83,6 @@ export const type = {
 
 export type TypeVariant = keyof typeof type;
 
-export const touch = { min: 48 } as const; // covers 44pt (iOS) and 48dp (Android)
-
 export const elevation = {
   card: {
     shadowColor: '#1C1917',

@@ -18,7 +18,24 @@ type Props = {
 
 export function Checkbox({ checked, onChange, label, children, tone = 'default' }: Props) {
   const { colors, radius, spacing } = useTheme();
-  const accent = tone === 'danger' ? colors.destructive : colors.green;
+  let accent = colors.green;
+  let checkColor = colors.onGreen;
+  let labelColor: 'textPrimary' | 'destructive' = 'textPrimary';
+  if (tone === 'danger') {
+    accent = colors.destructive;
+    checkColor = colors.onDestructive;
+    labelColor = 'destructive';
+  }
+
+  let cardBorderColor = colors.border;
+  let boxBorderColor = colors.inputBorder;
+  let boxColor = 'transparent';
+  if (checked) {
+    cardBorderColor = accent;
+    boxBorderColor = accent;
+    boxColor = accent;
+  }
+
   return (
     <Pressable
       accessibilityRole="checkbox"
@@ -32,21 +49,15 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
           padding: spacing.md,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: checked ? accent : colors.border,
+          borderColor: cardBorderColor,
           backgroundColor: colors.surface,
         },
       ]}>
-      <View
-        style={[
-          styles.box,
-          { borderColor: checked ? accent : colors.inputBorder, backgroundColor: checked ? accent : 'transparent' },
-        ]}>
-        {checked ? (
-          <Ionicons name="checkmark" size={18} color={tone === 'danger' ? colors.onDestructive : colors.onGreen} />
-        ) : null}
+      <View style={[styles.box, { borderColor: boxBorderColor, backgroundColor: boxColor }]}>
+        {checked && <Ionicons name="checkmark" size={18} color={checkColor} />}
       </View>
       <View style={{ flex: 1, gap: 2 }}>
-        <AppText variant="bodyStrong" color={tone === 'danger' ? 'destructive' : 'textPrimary'}>
+        <AppText variant="bodyStrong" color={labelColor}>
           {label}
         </AppText>
         {children}

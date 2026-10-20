@@ -29,7 +29,7 @@ const Context = createContext<DraftContext | null>(null);
 /** Holds the answers while someone moves through the setup steps, so going back keeps them. */
 export function ProfileDraftProvider({ children }: { children: ReactNode }) {
   const [draft, setDraft] = useState<ProfileDraft>(empty);
-  const update = (patch: Partial<ProfileDraft>) => setDraft((d) => ({ ...d, ...patch }));
+  const update = (patch: Partial<ProfileDraft>) => setDraft((current) => ({ ...current, ...patch }));
   return <Context.Provider value={{ draft, update }}>{children}</Context.Provider>;
 }
 

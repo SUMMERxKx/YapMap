@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { displayName } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -11,7 +11,7 @@ import { Avatar } from '@/components/profile/avatar';
 
 /** Shown on Go live and Nearby while a 1:1 chat is open, so leaving the chat never loses it. */
 export function ActiveChatBar() {
-  const chat = useStore((s) => s.chat);
+  const chat = useStore((state) => state.chat);
   const { colors, radius, spacing, elevation } = useTheme();
   if (!chat) return null;
 

@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useRef } from 'react';
 
 import * as api from '@/data/api';
-import { NEARBY_REFRESH_MS } from '@/data/types';
+import { NEARBY_REFRESH_MS } from '@/data/constants';
 import { showNearbyAlert, useStore } from '@/state/store';
 
 /**
@@ -11,8 +11,9 @@ import { showNearbyAlert, useStore } from '@/state/store';
  * Each person is only announced once per live session.
  */
 export function useNearbyAlerts() {
-  const live = useStore((s) => s.availability !== null);
-  const blockedIds = useStore((s) => s.blockedIds);
+  const live = useStore((state) => state.availability !== null);
+  const blockedIds = useStore((state) => state.blockedIds);
+  // Ids already announced this live session; null until the first check of a session.
   const announced = useRef<Set<string> | null>(null);
 
   useEffect(() => {
@@ -25,20 +26,21 @@ export function useNearbyAlerts() {
     const check = () =>
       api.nearby(blockedIds).then((people) => {
         if (cancelled) return;
-        const first = announced.current === null;
+
+        const isFirstCheck = announced.current === null;
         const seen = announced.current ?? new Set<string>();
-        const fresh = people.filter((p) => !seen.has(p.id));
-        fresh.forEach((p) => seen.add(p.id));
+        const newPeople = people.filter((person) => !seen.has(person.id));
+        newPeople.forEach((person) => seen.add(person.id));
         announced.current = seen;
-        if (fresh.length === 0) return;
+        if (newPeople.length === 0) return;
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        if (first && fresh.length > 1) {
-          showNearbyAlert({ id: `summary-${Date.now()}`, kind: 'summary', count: fresh.length });
-        } else {
-          const person = fresh[fresh.length - 1]!;
-          showNearbyAlert({ id: `person-${person.id}-${Date.now()}`, kind: 'person', person });
+        if (isFirstCheck && newPeople.length > 1) {
+          showNearbyAlert({ id: `summary-${Date.now()}`, kind: 'summary', count: newPeople.length });
+          return;
         }
+        const newest = newPeople[newPeople.length - 1]!;
+        showNearbyAlert({ id: `person-${newest.id}-${Date.now()}`, kind: 'person', person: newest });
       });
 
     check();

@@ -36,7 +36,8 @@ export function Button({
 }: Props) {
   const { colors, radius } = useTheme();
 
-  const look = {
+  // Colours for each variant: background, background while pressed, text/icon, border.
+  const looks = {
     primary: { bg: colors.green, pressed: colors.greenPressed, fg: colors.onGreen, border: undefined },
     secondary: { bg: colors.surfaceMuted, pressed: colors.border, fg: colors.textPrimary, border: colors.border },
     ghost: { bg: 'transparent', pressed: colors.surfaceMuted, fg: colors.textPrimary, border: undefined },
@@ -54,44 +55,74 @@ export function Button({
       fg: colors.destructive,
       border: undefined,
     },
-  }[variant];
+  };
+  const look = looks[variant];
 
-  const inactive = disabled || loading;
+  const isLoading = Boolean(loading);
+  const inactive = Boolean(disabled) || isLoading;
+
+  let borderWidth = 0;
+  if (look.border) {
+    borderWidth = StyleSheet.hairlineWidth;
+  }
+
+  // A disabled button fades out; a loading one keeps full colour behind its spinner.
+  let opacity = 1;
+  if (inactive && !isLoading) {
+    opacity = 0.5;
+  }
+
+  const handlePress = () => {
+    if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onPress();
+  };
+
+  const buttonStyle = ({ pressed }: { pressed: boolean }) => {
+    let backgroundColor = look.bg;
+    let scale = 1;
+    if (pressed) {
+      backgroundColor = look.pressed;
+      scale = 0.98;
+    }
+    return [
+      styles.base,
+      {
+        borderRadius: radius.pill,
+        backgroundColor,
+        borderColor: look.border,
+        borderWidth,
+        opacity,
+        transform: [{ scale }],
+      },
+      style,
+    ];
+  };
+
+  let content;
+  if (isLoading) {
+    content = <ActivityIndicator color={look.fg} />;
+  } else {
+    content = (
+      <View style={styles.row}>
+        {icon !== undefined && <Ionicons name={icon} size={20} color={look.fg} />}
+        <AppText variant="button" style={{ color: look.fg }}>
+          {label}
+        </AppText>
+      </View>
+    );
+  }
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: !!inactive, busy: !!loading }}
+      accessibilityState={{ disabled: inactive, busy: isLoading }}
       disabled={inactive}
-      onPress={() => {
-        if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        onPress();
-      }}
+      onPress={handlePress}
       android_ripple={{ color: look.pressed }}
-      style={({ pressed }) => [
-        styles.base,
-        {
-          borderRadius: radius.pill,
-          backgroundColor: pressed ? look.pressed : look.bg,
-          borderColor: look.border,
-          borderWidth: look.border ? StyleSheet.hairlineWidth : 0,
-          opacity: inactive && !loading ? 0.5 : 1,
-          transform: [{ scale: pressed ? 0.98 : 1 }],
-        },
-        style,
-      ]}>
-      {loading ? (
-        <ActivityIndicator color={look.fg} />
-      ) : (
-        <View style={styles.row}>
-          {icon ? <Ionicons name={icon} size={20} color={look.fg} /> : null}
-          <AppText variant="button" style={{ color: look.fg }}>
-            {label}
-          </AppText>
-        </View>
-      )}
+      style={buttonStyle}>
+      {content}
     </Pressable>
   );
 }
@@ -104,16 +135,22 @@ type IconButtonProps = {
 
 export function IconButton({ icon, label, onPress }: IconButtonProps) {
   const { colors } = useTheme();
+
+  const iconButtonStyle = ({ pressed }: { pressed: boolean }) => {
+    let backgroundColor = colors.surfaceMuted;
+    if (pressed) {
+      backgroundColor = colors.border;
+    }
+    return [styles.icon, { backgroundColor }];
+  };
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={4}
-      style={({ pressed }) => [
-        styles.icon,
-        { backgroundColor: pressed ? colors.border : colors.surfaceMuted },
-      ]}>
+      style={iconButtonStyle}>
       <Ionicons name={icon} size={22} color={colors.textPrimary} />
     </Pressable>
   );

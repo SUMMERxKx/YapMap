@@ -7,14 +7,16 @@ import type { TextInput } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { SetupStep } from '@/components/profile/setup-step';
 import { TextField } from '@/components/ui/text-field';
-import { LIMITS } from '@/data/types';
+import { LIMITS } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function NameStep() {
   const { draft, update } = useProfileDraft();
   const lastNameInput = useRef<TextInput>(null);
   const ready = draft.firstName.trim().length > 0 && draft.lastName.trim().length > 0;
-  const next = () => ready && router.push('/profile-setup/gender');
+  const next = () => {
+    if (ready) router.push('/profile-setup/gender');
+  };
 
   return (
     <SetupStep step={1} total={SETUP_STEPS} title="What's your name?" canContinue={ready} onNext={next}>

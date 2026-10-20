@@ -32,15 +32,27 @@ export function HeroButton({ onPress, live = false, timeLeft, size = 230 }: Prop
   const red = colors.destructive;
 
   // 0 = green (not live), 1 = red (live), animated so the change feels smooth.
-  const liveness = useDerivedValue(() =>
-    reduceMotion ? (live ? 1 : 0) : withTiming(live ? 1 : 0, { duration: 400, easing: Easing.inOut(Easing.quad) }),
-  );
+  const liveness = useDerivedValue(() => {
+    let target = 0;
+    if (live) {
+      target = 1;
+    }
+    if (reduceMotion) {
+      return target;
+    }
+    return withTiming(target, { duration: 400, easing: Easing.inOut(Easing.quad) });
+  });
 
   useEffect(() => {
     if (reduceMotion) return;
+    // The ring pulses faster while you're live.
+    let pulseDuration = 2400;
+    if (live) {
+      pulseDuration = 1600;
+    }
     pulse.value = 0;
     pulse.value = withRepeat(
-      withTiming(1, { duration: live ? 1600 : 2400, easing: Easing.out(Easing.quad) }),
+      withTiming(1, { duration: pulseDuration, easing: Easing.out(Easing.quad) }),
       -1,
       false,
     );
@@ -56,11 +68,56 @@ export function HeroButton({ onPress, live = false, timeLeft, size = 230 }: Prop
     backgroundColor: interpolateColor(liveness.value, [0, 1], [green, red]),
   }));
 
-  const textColor = live ? colors.onDestructive : colors.onGreen;
+  let textColor = colors.onGreen;
+  let accessibilityLabel = 'YAP. Go live';
+  let accessibilityHint = 'Choose how long you want people nearby to see you';
+  let hapticStyle = Haptics.ImpactFeedbackStyle.Heavy;
+  if (live) {
+    textColor = colors.onDestructive;
+    accessibilityLabel = `You're live, ${timeLeft ?? ''}. Get off`;
+    accessibilityHint = 'Stops showing you to people nearby';
+    hapticStyle = Haptics.ImpactFeedbackStyle.Light;
+  }
+
+  let content;
+  if (live) {
+    content = (
+      <>
+        <AppText style={[styles.word, { color: textColor, fontSize: 48, lineHeight: 54 }]} maxFontSizeMultiplier={1.2}>
+          LIVE
+        </AppText>
+        <AppText variant="bodyStrong" style={{ color: textColor }} maxFontSizeMultiplier={1.3}>
+          {timeLeft}
+        </AppText>
+        <AppText variant="caption" style={{ color: textColor }} maxFontSizeMultiplier={1.3}>
+          Tap to get off
+        </AppText>
+      </>
+    );
+  } else {
+    content = (
+      <AppText style={[styles.word, { color: textColor }]} maxFontSizeMultiplier={1.2}>
+        YAP
+      </AppText>
+    );
+  }
+
+  const handlePress = () => {
+    Haptics.impactAsync(hapticStyle);
+    onPress();
+  };
+
+  const buttonStyle = ({ pressed }: { pressed: boolean }) => {
+    let scale = 1;
+    if (pressed) {
+      scale = 0.97;
+    }
+    return [styles.button, { borderRadius: size / 2, transform: [{ scale }] }, pressed && styles.pressed];
+  };
 
   return (
     <View style={[styles.wrap, { width: size * 1.3, height: size * 1.3 }]}>
-      {reduceMotion ? null : (
+      {!reduceMotion && (
         <Animated.View
           pointerEvents="none"
           style={[styles.ring, { width: size, height: size, borderRadius: size / 2 }, ring]}
@@ -69,38 +126,11 @@ export function HeroButton({ onPress, live = false, timeLeft, size = 230 }: Prop
       <Animated.View style={[elevation.floating, { width: size, height: size, borderRadius: size / 2 }, fill]}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={live ? `You're live, ${timeLeft ?? ''}. Get off` : 'YAP. Go live'}
-          accessibilityHint={
-            live
-              ? 'Stops showing you to people nearby'
-              : 'Choose how long you want people nearby to see you'
-          }
-          onPress={() => {
-            Haptics.impactAsync(live ? Haptics.ImpactFeedbackStyle.Light : Haptics.ImpactFeedbackStyle.Heavy);
-            onPress();
-          }}
-          style={({ pressed }) => [
-            styles.button,
-            { borderRadius: size / 2, transform: [{ scale: pressed ? 0.97 : 1 }] },
-            pressed && styles.pressed,
-          ]}>
-          {live ? (
-            <>
-              <AppText style={[styles.word, { color: textColor, fontSize: 48, lineHeight: 54 }]} maxFontSizeMultiplier={1.2}>
-                LIVE
-              </AppText>
-              <AppText variant="bodyStrong" style={{ color: textColor }} maxFontSizeMultiplier={1.3}>
-                {timeLeft}
-              </AppText>
-              <AppText variant="caption" style={{ color: textColor }} maxFontSizeMultiplier={1.3}>
-                Tap to get off
-              </AppText>
-            </>
-          ) : (
-            <AppText style={[styles.word, { color: textColor }]} maxFontSizeMultiplier={1.2}>
-              YAP
-            </AppText>
-          )}
+          accessibilityLabel={accessibilityLabel}
+          accessibilityHint={accessibilityHint}
+          onPress={handlePress}
+          style={buttonStyle}>
+          {content}
         </Pressable>
       </Animated.View>
     </View>

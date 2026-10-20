@@ -15,23 +15,6 @@ type ChipProps = {
 
 export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: ChipProps) {
   const { colors, radius } = useTheme();
-  const body = (
-    <>
-      {selected ? <Ionicons name="checkmark" size={16} color={colors.onGreen} /> : null}
-      <AppText variant="caption" style={{ color: selected ? colors.onGreen : colors.textPrimary, fontWeight: '600' }}>
-        {label}
-      </AppText>
-    </>
-  );
-  const look = [
-    styles.chip,
-    {
-      borderRadius: radius.pill,
-      backgroundColor: selected ? colors.green : colors.surface,
-      borderColor: selected ? colors.green : colors.inputBorder,
-      opacity: disabled ? 0.45 : 1,
-    },
-  ];
 
   if (!onPress) {
     return (
@@ -43,29 +26,60 @@ export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: 
     );
   }
 
+  const isSelected = Boolean(selected);
+
+  let backgroundColor = colors.surface;
+  let borderColor = colors.inputBorder;
+  let textColor = colors.textPrimary;
+  if (isSelected) {
+    backgroundColor = colors.green;
+    borderColor = colors.green;
+    textColor = colors.onGreen;
+  }
+
+  let opacity = 1;
+  if (disabled) {
+    opacity = 0.45;
+  }
+
+  // Radio chips report "selected" to screen readers; checkbox chips report "checked".
+  let accessibilityState;
+  if (role === 'radio') {
+    accessibilityState = { selected: isSelected, disabled };
+  } else {
+    accessibilityState = { checked: isSelected, disabled };
+  }
+
   return (
     <Pressable
       accessibilityRole={role}
-      accessibilityState={role === 'radio' ? { selected: !!selected, disabled } : { checked: !!selected, disabled }}
+      accessibilityState={accessibilityState}
       accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
-      style={look}>
-      {body}
+      style={[styles.chip, { borderRadius: radius.pill, backgroundColor, borderColor, opacity }]}>
+      {isSelected && <Ionicons name="checkmark" size={16} color={colors.onGreen} />}
+      <AppText variant="caption" style={{ color: textColor, fontWeight: '600' }}>
+        {label}
+      </AppText>
     </Pressable>
   );
 }
 
 /** Read-only row of interest chips, e.g. on a person card. */
 export function InterestList({ interests, max }: { interests: string[]; max?: number }) {
-  const shown = max ? interests.slice(0, max) : interests;
-  const extra = interests.length - shown.length;
+  let shown = interests;
+  if (max) {
+    shown = interests.slice(0, max);
+  }
+  const hiddenCount = interests.length - shown.length;
+
   return (
     <View style={styles.wrap} accessibilityLabel={`Interests: ${interests.join(', ')}`} accessible>
-      {shown.map((i) => (
-        <Chip key={i} label={i} />
+      {shown.map((interest) => (
+        <Chip key={interest} label={interest} />
       ))}
-      {extra > 0 ? <Chip label={`+${extra}`} /> : null}
+      {hiddenCount > 0 && <Chip label={`+${hiddenCount}`} />}
     </View>
   );
 }

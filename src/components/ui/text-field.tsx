@@ -18,20 +18,48 @@ type Props = Omit<TextInputProps, 'style'> & {
 export function TextField({ label, required, error, showCounter, maxLength, value, ...rest }: Props) {
   const { colors, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? colors.destructive : focused ? colors.green : colors.inputBorder;
+  const hasError = Boolean(error);
+
+  // An error wins over focus, so the red border stays while the user fixes it.
+  let borderColor = colors.inputBorder;
+  if (hasError) {
+    borderColor = colors.destructive;
+  } else if (focused) {
+    borderColor = colors.green;
+  }
+
+  let borderWidth = 1;
+  if (focused || hasError) {
+    borderWidth = 2;
+  }
+
+  // Multiline fields are taller and start typing at the top.
+  let minHeight = 52;
+  let textAlignVertical: 'top' | 'center' = 'center';
+  if (rest.multiline) {
+    minHeight = 88;
+    textAlignVertical = 'top';
+  }
+
+  const length = value?.length ?? 0;
+  const showCounterText = Boolean(showCounter) && Boolean(maxLength);
 
   return (
     <View style={{ gap: spacing.xs }}>
       <View style={styles.labelRow}>
         <AppText variant="caption" color="textPrimary">
           {label}
-          {required ? <AppText variant="caption" color="destructive"> *</AppText> : null}
+          {required && (
+            <AppText variant="caption" color="destructive">
+              {' *'}
+            </AppText>
+          )}
         </AppText>
-        {showCounter && maxLength ? (
-          <AppText variant="caption" color="textSecondary" accessibilityLabel={`${value?.length ?? 0} of ${maxLength} characters`}>
-            {value?.length ?? 0}/{maxLength}
+        {showCounterText && (
+          <AppText variant="caption" color="textSecondary" accessibilityLabel={`${length} of ${maxLength} characters`}>
+            {length}/{maxLength}
           </AppText>
-        ) : null}
+        )}
       </View>
       <TextInput
         {...rest}
@@ -54,18 +82,18 @@ export function TextField({ label, required, error, showCounter, maxLength, valu
             color: colors.textPrimary,
             backgroundColor: colors.surface,
             borderColor,
-            borderWidth: focused || error ? 2 : 1,
+            borderWidth,
             borderRadius: radius.md,
-            minHeight: rest.multiline ? 88 : 52,
-            textAlignVertical: rest.multiline ? 'top' : 'center',
+            minHeight,
+            textAlignVertical,
           },
         ]}
       />
-      {error ? (
+      {hasError && (
         <AppText variant="caption" color="destructive" accessibilityLiveRegion="polite">
           {error}
         </AppText>
-      ) : null}
+      )}
     </View>
   );
 }

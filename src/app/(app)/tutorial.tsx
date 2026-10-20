@@ -66,59 +66,88 @@ export default function Tutorial() {
     router.back();
   };
 
-  const next = () => (last ? done() : list.current?.scrollToIndex({ index: index + 1, animated: true }));
+  const next = () => {
+    if (last) {
+      done();
+      return;
+    }
+    list.current?.scrollToIndex({ index: index + 1, animated: true });
+  };
+
+  // No Skip on the last page; an empty View keeps the top row's height.
+  let skipButton = <View />;
+  if (!last) {
+    skipButton = <Button label="Skip" variant="ghost" onPress={done} style={{ minHeight: 44 }} />;
+  }
+
+  let nextLabel = 'Next';
+  if (last) {
+    nextLabel = 'Let’s yap';
+  }
+
+  const renderPage = ({ item }: { item: Page }) => {
+    // Pages with an icon show it on a soft circle; the first page shows the YAP button itself.
+    let art;
+    if (item.icon) {
+      art = (
+        <View style={[styles.art, { backgroundColor: colors.greenSoft }]}>
+          <Ionicons name={item.icon} size={84} color={colors.greenText} />
+        </View>
+      );
+    } else {
+      art = (
+        <View style={[styles.art, { backgroundColor: colors.green }]}>
+          <AppText style={[styles.yap, { color: colors.onGreen }]} maxFontSizeMultiplier={1.2}>
+            YAP
+          </AppText>
+        </View>
+      );
+    }
+    return (
+      <View style={[styles.page, { width, paddingHorizontal: spacing.xxxl, gap: spacing.lg }]}>
+        {art}
+        <AppText variant="title" align="center" accessibilityRole="header">
+          {item.title}
+        </AppText>
+        <AppText color="textSecondary" align="center">
+          {item.body}
+        </AppText>
+      </View>
+    );
+  };
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={[styles.top, { paddingHorizontal: spacing.xxl }]}>
-        {last ? <View /> : <Button label="Skip" variant="ghost" onPress={done} style={{ minHeight: 44 }} />}
+        {skipButton}
       </View>
 
       <FlatList
         ref={list}
         data={PAGES}
-        keyExtractor={(p) => p.key}
+        keyExtractor={(page) => page.key}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onViewableItemsChanged={onViewable}
         viewabilityConfig={{ itemVisiblePercentThreshold: 60 }}
-        renderItem={({ item }) => (
-          <View style={[styles.page, { width, paddingHorizontal: spacing.xxxl, gap: spacing.lg }]}>
-            {item.icon ? (
-              <View style={[styles.art, { backgroundColor: colors.greenSoft }]}>
-                <Ionicons name={item.icon} size={84} color={colors.greenText} />
-              </View>
-            ) : (
-              <View style={[styles.art, { backgroundColor: colors.green }]}>
-                <AppText style={[styles.yap, { color: colors.onGreen }]} maxFontSizeMultiplier={1.2}>
-                  YAP
-                </AppText>
-              </View>
-            )}
-            <AppText variant="title" align="center" accessibilityRole="header">
-              {item.title}
-            </AppText>
-            <AppText color="textSecondary" align="center">
-              {item.body}
-            </AppText>
-          </View>
-        )}
+        renderItem={renderPage}
       />
 
       <View style={[styles.bottom, { padding: spacing.xxl, gap: spacing.lg }]}>
         <View style={styles.dots} accessibilityLabel={`Page ${index + 1} of ${PAGES.length}`} accessible>
-          {PAGES.map((p, i) => (
-            <View
-              key={p.key}
-              style={[
-                styles.dot,
-                { backgroundColor: i === index ? colors.green : colors.border, width: i === index ? 22 : 8 },
-              ]}
-            />
-          ))}
+          {PAGES.map((page, pageIndex) => {
+            // The current page's dot is wider and green.
+            let dotColor = colors.border;
+            let dotWidth = 8;
+            if (pageIndex === index) {
+              dotColor = colors.green;
+              dotWidth = 22;
+            }
+            return <View key={page.key} style={[styles.dot, { backgroundColor: dotColor, width: dotWidth }]} />;
+          })}
         </View>
-        <Button label={last ? 'Let’s yap' : 'Next'} onPress={next} />
+        <Button label={nextLabel} onPress={next} />
       </View>
     </SafeAreaView>
   );

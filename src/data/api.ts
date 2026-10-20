@@ -6,7 +6,7 @@
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from './supabase-client';
 
 import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
 
@@ -63,9 +63,14 @@ async function requireUserId(): Promise<string> {
 
 const SIGNED_URL_SECONDS = 60 * 60;
 
-/** Turn storage paths into display URLs, in one round trip. */
+/** Turn storage paths into display URLs, in one round trip. Empty paths are skipped. */
 async function signPaths(paths: string[]): Promise<Record<string, string>> {
-  const unique = [...new Set(paths)].filter(Boolean);
+  const unique: string[] = [];
+  for (const path of paths) {
+    if (path !== '' && !unique.includes(path)) {
+      unique.push(path);
+    }
+  }
   if (unique.length === 0) return {};
   const { data, error } = await supabase.storage.from('photos').createSignedUrls(unique, SIGNED_URL_SECONDS);
   if (error) throw error;
@@ -78,8 +83,26 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
 
 /** Recover the storage path from a signed URL (so an unchanged photo isn't re-uploaded). */
 function pathFromSignedUrl(url: string): string | null {
+  // A signed URL looks like .../object/sign/photos/<path>?token=...; capture the <path> part.
   const match = url.match(/\/object\/sign\/photos\/([^?]+)/);
-  return match ? decodeURIComponent(match[1]!) : null;
+  if (!match) return null;
+  return decodeURIComponent(match[1]!);
+}
+
+/** The signed URL for one storage path, or null when there is no photo. */
+function urlForPath(urls: Record<string, string>, path: string | null): string | null {
+  if (!path) return null;
+  return urls[path] ?? null;
+}
+
+/** Signed URLs for a list of storage paths, skipping any that couldn't be signed. */
+function urlsForPaths(urls: Record<string, string>, paths: string[]): string[] {
+  const result: string[] = [];
+  for (const path of paths) {
+    const url = urls[path];
+    if (url) result.push(url);
+  }
+  return result;
 }
 
 /**
@@ -121,8 +144,8 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     showGender: data.show_gender,
     intro: data.intro,
     interests: data.interests,
-    photoUri: data.photo_path ? (urls[data.photo_path] ?? null) : null,
-    photos: data.photo_paths.map((p) => urls[p]).filter((u): u is string => !!u),
+    photoUri: urlForPath(urls, data.photo_path),
+    photos: urlsForPaths(urls, data.photo_paths),
     isAdult: data.is_adult,
     verified: data.verified,
   };
@@ -182,18 +205,23 @@ type PersonCard = {
 };
 
 async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
-  const urls = await signPaths(cards.flatMap((c) => [c.photoPath ?? '', ...c.photoPaths]));
-  return cards.map((c) => ({
-    id: c.id,
-    firstName: c.firstName,
-    lastInitial: c.lastInitial,
-    gender: c.gender,
-    intro: c.intro,
-    interests: c.interests,
-    photoUri: c.photoPath ? (urls[c.photoPath] ?? null) : null,
-    photos: c.photoPaths.map((p) => urls[p]).filter((u): u is string => !!u),
-    note: c.note,
-    verified: c.verified,
+  const allPaths: string[] = [];
+  for (const card of cards) {
+    allPaths.push(card.photoPath ?? '', ...card.photoPaths);
+  }
+  const urls = await signPaths(allPaths);
+
+  return cards.map((card) => ({
+    id: card.id,
+    firstName: card.firstName,
+    lastInitial: card.lastInitial,
+    gender: card.gender,
+    intro: card.intro,
+    interests: card.interests,
+    photoUri: urlForPath(urls, card.photoPath),
+    photos: urlsForPaths(urls, card.photoPaths),
+    note: card.note,
+    verified: card.verified,
   }));
 }
 
@@ -265,8 +293,14 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
     };
 
     const onStatus = (status: string | undefined) => {
-      if (status === 'accepted') finish('accepted');
-      else if (status && status !== 'pending') finish('not-this-time');
+      if (status === 'accepted') {
+        finish('accepted');
+        return;
+      }
+      // Declined or expired: anything other than still waiting.
+      if (status && status !== 'pending') {
+        finish('not-this-time');
+      }
     };
 
     const channel = supabase
@@ -283,7 +317,9 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
       onStatus(data?.status);
     }, 7000);
 
-    const timeout = setTimeout(() => finish('not-this-time'), Math.max(0, expiresAt - Date.now()) + 3000);
+    // A few seconds of grace after the deadline, in case the answer is still on its way.
+    const msUntilExpiry = Math.max(0, expiresAt - Date.now());
+    const timeout = setTimeout(() => finish('not-this-time'), msUntilExpiry + 3000);
   });
 }
 
@@ -310,11 +346,14 @@ export function subscribeIncoming(userId: string, onRequest: (request: { id: str
       { event: 'INSERT', schema: 'public', table: 'chat_requests', filter: `to_user=eq.${userId}` },
       (payload) => {
         const row = payload.new as { id: string; expires_at: string; status: string };
-        if (row.status === 'pending') onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
+        if (row.status !== 'pending') return;
+        onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
       },
     )
     .subscribe();
-  return () => void supabase.removeChannel(channel);
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 // ---------------------------------------------------------------- chat
@@ -343,10 +382,16 @@ type MessageRow = {
 };
 
 function toMessage(row: MessageRow, myId: string): Message {
+  let senderId = row.sender;
+  let senderName = row.sender_name;
+  if (row.sender === myId) {
+    senderId = 'me';
+    senderName = 'You';
+  }
   return {
     id: row.id,
-    senderId: row.sender === myId ? 'me' : row.sender,
-    senderName: row.sender === myId ? 'You' : row.sender_name,
+    senderId,
+    senderName,
     text: row.body,
     sentAt: Date.parse(row.created_at),
   };
@@ -364,8 +409,13 @@ async function fetchMessages(column: 'request_id' | 'event_id', id: string): Pro
   return (data ?? []).map((row) => toMessage(row, myId));
 }
 
-export const fetchChatMessages = (chatId: string) => fetchMessages('request_id', chatId);
-export const fetchEventMessages = (eventId: string) => fetchMessages('event_id', eventId);
+export function fetchChatMessages(chatId: string) {
+  return fetchMessages('request_id', chatId);
+}
+
+export function fetchEventMessages(eventId: string) {
+  return fetchMessages('event_id', eventId);
+}
 
 /** New messages in a chat or event, over Realtime. Returns an unsubscribe function. */
 export function subscribeMessages(
@@ -382,7 +432,9 @@ export function subscribeMessages(
       (payload) => onMessage(toMessage(payload.new as MessageRow, myId)),
     )
     .subscribe();
-  return () => void supabase.removeChannel(channel);
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }
 
 // ---------------------------------------------------------------- safety
@@ -398,10 +450,12 @@ export async function unblock(userId: string) {
   if (error) throw error;
 }
 
-export async function blockedList(): Promise<{ id: string; firstName: string; lastInitial: string }[]> {
+type BlockedPerson = { id: string; firstName: string; lastInitial: string };
+
+export async function blockedList(): Promise<BlockedPerson[]> {
   const { data, error } = await supabase.rpc('blocked_list');
   if (error) throw error;
-  return (data ?? []) as { id: string; firstName: string; lastInitial: string }[];
+  return (data ?? []) as BlockedPerson[];
 }
 
 export async function report(userId: string, reason: ReportReason, details: string) {
@@ -417,14 +471,16 @@ export async function deleteAccount() {
 
 // ---------------------------------------------------------------- restart
 
-/** Whether I'm live and whether I have an open chat - for restoring state on app start. */
-export async function myStatus(): Promise<{
+type MyStatus = {
   live: { note: string; startedAt: number; expiresAt: number } | null;
   chatId: string | null;
-}> {
+};
+
+/** Whether I'm live and whether I have an open chat - for restoring state on app start. */
+export async function myStatus(): Promise<MyStatus> {
   const { data, error } = await supabase.rpc('my_status');
   if (error) throw error;
-  const status = data as { live: { note: string; startedAt: number; expiresAt: number } | null; chatId: string | null };
+  const status = data as MyStatus | null;
   return { live: status?.live ?? null, chatId: status?.chatId ?? null };
 }
 
@@ -444,23 +500,24 @@ type EventCard = {
 };
 
 async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
-  const urls = await signPaths(cards.map((c) => c.host.photoPath ?? ''));
-  return cards.map((c) => ({
-    id: c.id,
-    emoji: c.emoji,
-    title: c.title,
-    description: c.description,
-    latitude: c.latitude,
-    longitude: c.longitude,
-    startsAt: c.startsAt,
+  const hostPhotoPaths = cards.map((card) => card.host.photoPath ?? '');
+  const urls = await signPaths(hostPhotoPaths);
+  return cards.map((card) => ({
+    id: card.id,
+    emoji: card.emoji,
+    title: card.title,
+    description: card.description,
+    latitude: card.latitude,
+    longitude: card.longitude,
+    startsAt: card.startsAt,
     host: {
-      id: c.host.id,
-      firstName: c.host.firstName,
-      lastInitial: c.host.lastInitial,
-      photoUri: c.host.photoPath ? (urls[c.host.photoPath] ?? null) : null,
+      id: card.host.id,
+      firstName: card.host.firstName,
+      lastInitial: card.host.lastInitial,
+      photoUri: urlForPath(urls, card.host.photoPath),
     },
-    memberCount: c.memberCount,
-    joined: c.joined,
+    memberCount: card.memberCount,
+    joined: card.joined,
     messages: [],
   }));
 }

@@ -57,16 +57,13 @@ export function SafetyMenu({ userId, firstName, onBlocked }: Props) {
           style={[styles.scrim, { backgroundColor: colors.scrim }]}
           onPress={() => setOpen(false)}>
           <View
-            style={[
-              styles.sheet,
-              {
-                backgroundColor: colors.surface,
-                borderTopLeftRadius: radius.xl,
-                borderTopRightRadius: radius.xl,
-                paddingBottom: insets.bottom + spacing.lg,
-                paddingTop: spacing.sm,
-              },
-            ]}>
+            style={{
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: radius.xl,
+              borderTopRightRadius: radius.xl,
+              paddingBottom: insets.bottom + spacing.lg,
+              paddingTop: spacing.sm,
+            }}>
             <MenuItem icon="flag-outline" label={`Report ${firstName}`} onPress={report} />
             <MenuItem icon="person-remove-outline" label={`Block ${firstName}`} onPress={block} danger />
             <MenuItem icon="close" label="Cancel" onPress={() => setOpen(false)} />
@@ -89,16 +86,21 @@ function MenuItem({
   danger?: boolean;
 }) {
   const { colors, spacing } = useTheme();
-  const color = danger ? colors.destructive : colors.textPrimary;
+  let color = colors.textPrimary;
+  if (danger) {
+    color = colors.destructive;
+  }
+
+  const itemStyle = ({ pressed }: { pressed: boolean }) => {
+    let backgroundColor = 'transparent';
+    if (pressed) {
+      backgroundColor = colors.surfaceMuted;
+    }
+    return [styles.item, { paddingHorizontal: spacing.xxl, backgroundColor }];
+  };
+
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.item,
-        { paddingHorizontal: spacing.xxl, backgroundColor: pressed ? colors.surfaceMuted : 'transparent' },
-      ]}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={itemStyle}>
       <Ionicons name={icon} size={22} color={color} />
       <AppText variant="bodyStrong" style={{ color }}>
         {label}
@@ -109,6 +111,5 @@ function MenuItem({
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: 'flex-end' },
-  sheet: {},
   item: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 14 },
 });

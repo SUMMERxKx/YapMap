@@ -12,7 +12,11 @@ function readNow() {
   // Refresh the cached time when it's a tick stale (e.g. the first read after the timer
   // was idle), but keep it stable within a second so React sees a consistent snapshot.
   const current = Date.now();
-  if (current - now >= 1000 || current < now) now = current;
+  const isStale = current - now >= 1000;
+  const wentBackwards = current < now; // the device clock was changed
+  if (isStale || wentBackwards) {
+    now = current;
+  }
   return now;
 }
 
@@ -22,7 +26,7 @@ function subscribe(listener: () => void) {
     now = Date.now();
     timer = setInterval(() => {
       now = Date.now();
-      listeners.forEach((l) => l());
+      listeners.forEach((listener) => listener());
     }, 1000);
   }
   return () => {
@@ -34,9 +38,16 @@ function subscribe(listener: () => void) {
   };
 }
 
-const subscribeNothing = () => () => {};
+// Used while the clock is inactive: never calls the listener, so nothing re-renders.
+function subscribeNothing() {
+  return () => {};
+}
 
 /** The current time, updating once a second while `active`. Frozen when inactive. */
 export function useClock(active: boolean) {
-  return useSyncExternalStore(active ? subscribe : subscribeNothing, readNow, readNow);
+  let subscribeToClock: typeof subscribe = subscribeNothing;
+  if (active) {
+    subscribeToClock = subscribe;
+  }
+  return useSyncExternalStore(subscribeToClock, readNow, readNow);
 }

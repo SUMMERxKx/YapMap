@@ -47,11 +47,17 @@ Testing against the real backend:
 - **Screens** live in `src/app/` — a file is a route, a `_layout.tsx` is a navigator. The signed-in
   tabs are Go live, Nearby, Map and Profile.
 - **State** lives in `src/state/store.ts`: one small store; screens read slices with
-  `useStore(selector)` and call its exported actions.
-- **Backend** calls go through `src/data/api.ts` — currently a mock whose functions mirror the
-  planned Supabase functions, so swapping in the real backend touches that file, not screens.
+  `useStore(selector)` and call its exported actions. `src/state/profile-draft.tsx` holds the
+  answers while someone moves through profile setup.
+- **Backend** calls go through `src/data/api.ts`, which wraps the Supabase client in
+  `src/data/supabase-client.ts`; screens never talk to Supabase directly. `src/data/types.ts` holds
+  the data shapes, `src/data/constants.ts` the fixed lists and limits, and
+  `src/data/database.types.ts` the types generated from the database.
+- **Hooks** for the clock, countdowns, location and the Nearby list are in `src/hooks/`; small pure
+  helpers for wording (times, names) are in `src/lib/`.
 - **Components** are grouped by purpose in `src/components/` (`ui`, `profile`, `live`, `chat`,
-  `safety`); colours, spacing and type come from `src/theme`.
+  `safety`); colours, spacing and type come from `src/theme`. Feature switches and the Supabase
+  project address are in `src/config/`.
 
 ## Checks
 

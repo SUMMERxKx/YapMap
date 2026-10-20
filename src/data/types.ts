@@ -1,18 +1,7 @@
+// The shapes of the data the app works with. Fixed lists and limits live in
+// constants.ts; name helpers live in src/lib/format-person.ts.
+
 export type Gender = 'woman' | 'man' | 'non-binary' | 'prefer-not';
-
-export const GENDERS: { value: Gender; label: string }[] = [
-  { value: 'woman', label: 'Woman' },
-  { value: 'man', label: 'Man' },
-  { value: 'non-binary', label: 'Non-binary' },
-  { value: 'prefer-not', label: 'Prefer not to say' },
-];
-
-export const INTERESTS = [
-  'Coffee', 'Books', 'Music', 'Movies', 'TV shows', 'Gaming', 'Tech', 'Startups',
-  'Design', 'Art', 'Photography', 'Writing', 'Science', 'History', 'Philosophy', 'Languages',
-  'Travel', 'Food', 'Cooking', 'Fitness', 'Running', 'Hiking', 'Yoga', 'Sports',
-  'Board games', 'Anime', 'Podcasts', 'Fashion', 'Volunteering', 'Pets', 'Nature', 'Comedy',
-] as const;
 
 export type Profile = {
   id: string;
@@ -41,17 +30,6 @@ export type NearbyPerson = {
   note: string; // their optional note while live
   verified: boolean;
 };
-
-/** How other people see a name: first name and last initial, e.g. "Sam K." */
-export function displayName(p: { firstName: string; lastInitial?: string; lastName?: string }) {
-  const initial = p.lastInitial ?? p.lastName?.trim().charAt(0) ?? '';
-  return initial ? `${p.firstName} ${initial.toUpperCase()}.` : p.firstName;
-}
-
-export function genderLabel(gender: Gender | null) {
-  if (!gender || gender === 'prefer-not') return null;
-  return GENDERS.find((g) => g.value === gender)?.label ?? null;
-}
 
 export type Availability = {
   minutes: 30 | 60 | 120;
@@ -105,12 +83,6 @@ export type MapEvent = {
   messages: Message[];
 };
 
-/** Emojis a host can give their event; the first is the default. */
-export const EVENT_EMOJIS = ['☕', '🍕', '🎲', '📚', '💻', '🏀', '🎸', '🚶', '🧘', '🎬', '🎨', '🍻'] as const;
-
-/** Events can be planned at most this far ahead. */
-export const EVENT_MAX_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
-
 export type ReportReason =
   | 'inappropriate-photo'
   | 'harassment'
@@ -118,27 +90,3 @@ export type ReportReason =
   | 'spam-or-fake'
   | 'under-18'
   | 'other';
-
-export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
-  { value: 'inappropriate-photo', label: 'Inappropriate photo' },
-  { value: 'harassment', label: 'Harassment' },
-  { value: 'unsafe', label: 'Made me feel unsafe' },
-  { value: 'spam-or-fake', label: 'Spam or fake account' },
-  { value: 'under-18', label: 'Under 18' },
-  { value: 'other', label: 'Other' },
-];
-
-export const DURATIONS = [30, 60, 120] as const;
-export const REQUEST_WINDOW_MS = 5 * 60 * 1000;
-export const NEARBY_REFRESH_MS = 20 * 1000;
-export const LIMITS = { intro: 300, note: 60, firstName: 30, lastName: 30, message: 1000, eventTitle: 60, eventDescription: 200 } as const;
-export const INTEREST_RANGE = { min: 3, max: 5 } as const;
-export const PHOTO_RANGE = { min: 4, max: 6 } as const; // on top of the profile picture
-
-// Random poses for the verification selfie, so an old photo can't be reused.
-export const VERIFICATION_POSES = [
-  { icon: 'thumbs-up-outline', text: 'Give a thumbs up next to your face' },
-  { icon: 'hand-left-outline', text: 'Hold up two fingers in a peace sign' },
-  { icon: 'happy-outline', text: 'Touch your nose with one finger' },
-  { icon: 'hand-right-outline', text: 'Rest your chin on your hand' },
-] as const;

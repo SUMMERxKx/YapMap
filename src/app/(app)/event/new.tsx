@@ -9,7 +9,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { TextField } from '@/components/ui/text-field';
-import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/types';
+import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
 import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -28,11 +28,19 @@ export default function NewEvent() {
   const [busy, setBusy] = useState(false);
 
   // Events can start any time from now up to a week ahead.
-  const clamp = (t: number) => Math.min(Math.max(t, Date.now()), Date.now() + EVENT_MAX_AHEAD_MS);
+  const clamp = (time: number) => {
+    const earliest = Date.now();
+    const latest = Date.now() + EVENT_MAX_AHEAD_MS;
+    return Math.min(Math.max(time, earliest), latest);
+  };
 
   const pickStart = () => {
     if (Platform.OS === 'ios') {
-      setIosPicker((open) => (open ? null : { min: Date.now(), max: Date.now() + EVENT_MAX_AHEAD_MS }));
+      // Tapping again closes the inline picker.
+      setIosPicker((open) => {
+        if (open) return null;
+        return { min: Date.now(), max: Date.now() + EVENT_MAX_AHEAD_MS };
+      });
       return;
     }
     // Android has no combined picker, so it's two steps: the day, then the time.
@@ -85,6 +93,12 @@ export default function NewEvent() {
         <View accessibilityRole="radiogroup" accessibilityLabel="Event emoji" style={styles.wrap}>
           {EVENT_EMOJIS.map((option) => {
             const selected = emoji === option;
+            let backgroundColor = colors.surfaceMuted;
+            let borderColor = 'transparent';
+            if (selected) {
+              backgroundColor = colors.greenSoft;
+              borderColor = colors.green;
+            }
             return (
               <Pressable
                 key={option}
@@ -92,14 +106,7 @@ export default function NewEvent() {
                 accessibilityState={{ selected }}
                 accessibilityLabel={option}
                 onPress={() => setEmoji(option)}
-                style={[
-                  styles.emoji,
-                  {
-                    borderRadius: radius.md,
-                    backgroundColor: selected ? colors.greenSoft : colors.surfaceMuted,
-                    borderColor: selected ? colors.green : 'transparent',
-                  },
-                ]}>
+                style={[styles.emoji, { borderRadius: radius.md, backgroundColor, borderColor }]}>
                 <AppText style={styles.emojiGlyph} maxFontSizeMultiplier={1.2}>
                   {option}
                 </AppText>
@@ -145,7 +152,7 @@ export default function NewEvent() {
             Change
           </AppText>
         </Pressable>
-        {iosPicker && Platform.OS === 'ios' ? (
+        {iosPicker !== null && Platform.OS === 'ios' && (
           <DateTimePicker
             value={new Date(startsAt)}
             mode="datetime"
@@ -157,7 +164,7 @@ export default function NewEvent() {
               if (date) setStartsAt(clamp(date.getTime()));
             }}
           />
-        ) : null}
+        )}
         <AppText variant="caption" color="textSecondary">
           Any time from now up to a week ahead.
         </AppText>

@@ -16,14 +16,16 @@ const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitu
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
 export default function EventsMap() {
   const { colors, radius, spacing, elevation } = useTheme();
-  const events = useStore((s) => s.events);
+  const events = useStore((state) => state.events);
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [showsUser, setShowsUser] = useState(false);
 
+  // Centre the map on the user when we may use their location, then load the events there.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+
+    const centreAndLoad = async () => {
       const { status } = await Location.getForegroundPermissionsAsync();
       if (status === 'granted') {
         setShowsUser(true);
@@ -37,7 +39,9 @@ export default function EventsMap() {
         }
       }
       if (!cancelled) loadEvents(DEFAULT_REGION);
-    })();
+    };
+
+    centreAndLoad();
     return () => {
       cancelled = true;
     };
@@ -54,28 +58,48 @@ export default function EventsMap() {
         initialRegion={DEFAULT_REGION}
         showsUserLocation={showsUser}
         onRegionChangeComplete={setRegion}
-        onLongPress={(e) => createAt(e.nativeEvent.coordinate.latitude, e.nativeEvent.coordinate.longitude)}>
-        {events.map((event) => (
-          <Marker
-            key={event.id}
-            coordinate={{ latitude: event.latitude, longitude: event.longitude }}
-            onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
-            accessibilityLabel={`${event.emoji} ${event.title}, ${event.memberCount} going`}
-            tracksViewChanges={false}>
-            <View style={[styles.pin, elevation.card, { backgroundColor: event.joined ? colors.green : colors.surface, borderColor: colors.green }]}>
-              <AppText style={styles.pinEmoji} maxFontSizeMultiplier={1}>
-                {event.emoji}
-              </AppText>
-              <AppText variant="caption" numberOfLines={1} style={{ color: event.joined ? colors.onGreen : colors.textPrimary, fontWeight: '700', maxWidth: 140 }}>
-                {event.title}
-              </AppText>
-            </View>
-          </Marker>
-        ))}
+        onLongPress={(event) => {
+          const { latitude, longitude } = event.nativeEvent.coordinate;
+          createAt(latitude, longitude);
+        }}>
+        {events.map((event) => {
+          // Events you've joined get a filled green pin.
+          let pinColor = colors.surface;
+          let pinTextColor = colors.textPrimary;
+          if (event.joined) {
+            pinColor = colors.green;
+            pinTextColor = colors.onGreen;
+          }
+          return (
+            <Marker
+              key={event.id}
+              coordinate={{ latitude: event.latitude, longitude: event.longitude }}
+              onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+              accessibilityLabel={`${event.emoji} ${event.title}, ${event.memberCount} going`}
+              tracksViewChanges={false}>
+              <View style={[styles.pin, elevation.card, { backgroundColor: pinColor, borderColor: colors.green }]}>
+                <AppText style={styles.pinEmoji} maxFontSizeMultiplier={1}>
+                  {event.emoji}
+                </AppText>
+                <AppText
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: pinTextColor, fontWeight: '700', maxWidth: 140 }}>
+                  {event.title}
+                </AppText>
+              </View>
+            </Marker>
+          );
+        })}
       </MapView>
 
       <SafeAreaView edges={['top']} pointerEvents="box-none" style={styles.overlay}>
-        <View style={[styles.banner, elevation.card, { backgroundColor: colors.surface, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.md }]}>
+        <View
+          style={[
+            styles.banner,
+            elevation.card,
+            { backgroundColor: colors.surface, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.md },
+          ]}>
           <AppText variant="bodyStrong">Events near you</AppText>
           <AppText variant="caption" color="textSecondary">
             Long-press the map to create one. Pins show events, never where people are.

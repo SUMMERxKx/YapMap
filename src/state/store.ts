@@ -18,6 +18,7 @@ import type {
   Profile,
   ReportReason,
 } from '@/data/types';
+import { errorMessage } from '@/lib/error-message';
 
 export type NearbyAlert =
   | { id: string; kind: 'summary'; count: number }
@@ -64,11 +65,7 @@ const listeners = new Set<() => void>();
 
 function set(patch: Partial<State>) {
   state = { ...state, ...patch };
-  listeners.forEach((l) => l());
-}
-
-export function getState() {
-  return state;
+  listeners.forEach((listener) => listener());
 }
 
 function subscribe(listener: () => void) {
@@ -76,8 +73,9 @@ function subscribe(listener: () => void) {
   return () => listeners.delete(listener);
 }
 
-export function useStore<T>(selector: (s: State) => T): T {
-  return useSyncExternalStore(subscribe, () => selector(state), () => selector(state));
+export function useStore<T>(selector: (state: State) => T): T {
+  const readSlice = () => selector(state);
+  return useSyncExternalStore(subscribe, readSlice, readSlice);
 }
 
 // ---------------------------------------------------------------- realtime plumbing
@@ -91,7 +89,9 @@ function teardownRealtime() {
   stopIncoming?.();
   stopChatMessages?.();
   stopEventMessages?.();
-  stopIncoming = stopChatMessages = stopEventMessages = null;
+  stopIncoming = null;
+  stopChatMessages = null;
+  stopEventMessages = null;
 }
 
 // ---------------------------------------------------------------- boot
@@ -134,10 +134,13 @@ async function refreshAfterAuth() {
   if (!profile) return; // the layout sends them to profile setup
 
   const blocked = await api.blockedList();
-  set({
-    blockedIds: blocked.map((b) => b.id),
-    blockedNames: Object.fromEntries(blocked.map((b) => [b.id, `${b.firstName} ${b.lastInitial}.`])),
-  });
+  const blockedIds: string[] = [];
+  const blockedNames: Record<string, string> = {};
+  for (const person of blocked) {
+    blockedIds.push(person.id);
+    blockedNames[person.id] = `${person.firstName} ${person.lastInitial}.`;
+  }
+  set({ blockedIds, blockedNames });
 
   // New say-hi requests arrive over Realtime for the whole session.
   stopIncoming?.();
@@ -145,23 +148,26 @@ async function refreshAfterAuth() {
 
   // If the app was killed while live or mid-chat, pick up where things stand.
   const status = await api.myStatus();
-  if (status.live) {
+  const live = status.live;
+  if (live) {
     set({
       availability: {
-        minutes: nearestDuration(status.live.expiresAt - status.live.startedAt),
-        note: status.live.note,
-        startedAt: status.live.startedAt,
-        expiresAt: status.live.expiresAt,
+        minutes: nearestDuration(live.expiresAt - live.startedAt),
+        note: live.note,
+        startedAt: live.startedAt,
+        expiresAt: live.expiresAt,
       },
     });
   }
   if (status.chatId) await openChat(status.chatId);
 }
 
+/** The live-duration option (30, 60 or 120 minutes) closest to a session's length. */
 function nearestDuration(ms: number): Availability['minutes'] {
   const minutes = Math.round(ms / 60000);
   if (minutes <= 30) return 30;
-  return minutes <= 60 ? 60 : 120;
+  if (minutes <= 60) return 60;
+  return 120;
 }
 
 // ---------------------------------------------------------------- auth & profile
@@ -180,8 +186,12 @@ export function signInWithProvider(_provider: 'apple' | 'google') {
 export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   const previous = state.profile;
   const stored = await api.saveProfile(values);
-  const verified = !!previous?.verified && previous.photoUri === values.photoUri;
-  set({ profile: { ...stored, verified: stored.verified || verified } });
+  // Keep an earlier verification only while the profile photo stays the same.
+  let keepsVerification = false;
+  if (previous && previous.verified && previous.photoUri === values.photoUri) {
+    keepsVerification = true;
+  }
+  set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
 }
 
 export async function verifySelfie(selfieUri: string) {
@@ -192,7 +202,8 @@ export async function verifySelfie(selfieUri: string) {
 }
 
 export function markVerified() {
-  if (state.profile) set({ profile: { ...state.profile, verified: true } });
+  if (!state.profile) return;
+  set({ profile: { ...state.profile, verified: true } });
 }
 
 export async function signOut() {
@@ -232,7 +243,12 @@ export async function updateNote(note: string) {
 }
 
 export async function goOffline(reason: 'done' | 'expired' = 'done') {
-  set({ availability: null, outgoing: null, nearbyAlert: null, availabilityExpired: reason === 'expired' });
+  set({
+    availability: null,
+    outgoing: null,
+    nearbyAlert: null,
+    availabilityExpired: reason === 'expired',
+  });
   try {
     await api.goOffline();
   } catch {
@@ -324,7 +340,8 @@ async function openChat(chatId: string, other?: NearbyPerson) {
   stopChatMessages = api.subscribeMessages('request_id', chatId, state.myId, (message) => {
     const chat = state.chat;
     if (chat?.id !== chatId) return;
-    if (chat.messages.some((m) => m.id === message.id)) return;
+    const alreadyShown = chat.messages.some((existing) => existing.id === message.id);
+    if (alreadyShown) return;
     set({ chat: { ...chat, messages: [...chat.messages, message] } });
   });
 }
@@ -334,7 +351,9 @@ export async function startChat() {
   const chat = state.chat;
   if (!chat) return;
   const messages = await api.fetchChatMessages(chat.id);
-  if (state.chat?.id === chat.id) set({ chat: { ...state.chat, messages } });
+  // Only apply the history if the same chat is still open.
+  if (state.chat?.id !== chat.id) return;
+  set({ chat: { ...state.chat, messages } });
 }
 
 export async function sendMessage(text: string) {
@@ -344,8 +363,8 @@ export async function sendMessage(text: string) {
   try {
     // The message appears when Realtime echoes it back, so both sides stay in sync.
     await api.sendMessage(chat.id, body);
-  } catch (e) {
-    Alert.alert('Message not sent', e instanceof Error ? e.message : 'Try again.');
+  } catch (error) {
+    Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
   }
 }
 
@@ -383,23 +402,43 @@ export function markSafetyTipSeen() {
 export async function blockUser(userId: string, firstName: string) {
   // Server first: it cancels any request or chat between the two.
   await api.block(userId);
-  if (state.chat?.other.id === userId) {
+
+  // Drop anything in progress with the blocked person.
+  let outgoing = state.outgoing;
+  if (outgoing?.to.id === userId) {
+    outgoing = null;
+  }
+  let incoming = state.incoming;
+  if (incoming?.from.id === userId) {
+    incoming = null;
+  }
+  let chat = state.chat;
+  if (chat?.other.id === userId) {
     stopChatMessages?.();
     stopChatMessages = null;
+    chat = null;
   }
+
+  let blockedIds = state.blockedIds;
+  if (!blockedIds.includes(userId)) {
+    blockedIds = [...blockedIds, userId];
+  }
+
   set({
-    blockedIds: [...new Set([...state.blockedIds, userId])],
+    blockedIds,
     blockedNames: { ...state.blockedNames, [userId]: firstName },
-    outgoing: state.outgoing?.to.id === userId ? null : state.outgoing,
-    incoming: state.incoming?.from.id === userId ? null : state.incoming,
-    chat: state.chat?.other.id === userId ? null : state.chat,
+    outgoing,
+    incoming,
+    chat,
   });
 }
 
 export async function unblockUser(userId: string) {
   await api.unblock(userId);
-  const { [userId]: _removed, ...rest } = state.blockedNames;
-  set({ blockedIds: state.blockedIds.filter((id) => id !== userId), blockedNames: rest });
+  const blockedNames = { ...state.blockedNames };
+  delete blockedNames[userId];
+  const blockedIds = state.blockedIds.filter((id) => id !== userId);
+  set({ blockedIds, blockedNames });
 }
 
 export async function reportUser(userId: string, reason: ReportReason, details: string) {
@@ -411,13 +450,12 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 export async function loadEvents(center: { latitude: number; longitude: number }) {
   const nearby = await api.eventsNear(center);
   // Keep the loaded chat history of events we're in; refresh everything else.
-  const current = new Map(state.events.map((e) => [e.id, e]));
-  set({
-    events: nearby.map((e) => {
-      const existing = current.get(e.id);
-      return existing ? { ...e, messages: existing.messages } : e;
-    }),
+  const events = nearby.map((event) => {
+    const existing = state.events.find((loaded) => loaded.id === event.id);
+    if (!existing) return event;
+    return { ...event, messages: existing.messages };
   });
+  set({ events });
 }
 
 export async function createEvent(input: {
@@ -429,28 +467,38 @@ export async function createEvent(input: {
   startsAt: number;
 }) {
   const event = await api.createEvent(input);
-  set({ events: [event, ...state.events.filter((e) => e.id !== event.id)] });
+  const otherEvents = state.events.filter((existing) => existing.id !== event.id);
+  set({ events: [event, ...otherEvents] });
   return event.id;
 }
 
-function updateEvent(id: string, patch: (e: MapEvent) => Partial<MapEvent>) {
-  set({ events: state.events.map((e) => (e.id === id ? { ...e, ...patch(e) } : e)) });
+/** Applies `getChanges` to the one event with this id, leaving the others untouched. */
+function updateEvent(id: string, getChanges: (event: MapEvent) => Partial<MapEvent>) {
+  const events = state.events.map((event) => {
+    if (event.id !== id) return event;
+    return { ...event, ...getChanges(event) };
+  });
+  set({ events });
 }
 
 export async function joinEvent(id: string) {
   await api.joinEvent(id);
-  updateEvent(id, (e) => ({ joined: true, memberCount: e.memberCount + 1 }));
+  updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
 }
 
 export async function leaveEvent(id: string) {
-  const event = state.events.find((e) => e.id === id);
+  const event = state.events.find((existing) => existing.id === id);
   await api.leaveEvent(id);
   if (event && event.host.id === state.myId) {
     // Leaving your own event deletes it.
-    set({ events: state.events.filter((e) => e.id !== id) });
-  } else {
-    updateEvent(id, (e) => ({ joined: false, memberCount: Math.max(0, e.memberCount - 1), messages: [] }));
+    set({ events: state.events.filter((existing) => existing.id !== id) });
+    return;
   }
+  updateEvent(id, (current) => ({
+    joined: false,
+    memberCount: Math.max(0, current.memberCount - 1),
+    messages: [],
+  }));
 }
 
 /** Called when a group chat screen opens: load history and listen for new messages. */
@@ -461,9 +509,11 @@ export async function enterEventChat(eventId: string) {
 
   stopEventMessages?.();
   stopEventMessages = api.subscribeMessages('event_id', eventId, state.myId, (message) => {
-    const event = state.events.find((e) => e.id === eventId);
-    if (!event || event.messages.some((m) => m.id === message.id)) return;
-    updateEvent(eventId, (e) => ({ messages: [...e.messages, message] }));
+    const event = state.events.find((existing) => existing.id === eventId);
+    if (!event) return;
+    const alreadyShown = event.messages.some((existing) => existing.id === message.id);
+    if (alreadyShown) return;
+    updateEvent(eventId, (current) => ({ messages: [...current.messages, message] }));
   });
 }
 
@@ -477,7 +527,7 @@ export async function sendGroupMessage(eventId: string, text: string) {
   if (!body) return;
   try {
     await api.sendEventMessage(eventId, body); // appears via the Realtime echo
-  } catch (e) {
-    Alert.alert('Message not sent', e instanceof Error ? e.message : 'Try again.');
+  } catch (error) {
+    Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
   }
 }

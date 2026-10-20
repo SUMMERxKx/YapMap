@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { SetupStep } from '@/components/profile/setup-step';
-import { INTEREST_RANGE, INTERESTS } from '@/data/types';
+import { INTERESTS, INTEREST_RANGE } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function InterestsStep() {
@@ -14,14 +14,15 @@ export default function InterestsStep() {
   const picked = draft.interests;
   const atMax = picked.length >= INTEREST_RANGE.max;
 
-  const toggle = (interest: string) =>
-    update({
-      interests: picked.includes(interest)
-        ? picked.filter((i) => i !== interest)
-        : atMax
-          ? picked
-          : [...picked, interest],
-    });
+  // Tapping a picked interest removes it; tapping a new one adds it, up to the maximum.
+  const toggle = (interest: string) => {
+    if (picked.includes(interest)) {
+      update({ interests: picked.filter((item) => item !== interest) });
+      return;
+    }
+    if (atMax) return;
+    update({ interests: [...picked, interest] });
+  };
 
   return (
     <SetupStep

@@ -10,8 +10,9 @@ import { Button } from '@/components/ui/button';
 import { DurationChips } from '@/components/live/duration-chips';
 import { InfoNote } from '@/components/ui/info-note';
 import { TextField } from '@/components/ui/text-field';
-import { LIMITS } from '@/data/types';
+import { LIMITS } from '@/data/constants';
 import { useForegroundLocation } from '@/hooks/use-foreground-location';
+import { errorMessage } from '@/lib/error-message';
 import { goGreen, updateNote, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -20,7 +21,7 @@ export default function GoAvailable() {
   const editing = mode === 'edit';
   const { spacing } = useTheme();
   const insets = useSafeAreaInsets();
-  const current = useStore((s) => s.availability);
+  const current = useStore((state) => state.availability);
   const [minutes, setMinutes] = useState<30 | 60 | 120>(current?.minutes ?? 60);
   const [note, setNote] = useState(current?.note ?? '');
   const [busy, setBusy] = useState(false);
@@ -39,14 +40,50 @@ export default function GoAvailable() {
       return;
     }
     try {
-      await goGreen({ minutes, note: note.trim(), latitude: result.latitude, longitude: result.longitude, accuracy: result.accuracy });
+      await goGreen({
+        minutes,
+        note: note.trim(),
+        latitude: result.latitude,
+        longitude: result.longitude,
+        accuracy: result.accuracy,
+      });
       router.back();
-    } catch (e) {
-      Alert.alert('Could not go live', e instanceof Error ? e.message : 'Try again.');
+    } catch (error) {
+      Alert.alert('Could not go live', errorMessage(error, 'Try again.'));
     } finally {
       setBusy(false);
     }
   };
+
+  // The same sheet adds a note while you're live ("edit" mode) or takes you live.
+  let title = 'Go available';
+  let subtitle = 'Pick how long you want to be visible to people nearby.';
+  let confirmLabel = 'Go live';
+  if (editing) {
+    title = 'Edit your note';
+    subtitle = "People near you see this while you're live.";
+    confirmLabel = 'Save note';
+  }
+
+  let locationNote;
+  let mainButton;
+  if (location.denied) {
+    locationNote = (
+      <InfoNote tone="warning" icon="location-outline" title="Location is off.">
+        Yap needs your location only while you're available, to find people in the same place. You can
+        turn it on in Settings.
+      </InfoNote>
+    );
+    mainButton = <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />;
+  } else {
+    locationNote = (
+      <InfoNote tone="green" icon="shield-checkmark-outline" title="Your location stays private.">
+        It's only used to find people in this place while you're available. Nobody sees where you are, and
+        it's deleted when you stop.
+      </InfoNote>
+    );
+    mainButton = <Button label={confirmLabel} onPress={confirm} loading={busy} haptic />;
+  }
 
   return (
     <ScrollView
@@ -54,16 +91,12 @@ export default function GoAvailable() {
       keyboardShouldPersistTaps="handled">
       <View style={{ gap: spacing.xs }}>
         <AppText variant="title" accessibilityRole="header">
-          {editing ? 'Edit your note' : 'Go available'}
+          {title}
         </AppText>
-        <AppText color="textSecondary">
-          {editing
-            ? 'People near you see this while you\'re live.'
-            : 'Pick how long you want to be visible to people nearby.'}
-        </AppText>
+        <AppText color="textSecondary">{subtitle}</AppText>
       </View>
 
-      {editing ? null : (
+      {!editing && (
         <View style={{ gap: spacing.sm }}>
           <AppText variant="caption">Duration</AppText>
           <DurationChips value={minutes} onChange={setMinutes} />
@@ -79,24 +112,10 @@ export default function GoAvailable() {
         placeholder="e.g. Here till 4, happy to talk about anything"
       />
 
-      {location.denied ? (
-        <InfoNote tone="warning" icon="location-outline" title="Location is off.">
-          Yap needs your location only while you're available, to find people in the same place. You can
-          turn it on in Settings.
-        </InfoNote>
-      ) : (
-        <InfoNote tone="green" icon="shield-checkmark-outline" title="Your location stays private.">
-          It's only used to find people in this place while you're available. Nobody sees where you are, and
-          it's deleted when you stop.
-        </InfoNote>
-      )}
+      {locationNote}
 
       <View style={{ gap: spacing.sm }}>
-        {location.denied ? (
-          <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />
-        ) : (
-          <Button label={editing ? 'Save note' : 'Go live'} onPress={confirm} loading={busy} haptic />
-        )}
+        {mainButton}
         <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
       </View>
     </ScrollView>

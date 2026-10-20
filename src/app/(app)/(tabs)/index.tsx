@@ -15,14 +15,61 @@ import { useTheme } from '@/theme';
 /** Go live: just the button. Green YAP to go live, red while live, tap again to get off. */
 export default function GoLive() {
   const { colors, spacing } = useTheme();
-  const availability = useStore((s) => s.availability);
-  const expired = useStore((s) => s.availabilityExpired);
+  const availability = useStore((state) => state.availability);
+  const expired = useStore((state) => state.availabilityExpired);
   const left = useCountdown(availability?.expiresAt);
   const live = availability !== null;
 
+  let backdropTint: 'live' | 'green' = 'green';
+  if (live) {
+    backdropTint = 'live';
+  }
+
+  // Tapping the big button gets you off while live, or opens the go-live sheet otherwise.
+  const onHeroPress = () => {
+    if (live) {
+      goOffline('done');
+    } else {
+      router.push('/go-available');
+    }
+  };
+
+  // While live: your note and a way to edit it. Otherwise: a short explanation.
+  let belowButton;
+  if (live) {
+    const note = availability.note;
+    let noteText = 'No note';
+    let noteAction = 'Add';
+    if (note) {
+      noteText = `"${note}"`;
+      noteAction = 'Edit';
+    }
+    belowButton = (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Your note: ${note || 'none'}. Edit note`}
+        onPress={() => router.push({ pathname: '/go-available', params: { mode: 'edit' } })}
+        hitSlop={8}
+        style={styles.noteRow}>
+        <AppText color="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {noteText}
+        </AppText>
+        <AppText variant="bodyStrong" color="greenText">
+          {noteAction}
+        </AppText>
+      </Pressable>
+    );
+  } else {
+    belowButton = (
+      <AppText color="textSecondary" align="center" style={{ maxWidth: 280 }}>
+        Tap to go live. People near you who are live too will see you.
+      </AppText>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <GlassBackdrop tint={live ? 'live' : 'green'} />
+      <GlassBackdrop tint={backdropTint} />
       <View style={[styles.header, { paddingHorizontal: spacing.xxl }]}>
         <AppText variant="heading" style={{ color: colors.green, fontWeight: '800' }}>
           Yap
@@ -33,40 +80,17 @@ export default function GoLive() {
         <ActiveChatBar />
       </View>
 
-      {expired && !live ? (
+      {expired && !live && (
         <View style={{ paddingHorizontal: spacing.xxl }}>
           <InfoNote icon="time-outline" title="Your time's up." onDismiss={dismissExpired}>
             You're no longer visible. Tap YAP whenever you want to go live again.
           </InfoNote>
         </View>
-      ) : null}
+      )}
 
       <View style={[styles.center, { padding: spacing.xxl, gap: spacing.lg }]}>
-        <HeroButton
-          live={live}
-          timeLeft={formatMinutesLeft(left)}
-          onPress={live ? () => goOffline('done') : () => router.push('/go-available')}
-        />
-
-        {live ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Your note: ${availability.note || 'none'}. Edit note`}
-            onPress={() => router.push({ pathname: '/go-available', params: { mode: 'edit' } })}
-            hitSlop={8}
-            style={styles.noteRow}>
-            <AppText color="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {availability.note ? `"${availability.note}"` : 'No note'}
-            </AppText>
-            <AppText variant="bodyStrong" color="greenText">
-              {availability.note ? 'Edit' : 'Add'}
-            </AppText>
-          </Pressable>
-        ) : (
-          <AppText color="textSecondary" align="center" style={{ maxWidth: 280 }}>
-            Tap to go live. People near you who are live too will see you.
-          </AppText>
-        )}
+        <HeroButton live={live} timeLeft={formatMinutesLeft(left)} onPress={onHeroPress} />
+        {belowButton}
       </View>
     </SafeAreaView>
   );

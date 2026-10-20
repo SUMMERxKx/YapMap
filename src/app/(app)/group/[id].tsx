@@ -16,8 +16,8 @@ import { useTheme } from '@/theme';
 export default function GroupChat() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, spacing } = useTheme();
-  const event = useStore((s) => s.events.find((e) => e.id === id));
-  const blockedIds = useStore((s) => s.blockedIds);
+  const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
+  const blockedIds = useStore((state) => state.blockedIds);
 
   // Load the chat history and listen for new messages while this screen is open.
   useEffect(() => {
@@ -44,7 +44,10 @@ export default function GroupChat() {
     Alert.alert(message.senderName, undefined, [
       {
         text: `Report ${message.senderName}`,
-        onPress: () => router.push({ pathname: '/report/[id]', params: { id: message.senderId, name: message.senderName } }),
+        onPress: () => {
+          const params = { id: message.senderId, name: message.senderName };
+          router.push({ pathname: '/report/[id]', params });
+        },
       },
       {
         text: `Block ${message.senderName}`,
@@ -54,9 +57,22 @@ export default function GroupChat() {
       { text: 'Cancel', style: 'cancel' },
     ]);
 
+  const hostedByMe = event.host.id === 'me';
+  // Hide messages from anyone you've blocked.
+  const visibleMessages = event.messages.filter((message) => !blockedIds.includes(message.senderId));
+
+  let headerNote = 'Long-press a message to report or block someone.';
+  if (hostedByMe) {
+    headerNote = 'You created this event. Everyone who joins will chat here.';
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border, paddingHorizontal: spacing.lg, gap: spacing.md }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.border, paddingHorizontal: spacing.lg, gap: spacing.md },
+        ]}>
         <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
         <View style={styles.flex}>
           <AppText variant="bodyStrong" numberOfLines={1} accessibilityRole="header">
@@ -66,26 +82,20 @@ export default function GroupChat() {
             {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}
           </AppText>
         </View>
-        {event.host.id !== 'me' ? (
+        {!hostedByMe && (
           <Button label="Leave" variant="secondary" onPress={leave} style={{ minHeight: 44, paddingHorizontal: 16 }} />
-        ) : null}
+        )}
       </View>
 
       <ChatThread
-        messages={event.messages.filter((m) => !blockedIds.includes(m.senderId))}
+        messages={visibleMessages}
         onSend={(text) => sendGroupMessage(event.id, text)}
         showSenderNames
         placeholder="Message the group"
         disabled={!event.joined}
         disabledText="Join the event to chat"
         onLongPressMessage={moderate}
-        header={
-          <InfoNote icon="people-outline">
-            {event.host.id === 'me'
-              ? 'You created this event. Everyone who joins will chat here.'
-              : 'Long-press a message to report or block someone.'}
-          </InfoNote>
-        }
+        header={<InfoNote icon="people-outline">{headerNote}</InfoNote>}
       />
     </SafeAreaView>
   );

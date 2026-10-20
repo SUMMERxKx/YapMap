@@ -9,6 +9,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
 import { TextField } from '@/components/ui/text-field';
 import * as api from '@/data/api';
+import { errorMessage } from '@/lib/error-message';
 
 export default function Email() {
   const [email, setEmail] = useState('');
@@ -16,13 +17,14 @@ export default function Email() {
   const [sending, setSending] = useState(false);
 
   const send = async () => {
+    const trimmedEmail = email.trim();
     setError(null);
     setSending(true);
     try {
-      await api.requestEmailCode(email.trim());
-      router.push({ pathname: '/verify', params: { email: email.trim() } });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+      await api.requestEmailCode(trimmedEmail);
+      router.push({ pathname: '/verify', params: { email: trimmedEmail } });
+    } catch (error) {
+      setError(errorMessage(error, 'Something went wrong. Try again.'));
     } finally {
       setSending(false);
     }
