@@ -1,4 +1,4 @@
-// Email sign-in, step 2: enter the 6-digit code (one hidden input behind six boxes).
+// Email sign-in, step 2: enter the 8-digit code (one hidden input behind eight boxes).
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -13,7 +13,7 @@ import { errorMessage } from '@/lib/error-message';
 import { signInWithEmail } from '@/state/store';
 import { useTheme } from '@/theme';
 
-const LENGTH = 6;
+const LENGTH = 8;
 const RESEND_SECONDS = 60; // Supabase sends at most one code per minute
 
 export default function Verify() {
@@ -82,12 +82,12 @@ export default function Verify() {
         Check your email
       </AppText>
       <AppText color="textSecondary">
-        We sent a 6-digit code to <AppText variant="bodyStrong">{email}</AppText>
+        We sent a {LENGTH}-digit code to <AppText variant="bodyStrong">{email}</AppText>
       </AppText>
 
-      {/* One real input behind six display boxes, so paste and SMS/email autofill work. */}
+      {/* One real input behind one display box per digit, so paste and SMS/email autofill work. */}
       <Pressable
-        accessibilityLabel={`Code, ${code.length} of 6 digits entered`}
+        accessibilityLabel={`Code, ${code.length} of ${LENGTH} digits entered`}
         onPress={() => input.current?.focus()}
         style={styles.boxes}>
         {Array.from({ length: LENGTH }).map((_, index) => {
@@ -152,7 +152,7 @@ export default function Verify() {
 }
 
 const styles = StyleSheet.create({
-  boxes: { flexDirection: 'row', gap: 8, justifyContent: 'space-between' },
+  boxes: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
   box: { flex: 1, aspectRatio: 0.85, maxWidth: 56, alignItems: 'center', justifyContent: 'center' },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
   resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },

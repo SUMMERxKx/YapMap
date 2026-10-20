@@ -35,8 +35,8 @@ npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
 ```
 
 Testing against the real backend:
-- Sign in with a real email address: a 6-digit code is sent to it. The built-in email
-  sender only allows a few codes per hour, so use it sparingly until custom SMTP is set up.
+- Sign in with a real email address: an 8-digit code is sent to it. Codes are sent
+  through the custom SMTP sender configured on the Supabase project.
 - The core loop needs two phones signed in with different emails, within ~100 m of each
   other (same room counts), both live.
 
