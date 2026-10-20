@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { PersonDetails } from '@/components/profile/person-details';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
-import { displayName } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { useCountdown } from '@/hooks/use-countdown';
 import { formatClock } from '@/lib/format-time';
 import { expireIncoming, respondToIncoming, useStore } from '@/state/store';

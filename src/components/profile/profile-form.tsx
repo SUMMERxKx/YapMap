@@ -3,8 +3,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { GENDERS, INTERESTS, INTEREST_RANGE, LIMITS, PHOTO_RANGE } from '@/data/constants';
 import type { Gender, Profile } from '@/data/types';
-import { GENDERS, INTEREST_RANGE, INTERESTS, LIMITS, PHOTO_RANGE } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';

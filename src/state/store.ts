@@ -8,16 +8,7 @@ import { Alert } from 'react-native';
 import { useSyncExternalStore } from 'react';
 
 import * as api from '@/data/api';
-import type {
-  Availability,
-  ChatSession,
-  IncomingRequest,
-  MapEvent,
-  NearbyPerson,
-  OutgoingRequest,
-  Profile,
-  ReportReason,
-} from '@/data/types';
+import type { Availability, ChatSession, IncomingRequest, MapEvent, NearbyPerson, OutgoingRequest, Profile, ReportReason } from '@/data/types';
 
 export type NearbyAlert =
   | { id: string; kind: 'summary'; count: number }

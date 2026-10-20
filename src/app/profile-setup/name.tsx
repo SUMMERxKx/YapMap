@@ -7,7 +7,7 @@ import type { TextInput } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { SetupStep } from '@/components/profile/setup-step';
 import { TextField } from '@/components/ui/text-field';
-import { LIMITS } from '@/data/types';
+import { LIMITS } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function NameStep() {

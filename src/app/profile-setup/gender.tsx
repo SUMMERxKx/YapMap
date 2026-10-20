@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { SetupStep } from '@/components/profile/setup-step';
 import { ToggleRow } from '@/components/ui/toggle-row';
-import { GENDERS } from '@/data/types';
+import { GENDERS } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
 

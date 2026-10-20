@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { SetupStep } from '@/components/profile/setup-step';
-import { INTEREST_RANGE, INTERESTS } from '@/data/types';
+import { INTERESTS, INTEREST_RANGE } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function InterestsStep() {

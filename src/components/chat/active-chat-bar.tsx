@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { displayName } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

@@ -6,7 +6,7 @@
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from './supabase-client';
 
 import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
 

@@ -3,7 +3,7 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
-import { PHOTO_RANGE } from '@/data/types';
+import { PHOTO_RANGE } from '@/data/constants';
 import { useTheme } from '@/theme';
 
 

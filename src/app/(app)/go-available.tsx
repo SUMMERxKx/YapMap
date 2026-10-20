@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { DurationChips } from '@/components/live/duration-chips';
 import { InfoNote } from '@/components/ui/info-note';
 import { TextField } from '@/components/ui/text-field';
-import { LIMITS } from '@/data/types';
+import { LIMITS } from '@/data/constants';
 import { useForegroundLocation } from '@/hooks/use-foreground-location';
 import { goGreen, updateNote, useStore } from '@/state/store';
 import { useTheme } from '@/theme';

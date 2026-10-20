@@ -8,7 +8,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
-import { VERIFICATION_POSES } from '@/data/types';
+import { VERIFICATION_POSES } from '@/data/constants';
 import { markVerified, useStore, verifySelfie } from '@/state/store';
 import { useTheme } from '@/theme';
 

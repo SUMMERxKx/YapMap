@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useRef } from 'react';
 
 import * as api from '@/data/api';
-import { NEARBY_REFRESH_MS } from '@/data/types';
+import { NEARBY_REFRESH_MS } from '@/data/constants';
 import { showNearbyAlert, useStore } from '@/state/store';
 
 /**

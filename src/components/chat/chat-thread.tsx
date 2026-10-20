@@ -3,8 +3,8 @@ import { useState, type ReactElement } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { LIMITS } from '@/data/constants';
 import type { Message } from '@/data/types';
-import { LIMITS } from '@/data/types';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';

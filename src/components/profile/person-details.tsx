@@ -2,7 +2,7 @@ import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import type { NearbyPerson } from '@/data/types';
-import { displayName, genderLabel } from '@/data/types';
+import { displayName, genderLabel } from '@/lib/format-person';
 import { FEATURES } from '@/config/features';
 import { useTheme } from '@/theme';
 

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import * as api from '@/data/api';
+import { NEARBY_REFRESH_MS } from '@/data/constants';
 import type { NearbyPerson } from '@/data/types';
-import { NEARBY_REFRESH_MS } from '@/data/types';
 import { useStore } from '@/state/store';
 
 /** Nearby available people, refreshed every 20 seconds while `enabled`. */

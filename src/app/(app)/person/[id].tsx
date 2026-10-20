@@ -10,7 +10,8 @@ import { InfoNote } from '@/components/ui/info-note';
 import { PersonDetails } from '@/components/profile/person-details';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import * as api from '@/data/api';
-import { displayName, type NearbyPerson } from '@/data/types';
+import type { NearbyPerson } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { sayHi, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

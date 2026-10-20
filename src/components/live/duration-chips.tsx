@@ -2,7 +2,7 @@
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { DURATIONS } from '@/data/types';
+import { DURATIONS } from '@/data/constants';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';

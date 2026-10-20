@@ -2,7 +2,8 @@
 
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { displayName, type NearbyPerson } from '@/data/types';
+import type { NearbyPerson } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';

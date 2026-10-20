@@ -7,7 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { PhotoGrid } from '@/components/profile/photo-grid';
 import { SetupStep } from '@/components/profile/setup-step';
 import { FEATURES } from '@/config/features';
-import { PHOTO_RANGE } from '@/data/types';
+import { PHOTO_RANGE } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { saveProfile } from '@/state/store';
 

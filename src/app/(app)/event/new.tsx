@@ -9,7 +9,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { TextField } from '@/components/ui/text-field';
-import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/types';
+import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
 import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { displayName } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { dismissNearbyAlert, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

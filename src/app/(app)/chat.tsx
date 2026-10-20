@@ -9,7 +9,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import { SafetyMenu } from '@/components/safety/safety-menu';
-import { displayName } from '@/data/types';
+import { displayName } from '@/lib/format-person';
 import { endChat, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 

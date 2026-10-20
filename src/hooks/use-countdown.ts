@@ -2,7 +2,7 @@
 
 import { useEffect, useEffectEvent } from 'react';
 
-import { useClock } from './clock';
+import { useClock } from './use-clock';
 
 /** Milliseconds left until `endsAt`, ticking once a second. Calls `onDone` once at zero. */
 export function useCountdown(endsAt: number | null | undefined, onDone?: () => void) {
