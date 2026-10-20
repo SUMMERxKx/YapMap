@@ -82,7 +82,7 @@ export default function Verify() {
         Check your email
       </AppText>
       <AppText color="textSecondary">
-        We sent a {LENGTH}-digit code to <AppText variant="bodyStrong">{email}</AppText>
+        We sent an {LENGTH}-digit code to <AppText variant="bodyStrong">{email}</AppText>
       </AppText>
 
       {/* One real input behind one display box per digit, so paste and SMS/email autofill work. */}

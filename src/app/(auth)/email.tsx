@@ -1,4 +1,4 @@
-// Email sign-in, step 1: ask for the address and send a 8-digit code.
+// Email sign-in, step 1: ask for the address and send an 8-digit code.
 
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -40,7 +40,7 @@ export default function Email() {
       <AppText variant="title" accessibilityRole="header">
         What's your email?
       </AppText>
-      <AppText color="textSecondary">We'll send you a 8-digit code. No password needed.</AppText>
+      <AppText color="textSecondary">We'll send you an 8-digit code. No password needed.</AppText>
       <TextField
         label="Email"
         value={email}
