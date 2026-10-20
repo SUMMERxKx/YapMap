@@ -18,7 +18,7 @@ import { useTheme } from '@/theme';
 
 export default function Incoming() {
   const { colors } = useTheme();
-  const incoming = useStore((s) => s.incoming);
+  const incoming = useStore((state) => state.incoming);
   const left = useCountdown(incoming?.expiresAt, expireIncoming);
 
   useEffect(() => {

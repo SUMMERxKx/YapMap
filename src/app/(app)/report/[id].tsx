@@ -34,6 +34,10 @@ export default function Report() {
   };
 
   if (sent) {
+    let thanksText = "We'll review this. Thanks for helping keep Yap safe.";
+    if (alsoBlock) {
+      thanksText = `We'll review this. ${name} can't see you any more, and you won't see them.`;
+    }
     return (
       <Screen footer={<Button label="Done" onPress={() => router.dismissTo('/')} />}>
         <View style={[styles.center, { gap: spacing.md }]}>
@@ -42,13 +46,16 @@ export default function Report() {
             Thanks for telling us
           </AppText>
           <AppText color="textSecondary" align="center">
-            {alsoBlock
-              ? `We'll review this. ${name} can't see you any more, and you won't see them.`
-              : "We'll review this. Thanks for helping keep Yap safe."}
+            {thanksText}
           </AppText>
         </View>
       </Screen>
     );
+  }
+
+  let submitLabel = 'Submit report';
+  if (alsoBlock) {
+    submitLabel = 'Submit report and block';
   }
 
   return (
@@ -56,7 +63,7 @@ export default function Report() {
       scroll
       footer={
         <Button
-          label={alsoBlock ? 'Submit report and block' : 'Submit report'}
+          label={submitLabel}
           variant="destructive"
           onPress={submit}
           loading={sending}
@@ -75,30 +82,32 @@ export default function Report() {
       </AppText>
 
       <View accessibilityRole="radiogroup" style={{ gap: spacing.sm }}>
-        {REPORT_REASONS.map((r) => {
-          const selected = reason === r.value;
+        {REPORT_REASONS.map((option) => {
+          const selected = reason === option.value;
+          // The chosen reason gets a thicker red border and a filled radio button.
+          let borderColor = colors.border;
+          let borderWidth = 1;
+          let radioIcon: 'radio-button-on' | 'radio-button-off' = 'radio-button-off';
+          let radioColor = colors.inputBorder;
+          if (selected) {
+            borderColor = colors.destructive;
+            borderWidth = 2;
+            radioIcon = 'radio-button-on';
+            radioColor = colors.destructive;
+          }
           return (
             <Pressable
-              key={r.value}
+              key={option.value}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
-              accessibilityLabel={r.label}
-              onPress={() => setReason(r.value)}
+              accessibilityLabel={option.label}
+              onPress={() => setReason(option.value)}
               style={[
                 styles.option,
-                {
-                  borderRadius: radius.md,
-                  backgroundColor: colors.surface,
-                  borderColor: selected ? colors.destructive : colors.border,
-                  borderWidth: selected ? 2 : 1,
-                },
+                { borderRadius: radius.md, backgroundColor: colors.surface, borderColor, borderWidth },
               ]}>
-              <AppText style={{ flex: 1 }}>{r.label}</AppText>
-              <Ionicons
-                name={selected ? 'radio-button-on' : 'radio-button-off'}
-                size={22}
-                color={selected ? colors.destructive : colors.inputBorder}
-              />
+              <AppText style={{ flex: 1 }}>{option.label}</AppText>
+              <Ionicons name={radioIcon} size={22} color={radioColor} />
             </Pressable>
           );
         })}

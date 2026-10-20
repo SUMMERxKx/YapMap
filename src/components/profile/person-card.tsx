@@ -15,23 +15,34 @@ type Props = { person: NearbyPerson; onPress: () => void };
 
 export function PersonCard({ person, onPress }: Props) {
   const { colors, radius, spacing, elevation } = useTheme();
+  const interestsText = person.interests.join(', ');
+  const accessibilityLabel = `${displayName(person)}. ${person.intro}. Interests: ${interestsText}`;
+
+  const cardStyle = ({ pressed }: { pressed: boolean }) => {
+    let backgroundColor = colors.surface;
+    if (pressed) {
+      backgroundColor = colors.surfaceMuted;
+    }
+    return [
+      styles.card,
+      elevation.card,
+      {
+        backgroundColor,
+        borderColor: colors.border,
+        borderRadius: radius.lg,
+        padding: spacing.lg,
+        gap: spacing.md,
+      },
+    ];
+  };
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${displayName(person)}. ${person.intro}. Interests: ${person.interests.join(', ')}`}
+      accessibilityLabel={accessibilityLabel}
       accessibilityHint="Opens their profile so you can say hi"
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        elevation.card,
-        {
-          backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-          borderColor: colors.border,
-          borderRadius: radius.lg,
-          padding: spacing.lg,
-          gap: spacing.md,
-        },
-      ]}>
+      style={cardStyle}>
       <Avatar name={person.firstName} photoUri={person.photoUri} size={64} />
       <View style={{ flex: 1, gap: 2 }}>
         <View style={styles.titleRow}>
@@ -40,11 +51,11 @@ export function PersonCard({ person, onPress }: Props) {
           </AppText>
           <Badge label="here now" />
         </View>
-        {person.note ? (
+        {person.note !== '' && (
           <AppText variant="bodyStrong" color="greenText" numberOfLines={1}>
             {`"${person.note}"`}
           </AppText>
-        ) : null}
+        )}
         <AppText variant="body" color="textSecondary" numberOfLines={2}>
           {person.intro}
         </AppText>

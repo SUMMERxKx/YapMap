@@ -21,9 +21,19 @@ type Props = {
 };
 
 /** One question per screen: progress, back, a big title, the question, and Next. */
-export function SetupStep({ step, total, title, subtitle, children, nextLabel = 'Next', canContinue, onNext, loading }: Props) {
+export function SetupStep({
+  step,
+  total,
+  title,
+  subtitle,
+  children,
+  nextLabel = 'Next',
+  canContinue,
+  onNext,
+  loading,
+}: Props) {
   const { colors, radius, spacing } = useTheme();
-  const progress = step / total;
+  const progressPercent = (step / total) * 100;
 
   return (
     <Screen
@@ -37,7 +47,7 @@ export function SetupStep({ step, total, title, subtitle, children, nextLabel = 
           accessibilityLabel={`Step ${step} of ${total}`}
           accessibilityValue={{ min: 0, max: total, now: step }}
           style={[styles.track, { backgroundColor: colors.surfaceMuted, borderRadius: radius.pill }]}>
-          <View style={[styles.fill, { width: `${progress * 100}%`, backgroundColor: colors.green, borderRadius: radius.pill }]} />
+          <View style={[styles.fill, { width: `${progressPercent}%`, backgroundColor: colors.green, borderRadius: radius.pill }]} />
         </View>
         <AppText variant="caption" color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
           {step}/{total}
@@ -48,7 +58,7 @@ export function SetupStep({ step, total, title, subtitle, children, nextLabel = 
         <AppText variant="title" accessibilityRole="header">
           {title}
         </AppText>
-        {subtitle ? <AppText color="textSecondary">{subtitle}</AppText> : null}
+        {Boolean(subtitle) && <AppText color="textSecondary">{subtitle}</AppText>}
       </View>
 
       <View style={{ gap: spacing.lg, marginTop: spacing.sm }}>{children}</View>

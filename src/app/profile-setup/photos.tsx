@@ -8,6 +8,7 @@ import { PhotoGrid } from '@/components/profile/photo-grid';
 import { SetupStep } from '@/components/profile/setup-step';
 import { FEATURES } from '@/config/features';
 import { PHOTO_RANGE } from '@/data/constants';
+import { errorMessage } from '@/lib/error-message';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { saveProfile } from '@/state/store';
 
@@ -31,11 +32,21 @@ export default function PhotosStep() {
         lastName: draft.lastName.trim(),
         intro: draft.intro.trim(),
       });
-    } catch (e) {
-      Alert.alert('Could not save your profile', e instanceof Error ? e.message : 'Check your connection and try again.');
+    } catch (error) {
+      Alert.alert('Could not save your profile', errorMessage(error, 'Check your connection and try again.'));
       setSaving(false);
     }
   };
+
+  let progressText = `${draft.photos.length} of ${PHOTO_RANGE.min} required added.`;
+  if (ready) {
+    progressText = `${draft.photos.length} added. You can add up to ${PHOTO_RANGE.max}.`;
+  }
+
+  let nextStepText = '';
+  if (FEATURES.selfieVerification) {
+    nextStepText = " Next, a quick selfie confirms it's really you.";
+  }
 
   return (
     <SetupStep
@@ -49,10 +60,8 @@ export default function PhotosStep() {
       loading={saving}>
       <PhotoGrid photos={draft.photos} onChange={(photos) => update({ photos })} />
       <AppText variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
-        {ready
-          ? `${draft.photos.length} added. You can add up to ${PHOTO_RANGE.max}.`
-          : `${draft.photos.length} of ${PHOTO_RANGE.min} required added.`}
-        {FEATURES.selfieVerification ? ' Next, a quick selfie confirms it\'s really you.' : ''}
+        {progressText}
+        {nextStepText}
       </AppText>
     </SetupStep>
   );

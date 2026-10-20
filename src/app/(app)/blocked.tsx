@@ -10,7 +10,7 @@ import { useTheme } from '@/theme';
 
 export default function Blocked() {
   const { colors, spacing } = useTheme();
-  const names = useStore((s) => s.blockedNames);
+  const names = useStore((state) => state.blockedNames);
   const entries = Object.entries(names);
 
   return (

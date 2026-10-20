@@ -18,7 +18,7 @@ const randomPose = () => VERIFICATION_POSES[Math.floor(Math.random() * VERIFICAT
 
 export default function VerifyFace() {
   const { colors, radius, spacing } = useTheme();
-  const profile = useStore((s) => s.profile);
+  const profile = useStore((state) => state.profile);
   const [step, setStep] = useState<Step>('intro');
   const [pose, setPose] = useState(randomPose);
   const [selfie, setSelfie] = useState<string | null>(null);
@@ -42,7 +42,12 @@ export default function VerifyFace() {
     setSelfie(uri);
     setStep('checking');
     try {
-      setStep((await verifySelfie(uri)) ? 'verified' : 'no-match');
+      const matched = await verifySelfie(uri);
+      if (matched) {
+        setStep('verified');
+      } else {
+        setStep('no-match');
+      }
     } catch {
       setStep('error');
     }
@@ -54,21 +59,26 @@ export default function VerifyFace() {
     setStep('intro');
   };
 
+  // The middle icon between the profile photo and the selfie.
+  let compareIcon: 'checkmark-circle' | 'swap-horizontal' = 'swap-horizontal';
+  let compareIconColor = colors.textSecondary;
+  if (step === 'verified') {
+    compareIcon = 'checkmark-circle';
+    compareIconColor = colors.greenText;
+  }
+
+  let selfieSlot = <Ionicons name="camera-outline" size={36} color={colors.textSecondary} />;
+  if (selfie) {
+    selfieSlot = <Avatar name="Selfie" photoUri={selfie} size={110} />;
+  }
+
   const photos = (
     <View style={styles.photos}>
       <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={110} />
-      <Ionicons
-        name={step === 'verified' ? 'checkmark-circle' : 'swap-horizontal'}
-        size={32}
-        color={step === 'verified' ? colors.greenText : colors.textSecondary}
-      />
+      <Ionicons name={compareIcon} size={32} color={compareIconColor} />
       <View
         style={[styles.selfie, { borderRadius: 30, backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
-        {selfie ? (
-          <Avatar name="Selfie" photoUri={selfie} size={110} />
-        ) : (
-          <Ionicons name="camera-outline" size={36} color={colors.textSecondary} />
-        )}
+        {selfieSlot}
       </View>
     </View>
   );
@@ -106,33 +116,35 @@ export default function VerifyFace() {
   }
 
   if (step === 'no-match' || step === 'error') {
+    let title = 'Something went wrong';
+    let advice = 'Check your connection and try again.';
+    if (step === 'no-match') {
+      title = "We couldn't match your selfie";
+      advice = 'Make sure your face is well lit and clearly visible, and that your profile photo shows your face.';
+    }
+
     return (
       <Screen footer={<Button label="Try again" onPress={tryAgain} />}>
         <View style={[styles.center, { gap: spacing.lg }]}>
           {photos}
           <AppText variant="title" align="center" accessibilityRole="header" accessibilityLiveRegion="polite">
-            {step === 'no-match' ? "We couldn't match your selfie" : 'Something went wrong'}
+            {title}
           </AppText>
           <AppText color="textSecondary" align="center">
-            {step === 'no-match'
-              ? 'Make sure your face is well lit and clearly visible, and that your profile photo shows your face.'
-              : 'Check your connection and try again.'}
+            {advice}
           </AppText>
         </View>
       </Screen>
     );
   }
 
+  let footer = <Button label="Take selfie" icon="camera-outline" onPress={takeSelfie} />;
+  if (cameraDenied) {
+    footer = <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />;
+  }
+
   return (
-    <Screen
-      scroll
-      footer={
-        cameraDenied ? (
-          <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />
-        ) : (
-          <Button label="Take selfie" icon="camera-outline" onPress={takeSelfie} />
-        )
-      }>
+    <Screen scroll footer={footer}>
       <AppText variant="title" accessibilityRole="header">
         Verify it's you
       </AppText>
@@ -157,11 +169,11 @@ export default function VerifyFace() {
         </View>
       </View>
 
-      {cameraDenied ? (
+      {cameraDenied && (
         <InfoNote tone="warning" icon="camera-outline" title="Camera is off.">
           Yap needs the camera for the verification selfie. You can turn it on in Settings.
         </InfoNote>
-      ) : null}
+      )}
 
       <InfoNote icon="lock-closed-outline" title="Your privacy:">
         We compare your selfie with your profile photo, then delete the selfie. Only the result is kept,

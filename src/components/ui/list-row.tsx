@@ -18,27 +18,47 @@ type Props = {
 
 export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: Props) {
   const { colors, spacing } = useTheme();
+
+  // An external row opens a web page, so it is announced as a link with an "open" icon.
+  let role: 'link' | 'button' = 'button';
+  let trailingIcon: 'open-outline' | 'chevron-forward' = 'chevron-forward';
+  if (trailing === 'external') {
+    role = 'link';
+    trailingIcon = 'open-outline';
+  }
+
+  let accessibilityLabel = label;
+  if (detail) {
+    accessibilityLabel = `${label}, ${detail}`;
+  }
+
+  // The last row in a group has no divider under it.
+  let borderBottomWidth = StyleSheet.hairlineWidth;
+  if (last) {
+    borderBottomWidth = 0;
+  }
+
+  const rowStyle = ({ pressed }: { pressed: boolean }) => {
+    let backgroundColor = 'transparent';
+    if (pressed) {
+      backgroundColor = colors.surfaceMuted;
+    }
+    return [
+      styles.row,
+      {
+        paddingHorizontal: spacing.lg,
+        backgroundColor,
+        borderBottomWidth,
+        borderBottomColor: colors.border,
+      },
+    ];
+  };
+
   return (
-    <Pressable
-      accessibilityRole={trailing === 'external' ? 'link' : 'button'}
-      accessibilityLabel={detail ? `${label}, ${detail}` : label}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.row,
-        {
-          paddingHorizontal: spacing.lg,
-          backgroundColor: pressed ? colors.surfaceMuted : 'transparent',
-          borderBottomWidth: last ? 0 : StyleSheet.hairlineWidth,
-          borderBottomColor: colors.border,
-        },
-      ]}>
+    <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} onPress={onPress} style={rowStyle}>
       <AppText style={{ flex: 1 }}>{label}</AppText>
-      {detail ? <AppText color="textSecondary">{detail}</AppText> : null}
-      <Ionicons
-        name={trailing === 'external' ? 'open-outline' : 'chevron-forward'}
-        size={18}
-        color={colors.textSecondary}
-      />
+      {Boolean(detail) && <AppText color="textSecondary">{detail}</AppText>}
+      <Ionicons name={trailingIcon} size={18} color={colors.textSecondary} />
     </Pressable>
   );
 }

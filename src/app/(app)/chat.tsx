@@ -18,8 +18,8 @@ const SAFETY_TIP_TIMES = 3;
 /** The 1:1 chat with your yap partner, opened when a request is accepted. */
 export default function Chat() {
   const { colors, spacing } = useTheme();
-  const chat = useStore((s) => s.chat);
-  const tipViews = useStore((s) => s.safetyTipViews);
+  const chat = useStore((state) => state.chat);
+  const tipViews = useStore((state) => state.safetyTipViews);
   const [showTip, setShowTip] = useState(() => tipViews < SAFETY_TIP_TIMES); // decided once per chat
 
   useEffect(() => {
@@ -46,9 +46,28 @@ export default function Chat() {
     endChat(outcome);
   };
 
+  const dismissTip = () => {
+    markSafetyTipSeen();
+    setShowTip(false);
+  };
+
+  // A safety tip above the first message, for someone's first few chats.
+  let safetyTip;
+  if (showTip) {
+    safetyTip = (
+      <InfoNote icon="shield-checkmark-outline" title="Safety tip:" onDismiss={dismissTip}>
+        Meet in the public place you're both in. You can leave at any time, and report anything that felt off.
+      </InfoNote>
+    );
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { borderBottomColor: colors.border, paddingHorizontal: spacing.md, gap: spacing.sm }]}>
+      <View
+        style={[
+          styles.header,
+          { borderBottomColor: colors.border, paddingHorizontal: spacing.md, gap: spacing.sm },
+        ]}>
         {/* Going back keeps the chat alive; the bar on Go live and Nearby reopens it. */}
         <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} />
         <Pressable
@@ -76,19 +95,7 @@ export default function Chat() {
         placeholder={`Message ${other.firstName}`}
         disabled={chat.status === 'other-cancelled'}
         disabledText={`${other.firstName} ended the chat`}
-        header={
-          showTip ? (
-            <InfoNote
-              icon="shield-checkmark-outline"
-              title="Safety tip:"
-              onDismiss={() => {
-                markSafetyTipSeen();
-                setShowTip(false);
-              }}>
-              Meet in the public place you're both in. You can leave at any time, and report anything that felt off.
-            </InfoNote>
-          ) : undefined
-        }
+        header={safetyTip}
       />
     </SafeAreaView>
   );

@@ -17,6 +17,7 @@ type Props = { person: NearbyPerson; subtitle?: string };
 export function PersonDetails({ person, subtitle }: Props) {
   const { colors, radius, spacing } = useTheme();
   const gender = genderLabel(person.gender);
+  const showVerified = FEATURES.selfieVerification && person.verified;
 
   return (
     <View style={{ gap: spacing.lg }}>
@@ -25,38 +26,38 @@ export function PersonDetails({ person, subtitle }: Props) {
         <AppText variant="title" accessibilityRole="header" style={{ marginTop: spacing.sm }}>
           {displayName(person)}
         </AppText>
-        {gender ? <AppText color="textSecondary">{gender}</AppText> : null}
-        {FEATURES.selfieVerification && person.verified ? <VerifiedBadge /> : null}
-        {person.note ? (
+        {gender !== null && <AppText color="textSecondary">{gender}</AppText>}
+        {showVerified && <VerifiedBadge />}
+        {person.note !== '' && (
           <AppText variant="bodyStrong" color="greenText" align="center">
             {`"${person.note}"`}
           </AppText>
-        ) : null}
-        {subtitle ? (
+        )}
+        {Boolean(subtitle) && (
           <AppText color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
             {subtitle}
           </AppText>
-        ) : null}
+        )}
       </View>
 
-      {person.photos.length > 0 ? (
+      {person.photos.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: spacing.sm }}
           accessibilityLabel={`${person.photos.length} photos of ${person.firstName}`}>
-          {person.photos.map((uri, i) => (
+          {person.photos.map((uri, index) => (
             <Image
               key={uri}
               source={{ uri }}
-              accessibilityLabel={`Photo ${i + 1} of ${person.firstName}`}
+              accessibilityLabel={`Photo ${index + 1} of ${person.firstName}`}
               style={[styles.photo, { borderRadius: radius.lg, backgroundColor: colors.surfaceMuted }]}
               contentFit="cover"
               transition={150}
             />
           ))}
         </ScrollView>
-      ) : null}
+      )}
 
       <View
         style={[

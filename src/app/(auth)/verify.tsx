@@ -9,6 +9,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
 import * as api from '@/data/api';
+import { errorMessage } from '@/lib/error-message';
 import { signInWithEmail } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -24,10 +25,11 @@ export default function Verify() {
   const [verifying, setVerifying] = useState(false);
   const [cooldown, setCooldown] = useState(RESEND_SECONDS);
 
+  // Count the resend cooldown down by one every second until it reaches zero.
   useEffect(() => {
     if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setCooldown((seconds) => seconds - 1), 1000);
+    return () => clearTimeout(timer);
   }, [cooldown]);
 
   const verify = async (value = code) => {
@@ -36,8 +38,8 @@ export default function Verify() {
     setError(null);
     try {
       await signInWithEmail(email, value); // the root layout then moves on to profile setup
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong. Try again.');
+    } catch (error) {
+      setError(errorMessage(error, 'Something went wrong. Try again.'));
     } finally {
       setVerifying(false);
     }
@@ -49,10 +51,23 @@ export default function Verify() {
     setCode('');
     try {
       await api.requestEmailCode(email);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not resend the code.');
+    } catch (error) {
+      setError(errorMessage(error, 'Could not resend the code.'));
     }
   };
+
+  const onCodeChange = (text: string) => {
+    // Keep digits only, and never more than the code length (pasted text can be longer).
+    const digits = text.replace(/\D/g, '').slice(0, LENGTH);
+    setCode(digits);
+    setError(null);
+    if (digits.length === LENGTH) verify(digits);
+  };
+
+  let resendLabel = 'Resend code';
+  if (cooldown > 0) {
+    resendLabel = `Resend in ${cooldown}s`;
+  }
 
   return (
     <Screen
@@ -75,21 +90,33 @@ export default function Verify() {
         accessibilityLabel={`Code, ${code.length} of 6 digits entered`}
         onPress={() => input.current?.focus()}
         style={styles.boxes}>
-        {Array.from({ length: LENGTH }).map((_, i) => {
-          const active = i === code.length && !error;
+        {Array.from({ length: LENGTH }).map((_, index) => {
+          // The box where the next digit will go is highlighted.
+          const active = index === code.length && !error;
+
+          let borderColor = colors.inputBorder;
+          let borderWidth = 1;
+          if (error) {
+            borderColor = colors.destructive;
+            borderWidth = 2;
+          } else if (active) {
+            borderColor = colors.green;
+            borderWidth = 2;
+          }
+
           return (
             <View
-              key={i}
+              key={index}
               style={[
                 styles.box,
                 {
                   borderRadius: radius.md,
                   backgroundColor: colors.surface,
-                  borderColor: error ? colors.destructive : active ? colors.green : colors.inputBorder,
-                  borderWidth: error || active ? 2 : 1,
+                  borderColor,
+                  borderWidth,
                 },
               ]}>
-              <AppText style={[type.title, { fontVariant: ['tabular-nums'] }]}>{code[i] ?? ''}</AppText>
+              <AppText style={[type.title, { fontVariant: ['tabular-nums'] }]}>{code[index] ?? ''}</AppText>
             </View>
           );
         })}
@@ -97,12 +124,7 @@ export default function Verify() {
       <TextInput
         ref={input}
         value={code}
-        onChangeText={(t) => {
-          const digits = t.replace(/\D/g, '').slice(0, LENGTH);
-          setCode(digits);
-          setError(null);
-          if (digits.length === LENGTH) verify(digits);
-        }}
+        onChangeText={onCodeChange}
         keyboardType="number-pad"
         textContentType="oneTimeCode"
         autoComplete="one-time-code"
@@ -113,22 +135,17 @@ export default function Verify() {
         importantForAccessibility="no"
       />
 
-      {error ? (
+      {Boolean(error) && (
         <InfoNote tone="danger" icon="alert-circle-outline">
           {error}
         </InfoNote>
-      ) : null}
+      )}
 
       <View style={styles.resend}>
         <AppText variant="caption" color="textSecondary">
           Didn't receive it?
         </AppText>
-        <Button
-          label={cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend code'}
-          variant="ghost"
-          onPress={resend}
-          disabled={cooldown > 0}
-        />
+        <Button label={resendLabel} variant="ghost" onPress={resend} disabled={cooldown > 0} />
       </View>
     </Screen>
   );

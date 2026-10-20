@@ -38,6 +38,11 @@ export default function PhotoStep() {
     if (!result.canceled) update({ photoUri: result.assets[0]?.uri ?? null });
   };
 
+  let chooseLabel = 'Choose from library';
+  if (draft.photoUri) {
+    chooseLabel = 'Choose a different photo';
+  }
+
   return (
     <SetupStep
       step={5}
@@ -51,21 +56,21 @@ export default function PhotoStep() {
       </View>
       <View style={{ gap: 10 }}>
         <Button
-          label={draft.photoUri ? 'Choose a different photo' : 'Choose from library'}
+          label={chooseLabel}
           icon="images-outline"
           variant="secondary"
           onPress={choose}
         />
         <Button label="Take a photo" icon="camera-outline" variant="secondary" onPress={take} />
       </View>
-      {cameraDenied ? (
+      {cameraDenied && (
         <>
           <InfoNote tone="warning" icon="camera-outline" title="Camera is off.">
             You can still choose a photo from your library, or turn the camera on in Settings.
           </InfoNote>
           <Button label="Open Settings" icon="settings-outline" variant="ghost" onPress={() => Linking.openSettings()} />
         </>
-      ) : null}
+      )}
     </SetupStep>
   );
 }

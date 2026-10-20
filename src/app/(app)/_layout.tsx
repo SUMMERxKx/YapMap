@@ -9,10 +9,11 @@ import { useTheme } from '@/theme';
 
 export default function AppLayout() {
   const { colors } = useTheme();
-  const incomingId = useStore((s) => s.incoming?.id);
-  const chatId = useStore((s) => s.chat?.id);
-  const expiresAt = useStore((s) => s.availability?.expiresAt);
-  const seenTutorial = useStore((s) => s.seenTutorial);
+  const incomingId = useStore((state) => state.incoming?.id);
+  const chatId = useStore((state) => state.chat?.id);
+  const expiresAt = useStore((state) => state.availability?.expiresAt);
+  const seenTutorial = useStore((state) => state.seenTutorial);
+  // The request and chat ids already shown, so each one only takes over the screen once.
   const shown = useRef<{ incoming?: string; chat?: string }>({});
 
   // While live: "someone is near you" prompts.
@@ -26,25 +27,26 @@ export default function AppLayout() {
   // Availability ends on time whichever screen is open.
   useEffect(() => {
     if (!expiresAt) return;
-    const timer = setTimeout(() => goOffline('expired'), Math.max(0, expiresAt - Date.now()));
+    const msUntilExpiry = Math.max(0, expiresAt - Date.now());
+    const timer = setTimeout(() => goOffline('expired'), msUntilExpiry);
     return () => clearTimeout(timer);
   }, [expiresAt]);
 
   // An incoming request or a newly opened chat takes over the screen, wherever the user is.
   // When push notifications are added, tapping one opens these same routes.
   useEffect(() => {
-    if (incomingId && shown.current.incoming !== incomingId) {
-      shown.current.incoming = incomingId;
-      router.push('/incoming');
-    }
+    if (!incomingId) return;
+    if (shown.current.incoming === incomingId) return;
+    shown.current.incoming = incomingId;
+    router.push('/incoming');
   }, [incomingId]);
 
   useEffect(() => {
-    if (chatId && shown.current.chat !== chatId) {
-      shown.current.chat = chatId;
-      router.dismissTo('/');
-      router.push('/chat');
-    }
+    if (!chatId) return;
+    if (shown.current.chat === chatId) return;
+    shown.current.chat = chatId;
+    router.dismissTo('/');
+    router.push('/chat');
   }, [chatId]);
 
   return (

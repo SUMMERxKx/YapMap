@@ -5,6 +5,9 @@ type Result =
   | { ok: true; latitude: number | null; longitude: number | null; accuracy: number | null }
   | { ok: false; reason: 'denied' };
 
+// Indoors a fix can take a while; give up after this long and let the server use the last known one.
+const FIX_TIMEOUT_MS = 8000;
+
 /** Foreground ("while using the app") location only. Never background. */
 export function useForegroundLocation() {
   const [denied, setDenied] = useState(false);
@@ -17,11 +20,10 @@ export function useForegroundLocation() {
     }
     setDenied(false);
     try {
-      // Indoors a fix can take a while; give up after 8 s and let the server use the last known one.
-      const position = await Promise.race([
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
-      ]);
+      const currentPosition = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), FIX_TIMEOUT_MS));
+      // Whichever finishes first wins: the position, or null when the timeout runs out.
+      const position = await Promise.race([currentPosition, timeout]);
       return {
         ok: true,
         latitude: position?.coords.latitude ?? null,

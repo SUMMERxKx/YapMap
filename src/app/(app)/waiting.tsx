@@ -16,8 +16,13 @@ import { useTheme } from '@/theme';
 
 export default function Waiting() {
   const { colors, radius, spacing } = useTheme();
-  const outgoing = useStore((s) => s.outgoing);
-  const left = useCountdown(outgoing?.status === 'pending' ? outgoing.expiresAt : null, expireOutgoing);
+  const outgoing = useStore((state) => state.outgoing);
+  // Only a pending request has a countdown.
+  let countdownTo: number | null = null;
+  if (outgoing?.status === 'pending') {
+    countdownTo = outgoing.expiresAt;
+  }
+  const left = useCountdown(countdownTo, expireOutgoing);
 
   if (!outgoing) {
     return <Screen>{null}</Screen>;

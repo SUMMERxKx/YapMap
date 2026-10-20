@@ -25,8 +25,16 @@ const LINKS = {
 
 export default function Profile() {
   const { colors, radius, spacing } = useTheme();
-  const profile = useStore((s) => s.profile);
-  const blockedCount = useStore((s) => s.blockedIds.length);
+  const profile = useStore((state) => state.profile);
+  const blockedCount = useStore((state) => state.blockedIds.length);
+
+  // The row shows how many people are blocked, and nothing when there are none.
+  let blockedDetail: string | undefined;
+  if (blockedCount > 0) {
+    blockedDetail = String(blockedCount);
+  }
+
+  const showVerified = FEATURES.selfieVerification && profile?.verified === true;
 
   const confirmDelete = () =>
     Alert.alert(
@@ -48,15 +56,16 @@ export default function Profile() {
         accessibilityRole="button"
         accessibilityLabel={`${profile?.firstName} ${profile?.lastName}. Edit profile`}
         onPress={() => router.push('/edit-profile')}
-        style={({ pressed }) => [
-          styles.card,
-          {
-            backgroundColor: pressed ? colors.surfaceMuted : colors.surface,
-            borderColor: colors.border,
-            borderRadius: radius.lg,
-            padding: spacing.lg,
-          },
-        ]}>
+        style={({ pressed }) => {
+          let backgroundColor = colors.surface;
+          if (pressed) {
+            backgroundColor = colors.surfaceMuted;
+          }
+          return [
+            styles.card,
+            { backgroundColor, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg },
+          ];
+        }}>
         <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={64} />
         <View style={{ flex: 1 }}>
           <AppText variant="bodyStrong">
@@ -65,11 +74,11 @@ export default function Profile() {
           <AppText variant="caption" color="textSecondary" numberOfLines={2}>
             {profile?.intro}
           </AppText>
-          {FEATURES.selfieVerification && profile?.verified ? (
+          {showVerified && (
             <View style={{ marginTop: 4 }}>
               <VerifiedBadge align="flex-start" />
             </View>
-          ) : null}
+          )}
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
       </Pressable>
@@ -77,7 +86,7 @@ export default function Profile() {
       <ListGroup>
         <ListRow
           label="Blocked people"
-          detail={blockedCount ? String(blockedCount) : undefined}
+          detail={blockedDetail}
           onPress={() => router.push('/blocked')}
         />
         <ListRow label="Notification settings" onPress={() => Linking.openSettings()} last />

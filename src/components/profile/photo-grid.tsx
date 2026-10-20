@@ -6,7 +6,6 @@ import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import { PHOTO_RANGE } from '@/data/constants';
 import { useTheme } from '@/theme';
 
-
 type Props = { photos: string[]; onChange: (photos: string[]) => void };
 
 /** Grid of photo slots: the first few are required, the rest optional. */
@@ -22,62 +21,92 @@ export function PhotoGrid({ photos, onChange }: Props) {
       selectionLimit: remaining,
       quality: 0.8,
     });
-    if (!result.canceled) {
-      onChange([...photos, ...result.assets.map((a) => a.uri)].slice(0, PHOTO_RANGE.max));
-    }
+    if (result.canceled) return;
+    const pickedUris = result.assets.map((asset) => asset.uri);
+    const allPhotos = [...photos, ...pickedUris];
+    onChange(allPhotos.slice(0, PHOTO_RANGE.max));
   };
 
   const replace = async (index: number) => {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
-    if (!result.canceled && result.assets[0]) {
-      onChange(photos.map((p, i) => (i === index ? result.assets[0]!.uri : p)));
-    }
+    if (result.canceled) return;
+    const picked = result.assets[0];
+    if (!picked) return;
+    const updated = [...photos];
+    updated[index] = picked.uri;
+    onChange(updated);
+  };
+
+  const remove = (index: number) => {
+    onChange(photos.filter((_, photoIndex) => photoIndex !== index));
   };
 
   const edit = (index: number) =>
     Alert.alert('Photo', undefined, [
       { text: 'Replace', onPress: () => replace(index) },
-      { text: 'Remove', style: 'destructive', onPress: () => onChange(photos.filter((_, i) => i !== index)) },
+      { text: 'Remove', style: 'destructive', onPress: () => remove(index) },
       { text: 'Cancel', style: 'cancel' },
     ]);
 
-  return (
-    <View style={styles.grid}>
-      {Array.from({ length: PHOTO_RANGE.max }).map((_, i) => {
-        const uri = photos[i];
-        const required = i < PHOTO_RANGE.min;
-        return (
-          <Pressable
-            key={i}
-            accessibilityRole="button"
-            accessibilityLabel={uri ? `Photo ${i + 1}. Replace or remove` : `Add photo ${i + 1}${required ? ', required' : ''}`}
-            onPress={() => (uri ? edit(i) : addPhotos())}
-            style={[
-              styles.slot,
-              {
-                borderRadius: radius.lg,
-                backgroundColor: colors.surfaceMuted,
-                borderColor: uri ? 'transparent' : required ? colors.inputBorder : colors.border,
-                borderStyle: uri ? 'solid' : 'dashed',
-              },
-            ]}>
-            {uri ? (
-              <>
-                <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-                <View style={[styles.badge, { backgroundColor: colors.surface }]}>
-                  <Ionicons name="ellipsis-horizontal" size={14} color={colors.textPrimary} />
-                </View>
-              </>
-            ) : (
-              <>
-                <Ionicons name="add" size={28} color={colors.textSecondary} />
-              </>
-            )}
-          </Pressable>
-        );
-      })}
-    </View>
-  );
+  const renderSlot = (index: number) => {
+    const uri = photos[index];
+    const required = index < PHOTO_RANGE.min;
+
+    if (uri) {
+      return (
+        <Pressable
+          key={index}
+          accessibilityRole="button"
+          accessibilityLabel={`Photo ${index + 1}. Replace or remove`}
+          onPress={() => edit(index)}
+          style={[
+            styles.slot,
+            {
+              borderRadius: radius.lg,
+              backgroundColor: colors.surfaceMuted,
+              borderColor: 'transparent',
+              borderStyle: 'solid',
+            },
+          ]}>
+          <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+          <View style={[styles.badge, { backgroundColor: colors.surface }]}>
+            <Ionicons name="ellipsis-horizontal" size={14} color={colors.textPrimary} />
+          </View>
+        </Pressable>
+      );
+    }
+
+    // An empty slot: required slots get a stronger dashed outline.
+    let accessibilityLabel = `Add photo ${index + 1}`;
+    let borderColor = colors.border;
+    if (required) {
+      accessibilityLabel = `Add photo ${index + 1}, required`;
+      borderColor = colors.inputBorder;
+    }
+
+    return (
+      <Pressable
+        key={index}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+        onPress={() => addPhotos()}
+        style={[
+          styles.slot,
+          {
+            borderRadius: radius.lg,
+            backgroundColor: colors.surfaceMuted,
+            borderColor,
+            borderStyle: 'dashed',
+          },
+        ]}>
+        <Ionicons name="add" size={28} color={colors.textSecondary} />
+      </Pressable>
+    );
+  };
+
+  const slotIndexes = Array.from({ length: PHOTO_RANGE.max }, (_, index) => index);
+
+  return <View style={styles.grid}>{slotIndexes.map((index) => renderSlot(index))}</View>;
 }
 
 const styles = StyleSheet.create({

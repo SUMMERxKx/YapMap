@@ -15,6 +15,12 @@ type Props = {
 /** A labelled on/off switch. The whole row is tappable. */
 export function ToggleRow({ label, description, value, onChange, disabled }: Props) {
   const { colors, radius, spacing } = useTheme();
+
+  let opacity = 1;
+  if (disabled) {
+    opacity = 0.5;
+  }
+
   return (
     <Pressable
       accessibilityRole="switch"
@@ -31,16 +37,16 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
           borderRadius: radius.lg,
           backgroundColor: colors.surface,
           borderColor: colors.border,
-          opacity: disabled ? 0.5 : 1,
+          opacity,
         },
       ]}>
       <View style={{ flex: 1, gap: 2 }}>
         <AppText variant="bodyStrong">{label}</AppText>
-        {description ? (
+        {Boolean(description) && (
           <AppText variant="caption" color="textSecondary">
             {description}
           </AppText>
-        ) : null}
+        )}
       </View>
       <Switch
         value={value}

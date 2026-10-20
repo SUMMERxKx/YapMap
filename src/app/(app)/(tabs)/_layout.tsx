@@ -1,7 +1,27 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router/js-tabs';
+import type { ComponentProps } from 'react';
+import type { ColorValue } from 'react-native';
 
 import { useTheme } from '@/theme';
+
+type IconName = ComponentProps<typeof Ionicons>['name'];
+
+type TabIconProps = {
+  focused: boolean;
+  color: ColorValue;
+  size: number;
+  filled: IconName; // shown on the selected tab
+  outline: IconName; // shown on the other tabs
+};
+
+function TabIcon({ focused, color, size, filled, outline }: TabIconProps) {
+  let name = outline;
+  if (focused) {
+    name = filled;
+  }
+  return <Ionicons name={name} size={size} color={color} />;
+}
 
 // Go live (the button), Nearby (the list), Map (events) and Profile.
 export default function TabsLayout() {
@@ -20,7 +40,7 @@ export default function TabsLayout() {
         options={{
           title: 'Go live',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'radio' : 'radio-outline'} size={26} color={color} />
+            <TabIcon focused={focused} color={color} size={26} filled="radio" outline="radio-outline" />
           ),
         }}
       />
@@ -29,7 +49,7 @@ export default function TabsLayout() {
         options={{
           title: 'Nearby',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={24} color={color} />
+            <TabIcon focused={focused} color={color} size={24} filled="people" outline="people-outline" />
           ),
         }}
       />
@@ -38,7 +58,7 @@ export default function TabsLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'map' : 'map-outline'} size={24} color={color} />
+            <TabIcon focused={focused} color={color} size={24} filled="map" outline="map-outline" />
           ),
         }}
       />
@@ -47,7 +67,13 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'person-circle' : 'person-circle-outline'} size={26} color={color} />
+            <TabIcon
+              focused={focused}
+              color={color}
+              size={26}
+              filled="person-circle"
+              outline="person-circle-outline"
+            />
           ),
         }}
       />

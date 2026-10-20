@@ -13,6 +13,7 @@ import { useTheme } from '@/theme';
 
 export default function Welcome() {
   const { colors, spacing } = useTheme();
+  const showAppleSignIn = FEATURES.socialSignIn && Platform.OS === 'ios';
 
   return (
     <Screen
@@ -21,22 +22,22 @@ export default function Welcome() {
         <>
           {/* Sign in with Apple is iOS-only (expo-apple-authentication). Swap in its official
               AppleAuthenticationButton when Supabase Auth is connected. */}
-          {FEATURES.socialSignIn && Platform.OS === 'ios' ? (
+          {showAppleSignIn && (
             <Button
               label="Continue with Apple"
               icon="logo-apple"
               variant="inverse"
               onPress={() => signInWithProvider('apple')}
             />
-          ) : null}
-          {FEATURES.socialSignIn ? (
+          )}
+          {FEATURES.socialSignIn && (
             <Button
               label="Continue with Google"
               icon="logo-google"
               variant="secondary"
               onPress={() => signInWithProvider('google')}
             />
-          ) : null}
+          )}
           <Button label="Continue with email" icon="mail-outline" onPress={() => router.push('/email')} />
           <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.sm }}>
             By continuing you agree to the Community Rules and Privacy Policy.

@@ -16,7 +16,7 @@ const SHOW_FOR_MS = 8000;
 
 /** "Someone is near you" prompt that slides in at the top while you're live. */
 export function NearbyToast() {
-  const alert = useStore((s) => s.nearbyAlert);
+  const alert = useStore((state) => state.nearbyAlert);
   const { colors, radius, spacing, elevation } = useTheme();
   const insets = useSafeAreaInsets();
 
@@ -28,12 +28,25 @@ export function NearbyToast() {
 
   if (!alert) return null;
 
-  const isPerson = alert.kind === 'person';
-  const title = isPerson
-    ? `${displayName(alert.person)} is near you`
-    : `${alert.count} people near you are up for a chat`;
-  const body = isPerson ? 'They’re live and up for a chat.' : 'See who’s around and say hi.';
-  const action = isPerson ? 'Say hi' : 'See them';
+  let title;
+  let body;
+  let action;
+  let picture;
+  if (alert.kind === 'person') {
+    title = `${displayName(alert.person)} is near you`;
+    body = 'They’re live and up for a chat.';
+    action = 'Say hi';
+    picture = <Avatar name={alert.person.firstName} photoUri={alert.person.photoUri} size={44} />;
+  } else {
+    title = `${alert.count} people near you are up for a chat`;
+    body = 'See who’s around and say hi.';
+    action = 'See them';
+    picture = (
+      <View style={[styles.icon, { backgroundColor: colors.greenSoft }]}>
+        <Ionicons name="people" size={22} color={colors.greenText} />
+      </View>
+    );
+  }
 
   const open = () => {
     dismissNearbyAlert();
@@ -58,13 +71,7 @@ export function NearbyToast() {
           elevation.floating,
           { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
         ]}>
-        {isPerson ? (
-          <Avatar name={alert.person.firstName} photoUri={alert.person.photoUri} size={44} />
-        ) : (
-          <View style={[styles.icon, { backgroundColor: colors.greenSoft }]}>
-            <Ionicons name="people" size={22} color={colors.greenText} />
-          </View>
-        )}
+        {picture}
         <View style={{ flex: 1 }}>
           <AppText variant="bodyStrong" numberOfLines={1}>
             {title}

@@ -17,29 +17,41 @@ const RINGS = [1, 0.82, 0.64, 0.46, 0.3];
 function Glow({ color, size, opacity, style }: { color: string; size: number; opacity: number; style: ViewStyle }) {
   return (
     <View style={[styles.glow, style, { width: size, height: size }]}>
-      {RINGS.map((scale) => (
-        <View
-          key={scale}
-          style={{
-            position: 'absolute',
-            width: size * scale,
-            height: size * scale,
-            borderRadius: (size * scale) / 2,
-            backgroundColor: color,
-            opacity,
-          }}
-        />
-      ))}
+      {RINGS.map((scale) => {
+        const ringSize = size * scale;
+        return (
+          <View
+            key={scale}
+            style={{
+              position: 'absolute',
+              width: ringSize,
+              height: ringSize,
+              borderRadius: ringSize / 2,
+              backgroundColor: color,
+              opacity,
+            }}
+          />
+        );
+      })}
     </View>
   );
 }
 
 export function GlassBackdrop({ tint = 'green' }: Props) {
   const { scheme, colors } = useTheme();
-  const accent = tint === 'live' ? colors.destructive : colors.green;
-  const warm = scheme === 'dark' ? '#B45309' : '#F59E0B'; // amber, the café counterpart to the green
+  let accent = colors.green;
+  if (tint === 'live') {
+    accent = colors.destructive;
+  }
+
+  // Amber, the café counterpart to the green.
+  let warm = '#F59E0B';
   // Per-ring opacity; five rings overlap, so the centre ends up around four times this.
-  const strength = scheme === 'dark' ? 0.035 : 0.04;
+  let strength = 0.04;
+  if (scheme === 'dark') {
+    warm = '#B45309';
+    strength = 0.035;
+  }
 
   return (
     <View pointerEvents="none" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={StyleSheet.absoluteFill}>

@@ -41,50 +41,137 @@ export function ChatThread({
     setText('');
   };
 
+  let keyboardBehavior: 'padding' | undefined;
+  if (Platform.OS === 'ios') {
+    keyboardBehavior = 'padding';
+  }
+
+  // Inverted so the newest message sits at the bottom and the list starts there.
+  const newestFirst = [...messages].reverse();
+
+  let footer = null;
+  if (header) {
+    footer = <View style={{ marginBottom: spacing.md }}>{header}</View>;
+  }
+
+  const renderMessage = ({ item, index }: { item: Message; index: number }) => {
+    const mine = item.senderId === 'me';
+    // In the inverted list the previous message in time is at index + 1.
+    const older = newestFirst[index + 1];
+    const sameSenderAsOlder = older?.senderId === item.senderId;
+    const showName = Boolean(showSenderNames) && !mine && !sameSenderAsOlder;
+
+    let senderLabel = item.senderName;
+    let onLongPress: (() => void) | undefined;
+    let rowAlign: 'flex-start' | 'flex-end' = 'flex-start';
+    let bubbleColor = colors.surface;
+    let bubbleBorderColor = colors.border;
+    let bottomRightRadius: number = radius.lg;
+    let bottomLeftRadius: number = 6;
+    let textColor = colors.textPrimary;
+
+    if (mine) {
+      senderLabel = 'You';
+      rowAlign = 'flex-end';
+      bubbleColor = colors.green;
+      bubbleBorderColor = colors.green;
+      bottomRightRadius = 6;
+      bottomLeftRadius = radius.lg;
+      textColor = colors.onGreen;
+    } else if (onLongPressMessage) {
+      onLongPress = () => onLongPressMessage(item);
+    }
+
+    return (
+      <Pressable
+        accessibilityRole="text"
+        accessibilityLabel={`${senderLabel}: ${item.text}`}
+        onLongPress={onLongPress}
+        style={[styles.row, { justifyContent: rowAlign }]}>
+        <View style={{ maxWidth: '80%', gap: 2 }}>
+          {showName && (
+            <AppText variant="caption" color="textSecondary" style={{ marginLeft: 4 }}>
+              {item.senderName}
+            </AppText>
+          )}
+          <View
+            style={[
+              styles.bubble,
+              {
+                backgroundColor: bubbleColor,
+                borderColor: bubbleBorderColor,
+                borderRadius: radius.lg,
+                borderBottomRightRadius: bottomRightRadius,
+                borderBottomLeftRadius: bottomLeftRadius,
+              },
+            ]}>
+            <AppText style={{ color: textColor }}>{item.text}</AppText>
+          </View>
+        </View>
+      </Pressable>
+    );
+  };
+
+  const canSend = text.trim() !== '';
+  let sendBackground = colors.surfaceMuted;
+  let sendIconColor = colors.textSecondary;
+  if (canSend) {
+    sendBackground = colors.green;
+    sendIconColor = colors.onGreen;
+  }
+
+  let composerContent;
+  if (disabled) {
+    composerContent = (
+      <AppText color="textSecondary" align="center" style={{ flex: 1, paddingVertical: spacing.md }}>
+        {disabledText}
+      </AppText>
+    );
+  } else {
+    composerContent = (
+      <>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
+          accessibilityLabel={placeholder}
+          multiline
+          maxLength={LIMITS.message}
+          style={[
+            type.body,
+            styles.input,
+            {
+              color: colors.textPrimary,
+              backgroundColor: colors.background,
+              borderColor: colors.inputBorder,
+              borderRadius: radius.xl,
+            },
+          ]}
+        />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Send"
+          accessibilityState={{ disabled: !canSend }}
+          disabled={!canSend}
+          onPress={send}
+          style={[styles.send, { backgroundColor: sendBackground }]}>
+          <Ionicons name="arrow-up" size={22} color={sendIconColor} />
+        </Pressable>
+      </>
+    );
+  }
+
   return (
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior={keyboardBehavior}>
       <FlatList
         style={styles.flex}
-        // Inverted so the newest message sits at the bottom and the list starts there.
         inverted
-        data={[...messages].reverse()}
-        keyExtractor={(m) => m.id}
+        data={newestFirst}
+        keyExtractor={(message) => message.id}
         contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
-        ListFooterComponent={header ? <View style={{ marginBottom: spacing.md }}>{header}</View> : null}
-        renderItem={({ item, index }) => {
-          const mine = item.senderId === 'me';
-          // In the inverted list the previous message in time is at index + 1.
-          const older = [...messages].reverse()[index + 1];
-          const showName = showSenderNames && !mine && older?.senderId !== item.senderId;
-          return (
-            <Pressable
-              accessibilityRole="text"
-              accessibilityLabel={`${mine ? 'You' : item.senderName}: ${item.text}`}
-              onLongPress={!mine && onLongPressMessage ? () => onLongPressMessage(item) : undefined}
-              style={[styles.row, { justifyContent: mine ? 'flex-end' : 'flex-start' }]}>
-              <View style={{ maxWidth: '80%', gap: 2 }}>
-                {showName ? (
-                  <AppText variant="caption" color="textSecondary" style={{ marginLeft: 4 }}>
-                    {item.senderName}
-                  </AppText>
-                ) : null}
-                <View
-                  style={[
-                    styles.bubble,
-                    {
-                      backgroundColor: mine ? colors.green : colors.surface,
-                      borderColor: mine ? colors.green : colors.border,
-                      borderRadius: radius.lg,
-                      borderBottomRightRadius: mine ? 6 : radius.lg,
-                      borderBottomLeftRadius: mine ? radius.lg : 6,
-                    },
-                  ]}>
-                  <AppText style={{ color: mine ? colors.onGreen : colors.textPrimary }}>{item.text}</AppText>
-                </View>
-              </View>
-            </Pressable>
-          );
-        }}
+        ListFooterComponent={footer}
+        renderItem={renderMessage}
       />
 
       <View
@@ -98,42 +185,7 @@ export function ChatThread({
             gap: spacing.sm,
           },
         ]}>
-        {disabled ? (
-          <AppText color="textSecondary" align="center" style={{ flex: 1, paddingVertical: spacing.md }}>
-            {disabledText}
-          </AppText>
-        ) : (
-          <>
-            <TextInput
-              value={text}
-              onChangeText={setText}
-              placeholder={placeholder}
-              placeholderTextColor={colors.textSecondary}
-              accessibilityLabel={placeholder}
-              multiline
-              maxLength={LIMITS.message}
-              style={[
-                type.body,
-                styles.input,
-                {
-                  color: colors.textPrimary,
-                  backgroundColor: colors.background,
-                  borderColor: colors.inputBorder,
-                  borderRadius: radius.xl,
-                },
-              ]}
-            />
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Send"
-              accessibilityState={{ disabled: !text.trim() }}
-              disabled={!text.trim()}
-              onPress={send}
-              style={[styles.send, { backgroundColor: text.trim() ? colors.green : colors.surfaceMuted }]}>
-              <Ionicons name="arrow-up" size={22} color={text.trim() ? colors.onGreen : colors.textSecondary} />
-            </Pressable>
-          </>
-        )}
+        {composerContent}
       </View>
     </KeyboardAvoidingView>
   );

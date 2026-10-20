@@ -14,13 +14,38 @@ import { useTheme } from '@/theme';
 
 export default function RootLayout() {
   const { scheme, colors } = useTheme();
-  const booted = useStore((s) => s.booted);
-  const signedIn = useStore((s) => s.session !== null);
-  const hasProfile = useStore((s) => s.profile !== null);
+  const booted = useStore((state) => state.booted);
+  const signedIn = useStore((state) => state.session !== null);
+  const hasProfile = useStore((state) => state.profile !== null);
+  const profileVerified = useStore((state) => state.profile?.verified === true);
   // With verification switched off, everyone with a profile counts as verified.
-  const verified = useStore((s) => s.profile?.verified === true) || !FEATURES.selfieVerification;
+  const verified = profileVerified || !FEATURES.selfieVerification;
 
-  const navTheme = scheme === 'dark' ? DarkTheme : DefaultTheme;
+  // Which stack the person may see right now.
+  const showSignIn = !signedIn;
+  const showProfileSetup = signedIn && !hasProfile;
+  const showSelfieCheck = signedIn && hasProfile && !verified;
+  const showApp = signedIn && hasProfile && verified;
+
+  let navTheme = DefaultTheme;
+  let statusBarStyle: 'light' | 'dark' = 'dark';
+  if (scheme === 'dark') {
+    navTheme = DarkTheme;
+    statusBarStyle = 'light';
+  }
+
+  // The navigation theme, with our own colours on top.
+  const appNavTheme = {
+    ...navTheme,
+    colors: {
+      ...navTheme.colors,
+      background: colors.background,
+      card: colors.surface,
+      text: colors.textPrimary,
+      border: colors.border,
+      primary: colors.green,
+    },
+  };
 
   // Restore the stored session and profile once, before showing any screen.
   useEffect(() => {
@@ -33,37 +58,26 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <ThemeProvider
-        value={{
-          ...navTheme,
-          colors: {
-            ...navTheme.colors,
-            background: colors.background,
-            card: colors.surface,
-            text: colors.textPrimary,
-            border: colors.border,
-            primary: colors.green,
-          },
-        }}>
+      <ThemeProvider value={appNavTheme}>
         <View style={{ flex: 1, backgroundColor: colors.background }}>
           <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-            <Stack.Protected guard={!signedIn}>
+            <Stack.Protected guard={showSignIn}>
               <Stack.Screen name="(auth)" />
             </Stack.Protected>
             {/* Exactly one of these is allowed at a time, so the app always lands on the right step. */}
-            <Stack.Protected guard={signedIn && !hasProfile}>
+            <Stack.Protected guard={showProfileSetup}>
               <Stack.Screen name="profile-setup" />
             </Stack.Protected>
-            <Stack.Protected guard={signedIn && hasProfile && !verified}>
+            <Stack.Protected guard={showSelfieCheck}>
               <Stack.Screen name="verify-face" />
             </Stack.Protected>
-            <Stack.Protected guard={signedIn && hasProfile && verified}>
+            <Stack.Protected guard={showApp}>
               <Stack.Screen name="(app)" />
             </Stack.Protected>
           </Stack>
           <OfflineBanner />
         </View>
-        <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
+        <StatusBar style={statusBarStyle} />
       </ThemeProvider>
     </SafeAreaProvider>
   );

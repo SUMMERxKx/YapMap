@@ -14,14 +14,15 @@ export default function InterestsStep() {
   const picked = draft.interests;
   const atMax = picked.length >= INTEREST_RANGE.max;
 
-  const toggle = (interest: string) =>
-    update({
-      interests: picked.includes(interest)
-        ? picked.filter((i) => i !== interest)
-        : atMax
-          ? picked
-          : [...picked, interest],
-    });
+  // Tapping a picked interest removes it; tapping a new one adds it, up to the maximum.
+  const toggle = (interest: string) => {
+    if (picked.includes(interest)) {
+      update({ interests: picked.filter((item) => item !== interest) });
+      return;
+    }
+    if (atMax) return;
+    update({ interests: [...picked, interest] });
+  };
 
   return (
     <SetupStep

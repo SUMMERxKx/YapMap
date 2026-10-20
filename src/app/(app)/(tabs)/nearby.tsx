@@ -17,8 +17,11 @@ import { clearOutgoing, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Nearby() {
-  const live = useStore((s) => s.availability !== null);
-  return live ? <NearbyList /> : <NotLive />;
+  const live = useStore((state) => state.availability !== null);
+  if (live) {
+    return <NearbyList />;
+  }
+  return <NotLive />;
 }
 
 /** You only see people who can see you too, so the list needs you to be live. */
@@ -45,15 +48,38 @@ function NotLive() {
 
 function NearbyList() {
   const { colors, spacing } = useTheme();
-  const expiresAt = useStore((s) => s.availability?.expiresAt);
+  const expiresAt = useStore((state) => state.availability?.expiresAt);
   const left = useCountdown(expiresAt);
   const { people, refreshing, refresh } = useNearby(true);
+
+  // Shown when the list is empty: placeholders while the first load runs, then a friendly note.
+  let emptyContent;
+  if (people === null) {
+    emptyContent = (
+      <View style={{ gap: spacing.md }}>
+        <PersonCardSkeleton />
+        <PersonCardSkeleton />
+      </View>
+    );
+  } else {
+    emptyContent = (
+      <View style={[styles.empty, { gap: spacing.sm }]}>
+        <Ionicons name="cafe-outline" size={40} color={colors.textSecondary} />
+        <AppText variant="bodyStrong" align="center">
+          Nobody else is green here yet
+        </AppText>
+        <AppText color="textSecondary" align="center">
+          Stay live and we'll let you know if someone says hi.
+        </AppText>
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <FlatList
         data={people ?? []}
-        keyExtractor={(p) => p.id}
+        keyExtractor={(person) => person.id}
         contentContainerStyle={{ padding: spacing.xxl, gap: spacing.md, flexGrow: 1 }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.green} />}
         ListHeaderComponent={
@@ -76,24 +102,7 @@ function NearbyList() {
         renderItem={({ item }) => (
           <PersonCard person={item} onPress={() => router.push({ pathname: '/person/[id]', params: { id: item.id } })} />
         )}
-        ListEmptyComponent={
-          people === null ? (
-            <View style={{ gap: spacing.md }}>
-              <PersonCardSkeleton />
-              <PersonCardSkeleton />
-            </View>
-          ) : (
-            <View style={[styles.empty, { gap: spacing.sm }]}>
-              <Ionicons name="cafe-outline" size={40} color={colors.textSecondary} />
-              <AppText variant="bodyStrong" align="center">
-                Nobody else is green here yet
-              </AppText>
-              <AppText color="textSecondary" align="center">
-                Stay live and we'll let you know if someone says hi.
-              </AppText>
-            </View>
-          )
-        }
+        ListEmptyComponent={emptyContent}
       />
     </SafeAreaView>
   );
@@ -102,8 +111,13 @@ function NearbyList() {
 /** Shows a request in progress after the user leaves the waiting screen. */
 function PendingRequestBar() {
   const { colors, radius, spacing } = useTheme();
-  const outgoing = useStore((s) => s.outgoing);
-  const left = useCountdown(outgoing?.status === 'pending' ? outgoing.expiresAt : null);
+  const outgoing = useStore((state) => state.outgoing);
+  // Only a pending request has a countdown.
+  let countdownTo: number | null = null;
+  if (outgoing?.status === 'pending') {
+    countdownTo = outgoing.expiresAt;
+  }
+  const left = useCountdown(countdownTo);
   if (!outgoing || outgoing.status === 'accepted') return null;
 
   if (outgoing.status === 'not-this-time') {

@@ -14,6 +14,12 @@ import { useTheme } from '@/theme';
 export default function GenderStep() {
   const { colors, radius } = useTheme();
   const { draft, update } = useProfileDraft();
+  const preferNotToSay = draft.gender === 'prefer-not';
+
+  let showGenderDescription = 'Turn this off to keep it private. You can change it later.';
+  if (preferNotToSay) {
+    showGenderDescription = 'Nothing is shown when you choose "Prefer not to say".';
+  }
 
   return (
     <SetupStep
@@ -23,46 +29,54 @@ export default function GenderStep() {
       canContinue={draft.gender !== null}
       onNext={() => router.push('/profile-setup/about')}>
       <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={{ gap: 10 }}>
-        {GENDERS.map((g) => {
-          const selected = draft.gender === g.value;
+        {GENDERS.map((option) => {
+          const selected = draft.gender === option.value;
+
+          let backgroundColor = colors.surface;
+          let borderColor = colors.border;
+          let borderWidth = 1;
+          let labelColor: 'greenText' | 'textPrimary' = 'textPrimary';
+          let radioIcon: 'radio-button-on' | 'radio-button-off' = 'radio-button-off';
+          let radioColor = colors.inputBorder;
+          if (selected) {
+            backgroundColor = colors.greenSoft;
+            borderColor = colors.green;
+            borderWidth = 2;
+            labelColor = 'greenText';
+            radioIcon = 'radio-button-on';
+            radioColor = colors.greenText;
+          }
+
           return (
             <Pressable
-              key={g.value}
+              key={option.value}
               accessibilityRole="radio"
               accessibilityState={{ selected }}
-              accessibilityLabel={g.label}
-              onPress={() => update({ gender: g.value })}
+              accessibilityLabel={option.label}
+              onPress={() => update({ gender: option.value })}
               style={[
                 styles.option,
                 {
                   borderRadius: radius.lg,
-                  backgroundColor: selected ? colors.greenSoft : colors.surface,
-                  borderColor: selected ? colors.green : colors.border,
-                  borderWidth: selected ? 2 : 1,
+                  backgroundColor,
+                  borderColor,
+                  borderWidth,
                 },
               ]}>
-              <AppText variant="bodyStrong" style={{ flex: 1 }} color={selected ? 'greenText' : 'textPrimary'}>
-                {g.label}
+              <AppText variant="bodyStrong" style={{ flex: 1 }} color={labelColor}>
+                {option.label}
               </AppText>
-              <Ionicons
-                name={selected ? 'radio-button-on' : 'radio-button-off'}
-                size={22}
-                color={selected ? colors.greenText : colors.inputBorder}
-              />
+              <Ionicons name={radioIcon} size={22} color={radioColor} />
             </Pressable>
           );
         })}
       </View>
       <ToggleRow
         label="Show my gender on my profile"
-        description={
-          draft.gender === 'prefer-not'
-            ? 'Nothing is shown when you choose "Prefer not to say".'
-            : 'Turn this off to keep it private. You can change it later.'
-        }
-        value={draft.showGender && draft.gender !== 'prefer-not'}
+        description={showGenderDescription}
+        value={draft.showGender && !preferNotToSay}
         onChange={(showGender) => update({ showGender })}
-        disabled={draft.gender === 'prefer-not'}
+        disabled={preferNotToSay}
       />
     </SetupStep>
   );
