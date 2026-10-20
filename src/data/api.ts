@@ -162,8 +162,8 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
     photoPaths.push(await ensureUploaded(values.photos[i]!, `photo${i}`, userId));
   }
 
-  const { error } = await supabase.from('profiles').upsert({
-    id: userId,
+  // Only the columns a client may change after the row exists.
+  const fields = {
     first_name: values.firstName,
     last_name: values.lastName,
     gender: values.gender,
@@ -172,9 +172,21 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
     interests: values.interests,
     photo_path: photoPath,
     photo_paths: photoPaths,
-    is_adult: values.isAdult,
-  });
-  if (error) throw error;
+  };
+
+  // Not an upsert: an upsert's ON CONFLICT clause also sets `id` and `is_adult`, and the
+  // database only lets clients update the columns in `fields`, so it is always refused.
+  // Insert the row the first time, then update just the editable columns after that.
+  const existing = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
+  if (existing.error) throw existing.error;
+
+  if (existing.data) {
+    const { error } = await supabase.from('profiles').update(fields).eq('id', userId);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('profiles').insert({ id: userId, ...fields, is_adult: values.isAdult });
+    if (error) throw error;
+  }
 
   const profile = await fetchMyProfile();
   if (!profile) throw new Error('Profile failed to save.');
