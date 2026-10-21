@@ -71,7 +71,7 @@ export type ChatSession = {
 /** An event someone put on the map. Its location is the place the host chose, never anyone's live position. */
 export type MapEvent = {
   id: string;
-  emoji: string; // the event's face on the map pin
+  emoji: string; // the event's category value; see EVENT_CATEGORIES for its icon and name
   title: string;
   description: string;
   latitude: number;

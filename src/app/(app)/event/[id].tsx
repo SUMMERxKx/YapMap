@@ -5,11 +5,13 @@ import { StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
+import { EventIcon } from '@/components/events/event-icon';
 import { Button, IconButton } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
+import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
 import { joinEvent, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -61,8 +63,12 @@ export default function EventDetails() {
       />
 
       <View style={{ gap: spacing.sm, marginBottom: spacing.sm }}>
-        <AppText variant="title" accessibilityRole="header">
-          {event.emoji} {event.title}
+        <EventIcon value={event.emoji} size={size.avatarLarge} />
+        <AppText
+          variant="title"
+          accessibilityRole="header"
+          accessibilityLabel={`${eventCategory(event.emoji).name}: ${event.title}`}>
+          {event.title}
         </AppText>
         <View style={[styles.meta, { gap: spacing.sm }]}>
           <Ionicons name="time-outline" size={size.iconMedium} color={colors.greenText} />

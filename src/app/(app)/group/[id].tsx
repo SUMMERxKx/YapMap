@@ -1,14 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { Alert, StyleSheet } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
+import { EventIcon } from '@/components/events/event-icon';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
+import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
 import { blockUser, enterEventChat, leaveEvent, leaveEventChat, sendGroupMessage, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -16,7 +18,7 @@ import { useTheme } from '@/theme';
 /** Group chat for a map event. Long-press someone's message to report or block them. */
 export default function GroupChat() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
+  const { colors, size, spacing } = useTheme();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const blockedIds = useStore((state) => state.blockedIds);
   const myId = useStore((state) => state.myId);
@@ -78,12 +80,21 @@ export default function GroupChat() {
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <ChatHeader onBack={() => router.back()} trailing={leaveButton}>
-        <AppText variant="bodyStrong" numberOfLines={1} accessibilityRole="header">
-          {event.emoji} {event.title}
-        </AppText>
-        <AppText variant="caption" color="textSecondary" numberOfLines={1}>
-          {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}
-        </AppText>
+        <View style={[styles.titleRow, { gap: spacing.sm }]}>
+          <EventIcon value={event.emoji} size={size.avatarSmall} />
+          <View style={styles.flex}>
+            <AppText
+              variant="bodyStrong"
+              numberOfLines={1}
+              accessibilityRole="header"
+              accessibilityLabel={`${eventCategory(event.emoji).name}: ${event.title}`}>
+              {event.title}
+            </AppText>
+            <AppText variant="caption" color="textSecondary" numberOfLines={1}>
+              {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}
+            </AppText>
+          </View>
+        </View>
       </ChatHeader>
 
       <ChatThread
@@ -102,4 +113,5 @@ export default function GroupChat() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  titleRow: { flexDirection: 'row', alignItems: 'center' },
 });
