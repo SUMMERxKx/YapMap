@@ -10,24 +10,19 @@ import { AppText } from '@/components/ui/app-text';
 type Props = {
   title: string;
   subtitle?: ReactNode;
-  align?: 'left' | 'center';
 };
 
-export function ScreenHeader({ title, subtitle, align = 'left' }: Props) {
+export function ScreenHeader({ title, subtitle }: Props) {
   const { spacing } = useTheme();
-  let alignItems: 'flex-start' | 'center' = 'flex-start';
-  if (align === 'center') {
-    alignItems = 'center';
-  }
 
   return (
     // The extra bottom margin separates the header from the screen's first block.
-    <View style={{ gap: spacing.sm, alignItems, marginBottom: spacing.sm }}>
-      <AppText variant="title" accessibilityRole="header" align={align}>
+    <View style={{ gap: spacing.sm, alignItems: 'flex-start', marginBottom: spacing.sm }}>
+      <AppText variant="title" accessibilityRole="header">
         {title}
       </AppText>
       {Boolean(subtitle) && (
-        <AppText color="textSecondary" align={align}>
+        <AppText color="textSecondary">
           {subtitle}
         </AppText>
       )}

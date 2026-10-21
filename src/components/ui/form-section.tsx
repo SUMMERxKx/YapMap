@@ -13,11 +13,10 @@ type Props = {
   required?: boolean;
   hint?: string;
   count?: string; // e.g. "2/5"
-  countLabel?: string; // what a screen reader says for the count
   children: ReactNode;
 };
 
-export function FormSection({ label, required, hint, count, countLabel, children }: Props) {
+export function FormSection({ label, required, hint, count, children }: Props) {
   const { spacing } = useTheme();
   return (
     <View style={{ gap: spacing.sm }}>
@@ -25,7 +24,7 @@ export function FormSection({ label, required, hint, count, countLabel, children
         <View style={styles.labelRow}>
           <FieldLabel label={label} required={required} />
           {Boolean(count) && (
-            <AppText variant="caption" color="textSecondary" accessibilityLabel={countLabel} style={styles.count}>
+            <AppText variant="caption" color="textSecondary" style={styles.count}>
               {count}
             </AppText>
           )}

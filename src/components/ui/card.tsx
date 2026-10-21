@@ -2,14 +2,13 @@
 // Pass onPress to make the whole card tappable (it darkens while pressed).
 
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type AccessibilityRole, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme';
 
 type Props = {
   children: ReactNode;
   onPress?: () => void;
-  accessibilityRole?: AccessibilityRole;
   accessibilityLabel?: string;
   accessibilityHint?: string;
   surface?: 'surface' | 'background'; // `background` stands out on a sheet
@@ -21,7 +20,6 @@ type Props = {
 export function Card({
   children,
   onPress,
-  accessibilityRole = 'button',
   accessibilityLabel,
   accessibilityHint,
   surface = 'surface',
@@ -62,7 +60,7 @@ export function Card({
 
   return (
     <Pressable
-      accessibilityRole={accessibilityRole}
+      accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       onPress={onPress}
