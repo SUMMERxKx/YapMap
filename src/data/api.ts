@@ -59,16 +59,24 @@ export async function setPassword(password: string) {
   if (error) throw new Error(friendlyAuthError(error));
 }
 
-// Forgot password: the emailed code signs the user in, then they choose a new password
-// with setPassword. Accounts made before passwords existed set their first one this way.
+// Forgot password: the emailed code signs the user in, so it is only used together with
+// the new password. Accounts made before passwords existed set their first one this way.
 export async function requestPasswordReset(email: string) {
   const { error } = await supabase.auth.resetPasswordForEmail(email);
   if (error) throw new Error(friendlyAuthError(error));
 }
 
-export async function verifyPasswordResetCode(email: string, code: string) {
+/** Use the emailed code and save the new password; leaves no session behind if either fails. */
+export async function resetPassword(email: string, code: string, password: string) {
   const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
   if (error) throw new Error(INVALID_CODE);
+  const { error: updateError } = await supabase.auth.updateUser({ password });
+  if (updateError) {
+    // Local only, so this works offline too: a kept recovery session would sign them in
+    // on the next launch without a password.
+    await supabase.auth.signOut({ scope: 'local' });
+    throw new Error(`${friendlyAuthError(updateError)} The code is used up, so request a new one.`);
+  }
 }
 
 /** The signed-in user, or null. */

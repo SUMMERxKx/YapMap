@@ -191,9 +191,9 @@ export async function signInWithPassword(email: string, password: string) {
   return result;
 }
 
-/** Forgot password, last step: the reset code already signed in, so save the password and go in. */
-export async function finishPasswordReset(password: string) {
-  await api.setPassword(password);
+/** Forgot password, last step: use the emailed code with the new password, then go in. */
+export async function finishPasswordReset(email: string, code: string, password: string) {
+  await api.resetPassword(email, code, password);
   await refreshAfterAuth();
 }
 

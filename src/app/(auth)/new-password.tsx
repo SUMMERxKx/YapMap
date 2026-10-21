@@ -1,10 +1,12 @@
-// Forgot password, last step: the reset code already signed the user in; choose the new
-// password, then the root layout moves on into the app.
+// Forgot password, last step: choose the new password. Saving uses the emailed code too,
+// then the root layout moves on into the app.
 
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
 import { Screen } from '@/components/ui/screen';
@@ -14,6 +16,7 @@ import { passwordProblem } from '@/lib/password-problem';
 import { finishPasswordReset } from '@/state/store';
 
 export default function NewPassword() {
+  const { email = '', code = '' } = useLocalSearchParams<{ email: string; code: string }>();
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +34,7 @@ export default function NewPassword() {
     setError(null);
     setSaving(true);
     try {
-      await finishPasswordReset(password);
+      await finishPasswordReset(email, code, password);
     } catch (error) {
       setError(errorMessage(error, 'Could not save your password. Try again.'));
     } finally {
@@ -43,6 +46,9 @@ export default function NewPassword() {
     <Screen
       scroll
       footer={<Button label="Save and sign in" onPress={save} loading={saving} disabled={!canSave} />}>
+      <View style={{ alignSelf: 'flex-start' }}>
+        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
+      </View>
       <AppText variant="title" accessibilityRole="header">
         Choose a new password
       </AppText>

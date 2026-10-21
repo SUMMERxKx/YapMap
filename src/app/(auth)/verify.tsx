@@ -39,8 +39,8 @@ export default function Verify() {
     setError(null);
     try {
       if (purpose === 'reset') {
-        await api.verifyPasswordResetCode(email, value);
-        router.replace('/new-password');
+        // The code is checked when the new password is saved, since using it signs them in.
+        router.push({ pathname: '/new-password', params: { email, code: value } });
       } else {
         await confirmSignUp(email, value); // the root layout then moves on to profile setup
       }
