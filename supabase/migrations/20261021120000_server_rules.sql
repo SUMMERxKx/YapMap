@@ -422,8 +422,9 @@ begin
 
   here := extensions.st_setsrid(extensions.st_makepoint(lng, lat), 4326)::extensions.geography;
 
+  -- a session that has run out (the cron job just hasn't removed it yet) isn't a live position
   select * into previous from public.availability where user_id = uid;
-  if found then
+  if found and previous.expires_at > now() then
     moved_m := extensions.st_distance(previous.location, here);
   end if;
 

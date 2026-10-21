@@ -594,10 +594,14 @@ export async function sayHi(to: NearbyPerson) {
   void watchAnswer(id, to);
 }
 
+let watchingId: string | null = null; // the request watchAnswer is waiting on, if any
+
 async function watchAnswer(id: string, to: NearbyPerson) {
   const outgoing = state.outgoing;
   if (!outgoing) return;
+  watchingId = id;
   const outcome = await api.waitForAnswer(id, outgoing.expiresAt);
+  if (watchingId === id) watchingId = null;
   if (state.outgoing?.id !== id) return; // cancelled meanwhile
   if (outcome === 'accepted') {
     set({ outgoing: { ...state.outgoing, status: 'accepted' } });
@@ -622,7 +626,10 @@ export async function cancelRequest() {
     await api.cancelRequest(outgoing.id);
   } catch (error) {
     // Still waiting on the server, so show it again and let the caller say so.
-    if (!state.outgoing) set({ outgoing });
+    if (!state.outgoing) {
+      set({ outgoing });
+      if (watchingId !== outgoing.id) void watchAnswer(outgoing.id, outgoing.to);
+    }
     throw error;
   }
 }
