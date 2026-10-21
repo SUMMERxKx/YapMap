@@ -50,7 +50,7 @@ export const palette = {
 export type ColorName = keyof typeof palette.light;
 export type Colors = Record<ColorName, string>;
 
-// One 4-point spacing scale for every gap, padding and margin.
+// One spacing scale in 4-point steps (plus a 2-point `xxs`) for every gap, padding and margin.
 export const spacing = {
   xxs: 2,
   xs: 4,
