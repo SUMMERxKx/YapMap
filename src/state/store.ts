@@ -324,6 +324,7 @@ async function catchUpOnce() {
     } catch {
       return; // still offline; the next catch-up tries again
     }
+    if (state.chat) await checkChatStillOn(state.chat.id);
   }
   await checkForMissedRequest();
   // Messages sent while away. A chat opened just now loads them when its channel joins.
@@ -429,6 +430,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
     keepsVerification = true;
   }
   set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
+  if (!previous) extrasLoaded = true;
   // A new account can be said hi to from now on, so start listening (sign-in only does
   // this for accounts that already had a profile).
   listenForRequests(stored.id);
