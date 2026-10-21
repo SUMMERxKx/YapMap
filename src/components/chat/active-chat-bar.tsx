@@ -15,10 +15,15 @@ export function ActiveChatBar() {
   const { colors, radius, size, spacing, elevation } = useTheme();
   if (!chat) return null;
 
+  let text = `Yapping with ${displayName(chat.other)}`;
+  if (chat.status === 'other-cancelled') {
+    text = `${displayName(chat.other)} ended the chat`;
+  }
+
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Yapping with ${displayName(chat.other)}. Open the chat`}
+      accessibilityLabel={`${text}. Open the chat`}
       onPress={() => router.push('/chat')}
       style={[
         styles.bar,
@@ -31,9 +36,14 @@ export function ActiveChatBar() {
           gap: spacing.md,
         },
       ]}>
-      <Avatar name={chat.other.firstName} photoUri={chat.other.photoUri} size={size.avatarSmall} />
+      <Avatar
+        name={chat.other.firstName}
+        photoUri={chat.other.photoUri}
+        thumbUri={chat.other.thumbUri}
+        size={size.avatarSmall}
+      />
       <AppText variant="bodyStrong" color="greenText" style={styles.flex} numberOfLines={1}>
-        Yapping with {displayName(chat.other)}
+        {text}
       </AppText>
       <AppText variant="caption" color="greenText">
         Open

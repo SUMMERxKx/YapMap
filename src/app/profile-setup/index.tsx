@@ -7,6 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { SwitchAccountButton } from '@/components/account/switch-account-button';
 import { GlassBackdrop } from '@/components/ui/glass-backdrop';
 import { Screen } from '@/components/ui/screen';
 import { useProfileDraft } from '@/state/profile-draft';
@@ -31,6 +32,7 @@ export default function SetupStart() {
             onPress={() => router.push('/profile-setup/name')}
             disabled={!draft.isAdult}
           />
+          <SwitchAccountButton />
         </>
       }>
       <View style={[styles.center, { gap: spacing.md, paddingHorizontal: spacing.sm }]}>

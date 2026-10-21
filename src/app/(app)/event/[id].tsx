@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
+import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
 import { joinEvent, useStore } from '@/state/store';
@@ -36,7 +37,13 @@ export default function EventDetails() {
 
   const join = async () => {
     setJoining(true);
-    await joinEvent(event.id);
+    try {
+      await joinEvent(event.id);
+    } catch (error) {
+      Alert.alert("Couldn't join", errorMessage(error, 'Try again.'));
+      setJoining(false);
+      return;
+    }
     setJoining(false);
     openChat();
   };

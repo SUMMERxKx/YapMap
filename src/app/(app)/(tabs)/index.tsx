@@ -17,6 +17,7 @@ export default function GoLive() {
   const { colors, layout, spacing } = useTheme();
   const availability = useStore((state) => state.availability);
   const expired = useStore((state) => state.availabilityExpired);
+  const offlinePending = useStore((state) => state.offlinePending);
   const left = useCountdown(availability?.expiresAt);
   const live = availability !== null;
 
@@ -45,19 +46,25 @@ export default function GoLive() {
       noteAction = 'Edit';
     }
     belowButton = (
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Your note: ${note || 'none'}. Edit note`}
-        onPress={() => router.push({ pathname: '/go-available', params: { mode: 'edit' } })}
-        hitSlop={8}
-        style={styles.noteRow}>
-        <AppText color="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {noteText}
+      <>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Your note: ${note || 'none'}. Edit note`}
+          onPress={() => router.push({ pathname: '/go-available', params: { mode: 'edit' } })}
+          hitSlop={8}
+          style={styles.noteRow}>
+          <AppText color="textSecondary" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {noteText}
+          </AppText>
+          <AppText variant="bodyStrong" color="greenText">
+            {noteAction}
+          </AppText>
+        </Pressable>
+        {/* Say-hi requests only arrive while Yap is open, so the screen stays on while live. */}
+        <AppText variant="caption" color="textSecondary" align="center" style={{ maxWidth: 280 }}>
+          Keep Yap open to get requests. Your screen stays on while you're live.
         </AppText>
-        <AppText variant="bodyStrong" color="greenText">
-          {noteAction}
-        </AppText>
-      </Pressable>
+      </>
     );
   } else {
     belowButton = (
@@ -79,6 +86,14 @@ export default function GoLive() {
       <View style={{ paddingHorizontal: layout.screenPadding }}>
         <ActiveChatBar />
       </View>
+
+      {offlinePending && !live && (
+        <View style={{ paddingHorizontal: layout.screenPadding }}>
+          <InfoNote icon="cloud-offline-outline" title="Almost offline.">
+            We'll finish taking you offline as soon as you're back online.
+          </InfoNote>
+        </View>
+      )}
 
       {expired && !live && (
         <View style={{ paddingHorizontal: layout.screenPadding }}>

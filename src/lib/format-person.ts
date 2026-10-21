@@ -34,7 +34,9 @@ export function asSeenByOthers(profile: Profile, note: string): NearbyPerson {
     intro: profile.intro,
     interests: profile.interests,
     photoUri: profile.photoUri,
+    thumbUri: null,
     photos: profile.photos,
+    photoPaths: [],
     note,
     verified: profile.verified,
   };

@@ -36,7 +36,14 @@ export function NearbyToast() {
     title = `${displayName(alert.person)} is near you`;
     body = 'They’re live and up for a chat.';
     action = 'Say hi';
-    picture = <Avatar name={alert.person.firstName} photoUri={alert.person.photoUri} size={size.avatarSmall} />;
+    picture = (
+      <Avatar
+        name={alert.person.firstName}
+        photoUri={alert.person.photoUri}
+        thumbUri={alert.person.thumbUri}
+        size={size.avatarSmall}
+      />
+    );
   } else {
     title = `${alert.count} people near you are up for a chat`;
     body = 'See who’s around and say hi.';

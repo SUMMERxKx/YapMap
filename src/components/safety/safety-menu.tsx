@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { errorMessage } from '@/lib/error-message';
 import { blockUser } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -35,7 +36,12 @@ export function SafetyMenu({ userId, firstName, onBlocked }: Props) {
         text: 'Block',
         style: 'destructive',
         onPress: async () => {
-          await blockUser(userId, firstName);
+          try {
+            await blockUser(userId, firstName);
+          } catch (error) {
+            Alert.alert(`Couldn't block ${firstName}`, errorMessage(error, 'Try again.'));
+            return;
+          }
           onBlocked?.();
         },
       },

@@ -126,6 +126,52 @@ function friendlyAuthError(error: { code?: string; message: string }) {
   return error.message;
 }
 
+// What the database functions say when they refuse (`raise exception '...'` in
+// supabase/migrations), as sentences for the screen.
+const SERVER_REFUSALS: Record<string, string> = {
+  'not signed in': 'Your session has ended. Sign in again.',
+  'cannot request yourself': "You can't say hi to yourself.",
+  'not available': "They're not available right now.",
+  'not nearby': "They're not nearby any more.",
+  'too many requests': "You've said hi a lot in the last few minutes. Wait a bit and try again.",
+  'no such pending request': 'This request is no longer waiting for an answer.',
+  'request expired': 'This request has expired.',
+  'no such chat': 'This chat has ended.',
+  'invalid message': 'Messages can be 1 to 1000 characters long.',
+  'too many messages': "You're sending messages too fast. Wait a moment and try again.",
+  'cannot block yourself': "You can't block yourself.",
+  'cannot report yourself': "You can't report yourself.",
+  'profile not ready': 'Finish your profile first.',
+  'invalid location': "We couldn't use your location. Try again in a moment.",
+  'invalid duration': 'Choose 30, 60 or 120 minutes.',
+  'note too long': 'Notes can be up to 60 characters long.',
+  'invalid start time': 'Pick a start time within the next 7 days.',
+  'too many events': "You've posted as many events as you can today. Try again tomorrow.",
+  'no such event': 'This event has ended.',
+  'not a member': 'Join the event to chat.',
+};
+
+/** Turns a database or storage error into a sentence for the screen, never raw database text. */
+function friendlyRpcError(error: { code?: string; message: string }) {
+  const refusal = SERVER_REFUSALS[error.message];
+  if (refusal) return refusal;
+  // 23505 is a unique-index violation. The one people can hit is a second say-hi while
+  // their first is still waiting.
+  if (error.code === '23505' && error.message.includes('chat_requests_one_pending_idx')) {
+    return 'You already have a request waiting. Wait for an answer, then try again.';
+  }
+  if (error.code === '23505') {
+    return "That's already done.";
+  }
+  if (/network request failed|failed to fetch|network error|load failed/i.test(error.message)) {
+    return "Can't reach Yap right now. Check your connection and try again.";
+  }
+  if (/jwt expired/i.test(error.message)) {
+    return 'Your session has ended. Sign in again.';
+  }
+  return 'Something went wrong. Please try again.';
+}
+
 async function requireUserId(): Promise<string> {
   const user = await getSessionUser();
   if (!user) throw new Error('Not signed in.');
@@ -141,8 +187,12 @@ async function requireUserId(): Promise<string> {
  * password code, for one) don't pass the new token to Realtime, and a channel that joins
  * without it is refused by the database, so nothing ever arrives. Setting the token
  * first means every channel joins as the user.
+ *
+ * `onSubscribed` runs each time the channel joins: the first time, and again after every
+ * reconnect. Realtime doesn't replay what was sent while the channel was away, so that's
+ * the moment to fetch anything that might have been missed.
  */
-function subscribeAsMe(channel: RealtimeChannel) {
+function subscribeAsMe(channel: RealtimeChannel, onSubscribed?: () => void) {
   let stopped = false;
   void supabase.realtime
     .setAuth()
@@ -150,7 +200,10 @@ function subscribeAsMe(channel: RealtimeChannel) {
       // Rare (the session couldn't be read); joining anyway beats never joining.
     })
     .then(() => {
-      if (!stopped) channel.subscribe();
+      if (stopped) return;
+      channel.subscribe((status) => {
+        if (status === 'SUBSCRIBED' && !stopped) onSubscribed?.();
+      });
     });
   return () => {
     stopped = true;
@@ -162,25 +215,67 @@ function subscribeAsMe(channel: RealtimeChannel) {
 
 // Photos live in the private `photos` bucket under <userId>/..., and are shown through
 // short-lived signed URLs. Storage policies only let a user write their own folder.
+// Each profile picture also has a small copy next to it (<name>-small.jpg) for avatars.
 
 const SIGNED_URL_SECONDS = 60 * 60;
+// A signed URL is reused until it has less than this long left, so the same photo keeps
+// the same URL and the image cache doesn't download it again on every refresh.
+const SIGNED_URL_MIN_LEFT_MS = 10 * 60 * 1000;
 
-/** Turn storage paths into display URLs, in one round trip. Empty paths are skipped. */
+const PHOTO_MAX_WIDTH = 1080;
+const THUMB_WIDTH = 320;
+
+// Storage path -> its signed URL (null when the file doesn't exist, e.g. a small copy of
+// a photo uploaded before small copies existed), and when that URL stops working.
+const signedUrls = new Map<string, { url: string | null; expiresAt: number }>();
+
+/** Turn storage paths into display URLs, in at most one round trip. Empty paths are skipped. */
 async function signPaths(paths: string[]): Promise<Record<string, string>> {
-  const unique: string[] = [];
+  const now = Date.now();
+  const toSign: string[] = [];
   for (const path of paths) {
-    if (path !== '' && !unique.includes(path)) {
-      unique.push(path);
+    if (path === '' || toSign.includes(path)) continue;
+    const cached = signedUrls.get(path);
+    if (cached && cached.expiresAt - now > SIGNED_URL_MIN_LEFT_MS) continue;
+    toSign.push(path);
+  }
+
+  if (toSign.length > 0) {
+    // Drop URLs that have stopped working, so the cache only holds people seen lately.
+    for (const [path, cached] of signedUrls) {
+      if (cached.expiresAt <= now) signedUrls.delete(path);
+    }
+    const { data, error } = await supabase.storage.from('photos').createSignedUrls(toSign, SIGNED_URL_SECONDS);
+    if (error) throw new Error(friendlyRpcError(error));
+    const expiresAt = now + SIGNED_URL_SECONDS * 1000;
+    for (const entry of data) {
+      if (entry.path) signedUrls.set(entry.path, { url: entry.signedUrl || null, expiresAt });
     }
   }
-  if (unique.length === 0) return {};
-  const { data, error } = await supabase.storage.from('photos').createSignedUrls(unique, SIGNED_URL_SECONDS);
-  if (error) throw error;
+
   const byPath: Record<string, string> = {};
-  for (const entry of data) {
-    if (entry.signedUrl && entry.path) byPath[entry.path] = entry.signedUrl;
+  for (const path of paths) {
+    const url = signedUrls.get(path)?.url;
+    if (url) byPath[path] = url;
   }
   return byPath;
+}
+
+/** Forget the signed URLs (on sign-out), so the next account signs its own. */
+export function forgetSignedUrls() {
+  signedUrls.clear();
+}
+
+/** Display URLs for photos that weren't signed with the rest, e.g. when a profile opens. */
+export async function signPhotos(paths: string[]): Promise<string[]> {
+  const urls = await signPaths(paths);
+  return urlsForPaths(urls, paths);
+}
+
+/** The storage path of a profile picture's small copy, or null for a path we didn't name. */
+function thumbPathFor(path: string | null): string | null {
+  if (!path || !path.endsWith('.jpg')) return null;
+  return `${path.slice(0, -'.jpg'.length)}-small.jpg`;
 }
 
 /** Recover the storage path from a signed URL (so an unchanged photo isn't re-uploaded). */
@@ -207,26 +302,55 @@ function urlsForPaths(urls: Record<string, string>, paths: string[]): string[] {
   return result;
 }
 
+/** Re-encode a picked photo as a JPEG at most `maxWidth` wide (never larger than it was) and upload it. */
+async function uploadJpeg(uri: string, maxWidth: number, path: string) {
+  let image = await ImageManipulator.manipulate(uri).renderAsync();
+  if (image.width > maxWidth) {
+    // Resizes the image already loaded above instead of reading the file again.
+    image = await ImageManipulator.manipulate(image).resize({ width: maxWidth }).renderAsync();
+  }
+  const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  const bytes = await new File(saved.uri).bytes();
+  const { error } = await supabase.storage.from('photos').upload(path, bytes, { contentType: 'image/jpeg' });
+  if (error) throw new Error(friendlyRpcError(error));
+}
+
 /**
  * Make sure a photo is in storage and return its path.
- * A `file://` URI (fresh from the picker) is resized to ~1080 px, re-encoded as JPEG and
+ * A `file://` URI (fresh from the picker) is re-encoded as a JPEG of at most 1080 px and
  * uploaded; an `https://` URI is one of our signed URLs, so its path is reused as-is.
+ * `withThumb` also uploads the small copy that avatars use.
  */
-async function ensureUploaded(uri: string, slot: string, userId: string): Promise<string> {
+async function ensureUploaded(uri: string, slot: string, userId: string, withThumb = false): Promise<string> {
   if (!uri.startsWith('file:')) {
     const existing = pathFromSignedUrl(uri);
     if (existing) return existing;
     throw new Error('Unexpected photo location.');
   }
-  const context = ImageManipulator.manipulate(uri);
-  context.resize({ width: 1080 });
-  const rendered = await context.renderAsync();
-  const saved = await rendered.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
-  const bytes = await new File(saved.uri).bytes();
   const path = `${userId}/${slot}-${Date.now()}.jpg`;
-  const { error } = await supabase.storage.from('photos').upload(path, bytes, { contentType: 'image/jpeg' });
-  if (error) throw error;
+  await uploadJpeg(uri, PHOTO_MAX_WIDTH, path);
+  const thumbPath = thumbPathFor(path);
+  if (withThumb && thumbPath) {
+    try {
+      await uploadJpeg(uri, THUMB_WIDTH, thumbPath);
+    } catch {
+      // Optional: without the small copy, avatars just use the full photo.
+    }
+  }
   return path;
+}
+
+/** Deletes files in my folder that the saved profile no longer uses (replaced photos, failed tries). */
+async function removeUnusedPhotos(userId: string, keep: string[]) {
+  try {
+    const allPaths = await listMyPhotoPaths(userId);
+    const unused = allPaths.filter((path) => !keep.includes(path));
+    if (unused.length > 0) {
+      await supabase.storage.from('photos').remove(unused);
+    }
+  } catch {
+    // Tidying up only; the next successful save tries again.
+  }
 }
 
 // ---------------------------------------------------------------- profile
@@ -234,7 +358,7 @@ async function ensureUploaded(uri: string, slot: string, userId: string): Promis
 export async function fetchMyProfile(): Promise<Profile | null> {
   const userId = await requireUserId();
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   if (!data) return null;
 
   const urls = await signPaths([data.photo_path ?? '', ...data.photo_paths]);
@@ -258,7 +382,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   const userId = await requireUserId();
   if (!values.photoUri) throw new Error('A profile picture is required.');
 
-  const photoPath = await ensureUploaded(values.photoUri, 'profile', userId);
+  const photoPath = await ensureUploaded(values.photoUri, 'profile', userId, true);
   const photoPaths: string[] = [];
   for (let i = 0; i < values.photos.length; i += 1) {
     photoPaths.push(await ensureUploaded(values.photos[i]!, `photo${i}`, userId));
@@ -280,15 +404,20 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   // database only lets clients update the columns in `fields`, so it is always refused.
   // Insert the row the first time, then update just the editable columns after that.
   const existing = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
-  if (existing.error) throw existing.error;
+  if (existing.error) throw new Error(friendlyRpcError(existing.error));
 
   if (existing.data) {
     const { error } = await supabase.from('profiles').update(fields).eq('id', userId);
-    if (error) throw error;
+    if (error) throw new Error(friendlyRpcError(error));
   } else {
     const { error } = await supabase.from('profiles').insert({ id: userId, ...fields, is_adult: values.isAdult });
-    if (error) throw error;
+    if (error) throw new Error(friendlyRpcError(error));
   }
+
+  const keep = [photoPath, ...photoPaths];
+  const thumbPath = thumbPathFor(photoPath);
+  if (thumbPath) keep.push(thumbPath);
+  await removeUnusedPhotos(userId, keep);
 
   const profile = await fetchMyProfile();
   if (!profile) throw new Error('Profile failed to save.');
@@ -304,7 +433,8 @@ export async function verifySelfie(_selfieUri: string, _profilePhotoUri: string)
 // ---------------------------------------------------------------- person cards
 
 // The server's "person card" (camelCase jsonb from private.person_card) with photo
-// paths; here they become signed display URLs.
+// paths; here the profile picture becomes signed display URLs. The other photos are
+// only signed when someone opens the profile (signPhotos), since lists never show them.
 type PersonCard = {
   id: string;
   firstName: string;
@@ -319,11 +449,11 @@ type PersonCard = {
 };
 
 async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
-  const allPaths: string[] = [];
+  const paths: string[] = [];
   for (const card of cards) {
-    allPaths.push(card.photoPath ?? '', ...card.photoPaths);
+    paths.push(card.photoPath ?? '', thumbPathFor(card.photoPath) ?? '');
   }
-  const urls = await signPaths(allPaths);
+  const urls = await signPaths(paths);
 
   return cards.map((card) => ({
     id: card.id,
@@ -333,7 +463,9 @@ async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
     intro: card.intro,
     interests: card.interests,
     photoUri: urlForPath(urls, card.photoPath),
-    photos: urlsForPaths(urls, card.photoPaths),
+    thumbUri: urlForPath(urls, thumbPathFor(card.photoPath)),
+    photos: [],
+    photoPaths: card.photoPaths,
     note: card.note,
     verified: card.verified,
   }));
@@ -359,23 +491,23 @@ export async function goGreen(args: {
     minutes: args.minutes,
     note: args.note,
   });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 export async function updateNote(note: string) {
   const { error } = await supabase.rpc('update_note', { note });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 export async function goOffline() {
   const { error } = await supabase.rpc('go_offline');
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
-/** Who's live near me. The server already filters blocks, so the argument is unused. */
-export async function nearby(_blockedIds: string[]): Promise<NearbyPerson[]> {
+/** Who's live near me. The server leaves out anyone blocked either way. */
+export async function nearby(): Promise<NearbyPerson[]> {
   const { data, error } = await supabase.rpc('nearby');
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   return toPeople((data ?? []) as PersonCard[]);
 }
 
@@ -383,7 +515,7 @@ export async function nearby(_blockedIds: string[]): Promise<NearbyPerson[]> {
 
 export async function sendRequest(to: NearbyPerson): Promise<{ id: string; expiresAt: number }> {
   const { data, error } = await supabase.rpc('send_request', { target: to.id });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   const result = data as { id: string; expiresAt: number };
   return { id: result.id, expiresAt: result.expiresAt };
 }
@@ -439,20 +571,57 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
 
 export async function respond(requestId: string, accept: boolean) {
   const { error } = await supabase.rpc('respond', { request_id: requestId, accept });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 /** The other participant of a request, as a person card. */
 export async function requestPerson(requestId: string): Promise<NearbyPerson | null> {
   const { data, error } = await supabase.rpc('request_person', { request_id: requestId });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   if (!data) return null;
   const [person] = await toPeople([data as unknown as PersonCard]);
   return person ?? null;
 }
 
-/** New requests for me, delivered over Realtime. Returns an unsubscribe function. */
-export function subscribeIncoming(userId: string, onRequest: (request: { id: string; expiresAt: number }) => void) {
+type RequestSummary = { id: string; expiresAt: number };
+
+/**
+ * The newest say-hi request still waiting for my answer, or null. Realtime only delivers
+ * a request while the app is connected, so this catches up on one sent while it wasn't.
+ */
+export async function pendingIncoming(): Promise<RequestSummary | null> {
+  const myId = await requireUserId();
+  const { data, error } = await supabase
+    .from('chat_requests')
+    .select('id, expires_at')
+    .eq('to_user', myId)
+    .eq('status', 'pending')
+    .gt('expires_at', new Date().toISOString())
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(friendlyRpcError(error));
+  if (!data) return null;
+  return { id: data.id, expiresAt: Date.parse(data.expires_at) };
+}
+
+/** Where a request or chat stands now ('pending', 'accepted', 'met', ...), or null once it's gone. */
+export async function requestStatus(requestId: string): Promise<string | null> {
+  const { data, error } = await supabase.from('chat_requests').select('status').eq('id', requestId).maybeSingle();
+  if (error) throw new Error(friendlyRpcError(error));
+  if (!data) return null;
+  return data.status;
+}
+
+/**
+ * New requests for me, delivered over Realtime. `onSubscribed` runs each time the
+ * channel (re)joins. Returns an unsubscribe function.
+ */
+export function subscribeIncoming(
+  userId: string,
+  onRequest: (request: RequestSummary) => void,
+  onSubscribed: () => void,
+) {
   const channel = supabase
     .channel('incoming-requests')
     .on(
@@ -464,24 +633,27 @@ export function subscribeIncoming(userId: string, onRequest: (request: { id: str
         onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
       },
     );
-  return subscribeAsMe(channel);
+  return subscribeAsMe(channel, onSubscribed);
 }
 
 // ---------------------------------------------------------------- chat
 
 export async function endChat(chatId: string, outcome: 'met' | 'cancelled') {
   const { error } = await supabase.rpc('end_chat', { request_id: chatId, outcome });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
-export async function sendMessage(chatId: string, text: string) {
+/** Returns 'chat-ended' when the other person already ended the chat (or blocked, or left Yap). */
+export async function sendMessage(chatId: string, text: string): Promise<'sent' | 'chat-ended'> {
   const { error } = await supabase.rpc('send_chat_message', { request_id: chatId, body: text });
-  if (error) throw error;
+  if (error && error.message === 'no such chat') return 'chat-ended';
+  if (error) throw new Error(friendlyRpcError(error));
+  return 'sent';
 }
 
 export async function sendEventMessage(eventId: string, text: string) {
   const { error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 type MessageRow = {
@@ -508,16 +680,22 @@ function toMessage(row: MessageRow, myId: string): Message {
   };
 }
 
+const HISTORY_LIMIT = 200;
+
+/** The newest 200 messages of a chat or event, oldest first. */
 async function fetchMessages(column: 'request_id' | 'event_id', id: string): Promise<Message[]> {
   const myId = await requireUserId();
   const { data, error } = await supabase
     .from('messages')
     .select('id, sender, sender_name, body, created_at')
     .eq(column, id)
-    .order('created_at', { ascending: true })
-    .limit(200);
-  if (error) throw error;
-  return (data ?? []).map((row) => toMessage(row, myId));
+    .order('created_at', { ascending: false })
+    .limit(HISTORY_LIMIT);
+  if (error) throw new Error(friendlyRpcError(error));
+  // Fetched newest first so the limit keeps the latest ones; shown oldest first.
+  const messages = (data ?? []).map((row) => toMessage(row, myId));
+  messages.reverse();
+  return messages;
 }
 
 export function fetchChatMessages(chatId: string) {
@@ -528,47 +706,78 @@ export function fetchEventMessages(eventId: string) {
   return fetchMessages('event_id', eventId);
 }
 
-/** New messages in a chat or event, over Realtime. Returns an unsubscribe function. */
-export function subscribeMessages(
-  column: 'request_id' | 'event_id',
-  id: string,
+/**
+ * New messages in an event's group chat, over Realtime. `onSubscribed` runs each time the
+ * channel (re)joins. Returns an unsubscribe function.
+ */
+export function subscribeEventMessages(
+  eventId: string,
   myId: string,
   onMessage: (message: Message) => void,
+  onSubscribed: () => void,
 ) {
   const channel = supabase
-    .channel(`messages-${column}-${id}`)
+    .channel(`messages-event_id-${eventId}`)
     .on(
       'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'messages', filter: `${column}=eq.${id}` },
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `event_id=eq.${eventId}` },
       (payload) => onMessage(toMessage(payload.new as MessageRow, myId)),
     );
-  return subscribeAsMe(channel);
+  return subscribeAsMe(channel, onSubscribed);
+}
+
+/**
+ * The 1:1 chat over Realtime: new messages, and the chat ending on the other side (they
+ * tapped End or blocked you). `onSubscribed` runs each time the channel (re)joins.
+ * Returns an unsubscribe function.
+ */
+export function subscribeChat(
+  chatId: string,
+  myId: string,
+  handlers: { onMessage: (message: Message) => void; onEnded: () => void; onSubscribed: () => void },
+) {
+  const channel = supabase
+    .channel(`chat-${chatId}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages', filter: `request_id=eq.${chatId}` },
+      (payload) => handlers.onMessage(toMessage(payload.new as MessageRow, myId)),
+    )
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'chat_requests', filter: `id=eq.${chatId}` },
+      (payload) => {
+        const status = (payload.new as { status?: string }).status;
+        if (status && status !== 'accepted') handlers.onEnded();
+      },
+    );
+  return subscribeAsMe(channel, handlers.onSubscribed);
 }
 
 // ---------------------------------------------------------------- safety
 
 export async function block(userId: string) {
   const { error } = await supabase.rpc('block_user', { target: userId });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 export async function unblock(userId: string) {
   const myId = await requireUserId();
   const { error } = await supabase.from('blocks').delete().eq('blocker', myId).eq('blocked', userId);
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 type BlockedPerson = { id: string; firstName: string; lastInitial: string };
 
 export async function blockedList(): Promise<BlockedPerson[]> {
   const { data, error } = await supabase.rpc('blocked_list');
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   return (data ?? []) as BlockedPerson[];
 }
 
 export async function report(userId: string, reason: ReportReason, details: string) {
   const { error } = await supabase.rpc('report_user', { target: userId, reason, details });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 const PHOTO_LIST_PAGE_SIZE = 100;
@@ -581,7 +790,7 @@ async function listMyPhotoPaths(userId: string): Promise<string[]> {
     const { data, error } = await supabase.storage
       .from('photos')
       .list(userId, { limit: PHOTO_LIST_PAGE_SIZE, offset });
-    if (error) throw error;
+    if (error) throw new Error(friendlyRpcError(error));
     for (const item of data) {
       paths.push(`${userId}/${item.name}`);
     }
@@ -600,11 +809,11 @@ export async function deleteAccount() {
   const photoPaths = await listMyPhotoPaths(userId);
   if (photoPaths.length > 0) {
     const { error: removeError } = await supabase.storage.from('photos').remove(photoPaths);
-    if (removeError) throw removeError;
+    if (removeError) throw new Error(friendlyRpcError(removeError));
   }
 
   const { error } = await supabase.rpc('delete_account');
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   await supabase.auth.signOut();
 }
 
@@ -618,7 +827,7 @@ type MyStatus = {
 /** Whether I'm live and whether I have an open chat - for restoring state on app start. */
 export async function myStatus(): Promise<MyStatus> {
   const { data, error } = await supabase.rpc('my_status');
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   const status = data as MyStatus | null;
   return { live: status?.live ?? null, chatId: status?.chatId ?? null };
 }
@@ -638,8 +847,18 @@ type EventCard = {
   joined: boolean;
 };
 
+/** The host's small photo when it has one (it's only ever shown as a small avatar), else the full one. */
+function hostPhotoUrl(urls: Record<string, string>, photoPath: string | null): string | null {
+  const thumbUrl = urlForPath(urls, thumbPathFor(photoPath));
+  if (thumbUrl) return thumbUrl;
+  return urlForPath(urls, photoPath);
+}
+
 async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
-  const hostPhotoPaths = cards.map((card) => card.host.photoPath ?? '');
+  const hostPhotoPaths: string[] = [];
+  for (const card of cards) {
+    hostPhotoPaths.push(card.host.photoPath ?? '', thumbPathFor(card.host.photoPath) ?? '');
+  }
   const urls = await signPaths(hostPhotoPaths);
   return cards.map((card) => ({
     id: card.id,
@@ -653,7 +872,7 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
       id: card.host.id,
       firstName: card.host.firstName,
       lastInitial: card.host.lastInitial,
-      photoUri: urlForPath(urls, card.host.photoPath),
+      photoUri: hostPhotoUrl(urls, card.host.photoPath),
     },
     memberCount: card.memberCount,
     joined: card.joined,
@@ -663,7 +882,7 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
 
 export async function eventsNear(center: { latitude: number; longitude: number }): Promise<MapEvent[]> {
   const { data, error } = await supabase.rpc('events_near', { lat: center.latitude, lng: center.longitude });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   return toEvents((data ?? []) as EventCard[]);
 }
 
@@ -683,7 +902,7 @@ export async function createEvent(input: {
     lng: input.longitude,
     starts_at_ms: input.startsAt,
   });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
   const [event] = await toEvents([data as unknown as EventCard]);
   if (!event) throw new Error('Event failed to save.');
   return event;
@@ -691,10 +910,10 @@ export async function createEvent(input: {
 
 export async function joinEvent(eventId: string) {
   const { error } = await supabase.rpc('join_event', { event_id: eventId });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 export async function leaveEvent(eventId: string) {
   const { error } = await supabase.rpc('leave_event', { event_id: eventId });
-  if (error) throw error;
+  if (error) throw new Error(friendlyRpcError(error));
 }

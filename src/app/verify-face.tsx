@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { SwitchAccountButton } from '@/components/account/switch-account-button';
 import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
@@ -139,10 +140,16 @@ export default function VerifyFace() {
     );
   }
 
-  let footer = <Button label="Take selfie" icon="camera-outline" onPress={takeSelfie} />;
+  let mainButton = <Button label="Take selfie" icon="camera-outline" onPress={takeSelfie} />;
   if (cameraDenied) {
-    footer = <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />;
+    mainButton = <Button label="Open Settings" icon="settings-outline" onPress={() => Linking.openSettings()} />;
   }
+  const footer = (
+    <>
+      {mainButton}
+      <SwitchAccountButton />
+    </>
+  );
 
   return (
     <Screen scroll footer={footer}>

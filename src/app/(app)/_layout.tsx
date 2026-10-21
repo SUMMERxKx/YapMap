@@ -1,8 +1,10 @@
+import { useKeepAwake } from 'expo-keep-awake';
 import { router, Stack } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { NearbyToast } from '@/components/live/nearby-toast';
+import { useNearbyPolling } from '@/hooks/use-nearby';
 import { useNearbyAlerts } from '@/hooks/use-nearby-alerts';
 import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -12,11 +14,13 @@ export default function AppLayout() {
   const incomingId = useStore((state) => state.incoming?.id);
   const chatId = useStore((state) => state.chat?.id);
   const expiresAt = useStore((state) => state.availability?.expiresAt);
+  const live = useStore((state) => state.availability !== null);
   const seenTutorial = useStore((state) => state.seenTutorial);
   // The request and chat ids already shown, so each one only takes over the screen once.
   const shown = useRef<{ incoming?: string; chat?: string }>({});
 
-  // While live: "someone is near you" prompts.
+  // While live: one shared nearby list, and "someone is near you" prompts from it.
+  useNearbyPolling();
   useNearbyAlerts();
 
   // First time in the app: show how it works.
@@ -113,6 +117,16 @@ export default function AppLayout() {
         <Stack.Screen name="password" />
       </Stack>
       <NearbyToast />
+      {live && <KeepScreenOn />}
     </View>
   );
+}
+
+/**
+ * Keeps the screen on while it's shown. Without push notifications a say-hi only arrives
+ * while Yap is open, so it stays awake while you're live.
+ */
+function KeepScreenOn() {
+  useKeepAwake('yap-live');
+  return null;
 }

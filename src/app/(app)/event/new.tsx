@@ -2,7 +2,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { EventIcon } from '@/components/events/event-icon';
@@ -13,6 +13,7 @@ import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { EVENT_CATEGORIES, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
+import { errorMessage } from '@/lib/error-message';
 import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -67,14 +68,21 @@ export default function NewEvent() {
   const post = async () => {
     if (!title.trim()) return;
     setBusy(true);
-    const id = await createEvent({
-      emoji: category,
-      title: title.trim(),
-      description: description.trim(),
-      latitude: Number(lat),
-      longitude: Number(lng),
-      startsAt: clamp(startsAt),
-    });
+    let id: string;
+    try {
+      id = await createEvent({
+        emoji: category,
+        title: title.trim(),
+        description: description.trim(),
+        latitude: Number(lat),
+        longitude: Number(lng),
+        startsAt: clamp(startsAt),
+      });
+    } catch (error) {
+      Alert.alert("Couldn't post the event", errorMessage(error, 'Try again.'));
+      setBusy(false);
+      return;
+    }
     setBusy(false);
     router.replace({ pathname: '/group/[id]', params: { id } });
   };

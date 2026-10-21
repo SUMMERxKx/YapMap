@@ -70,6 +70,11 @@ async function findUser(): Promise<FindResult> {
   return { status: 'unavailable' };
 }
 
+/** Loads the events around a point. If it fails (offline), the map keeps the pins it has. */
+function loadEventsQuietly(center: { latitude: number; longitude: number }) {
+  loadEvents(center).catch(() => {});
+}
+
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
 export default function EventsMap() {
   const { colors, layout, radius, spacing, elevation } = useTheme();
@@ -90,13 +95,13 @@ export default function EventsMap() {
       setLocation({ status: 'found' });
       setRegion(here);
       map.current?.animateToRegion(here, 400);
-      loadEvents(here);
+      loadEventsQuietly(here);
       return;
     }
     setLocation(result);
     if (!loadedFallback.current) {
       loadedFallback.current = true;
-      loadEvents(DEFAULT_REGION);
+      loadEventsQuietly(DEFAULT_REGION);
     }
   };
 

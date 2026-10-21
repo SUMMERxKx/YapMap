@@ -10,6 +10,7 @@ import { ChatThread } from '@/components/chat/chat-thread';
 import { EventIcon } from '@/components/events/event-icon';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
+import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
 import { blockUser, enterEventChat, leaveEvent, leaveEventChat, sendGroupMessage, useStore } from '@/state/store';
@@ -38,11 +39,24 @@ export default function GroupChat() {
         text: 'Leave',
         style: 'destructive',
         onPress: async () => {
-          await leaveEvent(event.id);
+          try {
+            await leaveEvent(event.id);
+          } catch (error) {
+            Alert.alert("Couldn't leave the event", errorMessage(error, 'Try again.'));
+            return;
+          }
           router.back();
         },
       },
     ]);
+
+  const block = async (message: Message) => {
+    try {
+      await blockUser(message.senderId, message.senderName);
+    } catch (error) {
+      Alert.alert(`Couldn't block ${message.senderName}`, errorMessage(error, 'Try again.'));
+    }
+  };
 
   const moderate = (message: Message) =>
     Alert.alert(message.senderName, undefined, [
@@ -56,7 +70,7 @@ export default function GroupChat() {
       {
         text: `Block ${message.senderName}`,
         style: 'destructive',
-        onPress: () => blockUser(message.senderId, message.senderName),
+        onPress: () => void block(message),
       },
       { text: 'Cancel', style: 'cancel' },
     ]);
