@@ -41,7 +41,7 @@ Testing against the real backend:
 - Forgot your password? "Forgot password" on the sign-in screen emails an 8-digit code,
   then you choose a new password. Accounts created before passwords existed (when sign-in
   was by emailed code only) have no password yet: they use "Forgot password" once to set
-  one. A signed-in user can change their password from the Profile tab.
+  one. A signed-in user can change their password in Settings (the gear on the Profile tab).
 - The core loop needs two phones signed in with different emails, within ~100 m of each
   other (same room counts), both live.
 
