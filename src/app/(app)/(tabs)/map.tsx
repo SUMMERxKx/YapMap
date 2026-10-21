@@ -6,12 +6,17 @@ import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
+import { EventIcon } from '@/components/events/event-icon';
 import { Button } from '@/components/ui/button';
+import { eventCategory } from '@/lib/event-category';
 import { loadEvents, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Used until we know where the user is (or if they don't share location).
 const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitudeDelta: 0.04, longitudeDelta: 0.04 };
+
+const PIN_ICON_SIZE = 24;
+const PIN_PADDING = 4;
 
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
 export default function EventsMap() {
@@ -63,24 +68,24 @@ export default function EventsMap() {
           createAt(latitude, longitude);
         }}>
         {events.map((event) => {
-          // Events you've joined get a filled green pin.
+          // Events you've joined get a filled green pin, with a light badge so the icon still shows.
           let pinColor = colors.surface;
           let pinTextColor = colors.textPrimary;
+          let iconTone: 'solid' | 'inverse' = 'solid';
           if (event.joined) {
             pinColor = colors.green;
             pinTextColor = colors.onGreen;
+            iconTone = 'inverse';
           }
           return (
             <Marker
               key={event.id}
               coordinate={{ latitude: event.latitude, longitude: event.longitude }}
               onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
-              accessibilityLabel={`${event.emoji} ${event.title}, ${event.memberCount} going`}
+              accessibilityLabel={`${eventCategory(event.emoji).name}: ${event.title}, ${event.memberCount} going`}
               tracksViewChanges={false}>
               <View style={[styles.pin, elevation.card, { backgroundColor: pinColor, borderColor: colors.green }]}>
-                <AppText style={styles.pinEmoji} maxFontSizeMultiplier={1}>
-                  {event.emoji}
-                </AppText>
+                <EventIcon value={event.emoji} size={PIN_ICON_SIZE} tone={iconTone} />
                 <AppText
                   variant="caption"
                   numberOfLines={1}
@@ -133,14 +138,15 @@ const styles = StyleSheet.create({
   overlay: { position: 'absolute', top: 0, left: 0, right: 0 },
   banner: { borderWidth: StyleSheet.hairlineWidth },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  // The pin's corners follow the badge's corners, the badge inset by the pin's padding.
   pin: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
+    gap: 6,
+    paddingLeft: PIN_PADDING,
+    paddingRight: 10,
+    paddingVertical: PIN_PADDING,
+    borderRadius: Math.round(PIN_ICON_SIZE * 0.3) + PIN_PADDING,
     borderWidth: 1.5,
   },
-  pinEmoji: { fontSize: 15, lineHeight: 19 },
 });

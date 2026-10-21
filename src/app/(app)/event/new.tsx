@@ -5,22 +5,23 @@ import { useState } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
+import { EventIcon } from '@/components/events/event-icon';
 import { Button } from '@/components/ui/button';
 import { FormSection } from '@/components/ui/form-section';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
-import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
+import { EVENT_CATEGORIES, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
 import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
 
-/** Create an event at the spot picked on the map: emoji, title, details and a start time. */
+/** Create an event at the spot picked on the map: what kind it is, title, details and a start time. */
 export default function NewEvent() {
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
   const { colors, layout, radius, size, spacing, scheme } = useTheme();
-  const [emoji, setEmoji] = useState<string>(EVENT_EMOJIS[0]);
+  const [category, setCategory] = useState<string>(EVENT_CATEGORIES[0].value);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startsAt, setStartsAt] = useState(() => Date.now());
@@ -67,7 +68,7 @@ export default function NewEvent() {
     if (!title.trim()) return;
     setBusy(true);
     const id = await createEvent({
-      emoji,
+      emoji: category,
       title: title.trim(),
       description: description.trim(),
       latitude: Number(lat),
@@ -91,26 +92,34 @@ export default function NewEvent() {
       }>
       <ScreenHeader title="Create an event" subtitle="It goes on the map at the spot you picked. Anyone can join." />
 
-      <FormSection label="Pick an emoji — it's the pin on the map">
-        <View accessibilityRole="radiogroup" accessibilityLabel="Event emoji" style={[styles.wrap, { gap: spacing.sm }]}>
-          {EVENT_EMOJIS.map((option) => {
-            const selected = emoji === option;
+      <FormSection label="What kind of event? Its icon is the pin on the map">
+        <View accessibilityRole="radiogroup" accessibilityLabel="Kind of event" style={[styles.wrap, { gap: spacing.sm }]}>
+          {EVENT_CATEGORIES.map((option) => {
+            const selected = category === option.value;
             let backgroundColor = colors.surfaceMuted;
             let borderColor = 'transparent';
+            let iconTone: 'solid' | 'soft' = 'soft';
+            let labelColor: 'textSecondary' | 'greenText' = 'textSecondary';
             if (selected) {
               backgroundColor = colors.greenSoft;
               borderColor = colors.green;
+              iconTone = 'solid';
+              labelColor = 'greenText';
             }
             return (
               <Pressable
-                key={option}
+                key={option.value}
                 accessibilityRole="radio"
                 accessibilityState={{ selected }}
-                accessibilityLabel={option}
-                onPress={() => setEmoji(option)}
-                style={[styles.emoji, { borderRadius: radius.md, backgroundColor, borderColor }]}>
-                <AppText style={styles.emojiGlyph} maxFontSizeMultiplier={1.2}>
-                  {option}
+                accessibilityLabel={option.name}
+                onPress={() => setCategory(option.value)}
+                style={[
+                  styles.option,
+                  { borderRadius: radius.md, paddingVertical: spacing.sm, gap: spacing.xs, backgroundColor, borderColor },
+                ]}>
+                <EventIcon value={option.value} size={size.avatarSmall} tone={iconTone} />
+                <AppText variant="caption" color={labelColor} numberOfLines={1} maxFontSizeMultiplier={1.2}>
+                  {option.name}
                 </AppText>
               </Pressable>
             );
@@ -186,7 +195,6 @@ export default function NewEvent() {
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap' },
   // Four to a row on every screen width: 22% leaves room for the gaps, and flexGrow fills the rest.
-  emoji: { flexBasis: '22%', flexGrow: 1, height: 52, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
-  emojiGlyph: { fontSize: 26, lineHeight: 32 },
+  option: { flexBasis: '22%', flexGrow: 1, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   startRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
 });

@@ -16,8 +16,31 @@ export const INTERESTS = [
   'Board games', 'Anime', 'Podcasts', 'Fashion', 'Volunteering', 'Pets', 'Nature', 'Comedy',
 ] as const;
 
-/** Emojis a host can give their event; the first is the default. */
-export const EVENT_EMOJIS = ['☕', '🍕', '🎲', '📚', '💻', '🏀', '🎸', '🚶', '🧘', '🎬', '🎨', '🍻'] as const;
+/**
+ * The kinds of event a host can pick; the first is the default. This is the one table that
+ * turns an event's stored value into its icon:
+ * - value: what the events table stores. These emoji were shown on screen before the app had
+ *   icons, so existing rows keep working; the database default is the first one.
+ * - name: what screen readers say, and the label under each icon in the picker.
+ * - icon: the Ionicons glyph drawn in the event's badge.
+ */
+export const EVENT_CATEGORIES = [
+  { value: '☕', name: 'Coffee', icon: 'cafe' },
+  { value: '🍕', name: 'Food', icon: 'pizza' },
+  { value: '🎲', name: 'Games', icon: 'dice' },
+  { value: '📚', name: 'Study', icon: 'library' },
+  { value: '💻', name: 'Coding', icon: 'laptop' },
+  { value: '🏀', name: 'Sports', icon: 'basketball' },
+  { value: '🎸', name: 'Music', icon: 'musical-notes' },
+  { value: '🚶', name: 'Walk', icon: 'walk' },
+  { value: '🧘', name: 'Yoga', icon: 'flower' },
+  { value: '🎬', name: 'Movies', icon: 'film' },
+  { value: '🎨', name: 'Art', icon: 'color-palette' },
+  { value: '🍻', name: 'Drinks', icon: 'beer' },
+] as const;
+
+/** Shown for a stored value that isn't in EVENT_CATEGORIES, e.g. one added by a newer app. */
+export const EVENT_CATEGORY_FALLBACK = { name: 'Event', icon: 'calendar' } as const;
 
 /** Events can be planned at most this far ahead. */
 export const EVENT_MAX_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
