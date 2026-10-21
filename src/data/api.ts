@@ -6,23 +6,69 @@
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
+import { PASSWORD_MIN_LENGTH } from './constants';
 import { supabase } from './supabase-client';
 
 import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
 
 // ---------------------------------------------------------------- auth
 
-export async function requestEmailCode(email: string) {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: { shouldCreateUser: true },
-  });
-  if (error) throw new Error(friendlyAuthError(error.message));
+// People sign in with email and password. Emails carry an 8-digit code instead of a link
+// (the Confirm signup and Reset password templates show {{ .Token }}), because the app
+// can't open links.
+
+const INVALID_CODE = 'Invalid or expired code. Please request a new one.';
+const ACCOUNT_EXISTS = 'There is already an account with this email. Sign in, or use Forgot password.';
+
+/**
+ * Create an account. Returns true when Supabase emailed a code to confirm it, and false
+ * when the account is ready straight away ("Confirm email" switched off in the dashboard).
+ */
+export async function signUp(email: string, password: string) {
+  const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error) throw new Error(friendlyAuthError(error));
+  // For an email that already has an account, Supabase may send nothing and return a user
+  // with no identities, so say so instead of waiting for a code that never comes.
+  if (data.user && data.user.identities?.length === 0) {
+    throw new Error(ACCOUNT_EXISTS);
+  }
+  return data.session === null;
 }
 
-export async function verifyEmailCode(email: string, code: string) {
-  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
-  if (error) throw new Error('Invalid or expired code. Please request a new one.');
+export async function verifySignUpCode(email: string, code: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'signup' });
+  if (error) throw new Error(INVALID_CODE);
+}
+
+export async function resendSignUpCode(email: string) {
+  const { error } = await supabase.auth.resend({ email, type: 'signup' });
+  if (error) throw new Error(friendlyAuthError(error));
+}
+
+/** Returns 'unconfirmed' when the password is right but the account still needs its code. */
+export async function signInWithPassword(email: string, password: string): Promise<'signed-in' | 'unconfirmed'> {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error && error.code === 'email_not_confirmed') return 'unconfirmed';
+  if (error) throw new Error(friendlyAuthError(error));
+  return 'signed-in';
+}
+
+/** Set or change the signed-in user's password. */
+export async function setPassword(password: string) {
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw new Error(friendlyAuthError(error));
+}
+
+// Forgot password: the emailed code signs the user in, then they choose a new password
+// with setPassword. Accounts made before passwords existed set their first one this way.
+export async function requestPasswordReset(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+  if (error) throw new Error(friendlyAuthError(error));
+}
+
+export async function verifyPasswordResetCode(email: string, code: string) {
+  const { error } = await supabase.auth.verifyOtp({ email, token: code, type: 'recovery' });
+  if (error) throw new Error(INVALID_CODE);
 }
 
 /** The signed-in user, or null. */
@@ -43,11 +89,32 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
-function friendlyAuthError(message: string) {
-  if (/rate limit/i.test(message)) {
+/** Turns a Supabase Auth error into a sentence for the screen. */
+function friendlyAuthError(error: { code?: string; message: string }) {
+  if (error.code === 'invalid_credentials') {
+    return "Wrong email or password. If you've never set a password, use Forgot password.";
+  }
+  if (error.code === 'user_already_exists') {
+    return ACCOUNT_EXISTS;
+  }
+  if (error.code === 'weak_password') {
+    return `Choose a stronger password: at least ${PASSWORD_MIN_LENGTH} characters.`;
+  }
+  if (error.code === 'same_password') {
+    return "That's already your password. Choose a different one.";
+  }
+  // Only happens if "Secure password change" is turned on in the Supabase dashboard.
+  if (error.code === 'reauthentication_needed') {
+    return 'For your security, sign out and sign back in, then change your password.';
+  }
+  if (error.code === 'over_request_rate_limit') {
+    return 'Too many attempts. Please wait a bit and try again.';
+  }
+  // A second code for the same email within a minute is refused with this code.
+  if (error.code === 'over_email_send_rate_limit' || /rate limit/i.test(error.message)) {
     return 'Too many codes requested. Please wait a bit and try again.';
   }
-  return message;
+  return error.message;
 }
 
 async function requireUserId(): Promise<string> {

@@ -35,10 +35,29 @@ npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
 ```
 
 Testing against the real backend:
-- Sign in with a real email address: an 8-digit code is sent to it. Codes are sent
-  through the custom SMTP sender configured on the Supabase project.
+- Create an account with a real email address and a password (8+ characters). An 8-digit
+  code is emailed to confirm the address; after that you sign in with email and password.
+  Emails are sent through the custom SMTP sender configured on the Supabase project.
+- Forgot your password? "Forgot password" on the sign-in screen emails an 8-digit code,
+  then you choose a new password. Accounts created before passwords existed (when sign-in
+  was by emailed code only) have no password yet: they use "Forgot password" once to set
+  one. A signed-in user can change their password from the Profile tab.
 - The core loop needs two phones signed in with different emails, within ~100 m of each
   other (same room counts), both live.
+
+## Supabase dashboard setup (owner, one time)
+
+Password sign-in needs these settings on the hosted Supabase project. The app can't open
+email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
+
+- **Authentication -> Sign In / Providers -> Email**: Email provider enabled (password
+  sign-in), **Confirm email** ON, and minimum password length **8**.
+- **Authentication -> Emails -> Templates -> Confirm signup**: keeps showing `{{ .Token }}`
+  (the 8-digit code that confirms a new account).
+- **Authentication -> Emails -> Templates -> Reset password**: show `{{ .Token }}` (an 8-digit
+  code) instead of the link, with a subject such as "Reset your Yap password".
+- **Magic link** template: no longer used by the app, since sign-in by emailed code alone
+  was replaced by email and password.
 
 ## Code tour
 

@@ -1,4 +1,5 @@
-// Email sign-in, step 2: enter the 8-digit code (one hidden input behind eight boxes).
+// Enter the emailed 8-digit code (one hidden input behind eight boxes). Used twice:
+// `purpose=signup` confirms a new account, `purpose=reset` is the forgot-password code.
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -10,14 +11,14 @@ import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
 import * as api from '@/data/api';
 import { errorMessage } from '@/lib/error-message';
-import { signInWithEmail } from '@/state/store';
+import { confirmSignUp } from '@/state/store';
 import { useTheme } from '@/theme';
 
 const LENGTH = 8;
 const RESEND_SECONDS = 60; // Supabase sends at most one code per minute
 
 export default function Verify() {
-  const { email = '' } = useLocalSearchParams<{ email: string }>();
+  const { email = '', purpose = 'signup' } = useLocalSearchParams<{ email: string; purpose: 'signup' | 'reset' }>();
   const { colors, radius, type } = useTheme();
   const input = useRef<TextInput>(null);
   const [code, setCode] = useState('');
@@ -37,7 +38,12 @@ export default function Verify() {
     setVerifying(true);
     setError(null);
     try {
-      await signInWithEmail(email, value); // the root layout then moves on to profile setup
+      if (purpose === 'reset') {
+        await api.verifyPasswordResetCode(email, value);
+        router.replace('/new-password');
+      } else {
+        await confirmSignUp(email, value); // the root layout then moves on to profile setup
+      }
     } catch (error) {
       setError(errorMessage(error, 'Something went wrong. Try again.'));
     } finally {
@@ -50,7 +56,11 @@ export default function Verify() {
     setError(null);
     setCode('');
     try {
-      await api.requestEmailCode(email);
+      if (purpose === 'reset') {
+        await api.requestPasswordReset(email);
+      } else {
+        await api.resendSignUpCode(email);
+      }
     } catch (error) {
       setError(errorMessage(error, 'Could not resend the code.'));
     }

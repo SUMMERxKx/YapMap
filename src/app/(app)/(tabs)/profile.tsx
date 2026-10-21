@@ -1,4 +1,4 @@
-// Profile tab: your profile, blocked people, legal links, sign out and account deletion.
+// Profile tab: your profile, blocked people, password, legal links, sign out and account deletion.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
@@ -89,6 +89,7 @@ export default function Profile() {
           detail={blockedDetail}
           onPress={() => router.push('/blocked')}
         />
+        <ListRow label="Change password" onPress={() => router.push('/password')} />
         <ListRow label="Notification settings" onPress={() => Linking.openSettings()} last />
       </ListGroup>
 
