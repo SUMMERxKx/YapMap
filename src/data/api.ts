@@ -475,7 +475,38 @@ export async function report(userId: string, reason: ReportReason, details: stri
   if (error) throw error;
 }
 
+const PHOTO_LIST_PAGE_SIZE = 100;
+
+/** Every photo path in my folder of the `photos` bucket (<userId>/...), one page at a time. */
+async function listMyPhotoPaths(userId: string): Promise<string[]> {
+  const paths: string[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await supabase.storage
+      .from('photos')
+      .list(userId, { limit: PHOTO_LIST_PAGE_SIZE, offset });
+    if (error) throw error;
+    for (const item of data) {
+      paths.push(`${userId}/${item.name}`);
+    }
+    if (data.length < PHOTO_LIST_PAGE_SIZE) break;
+    offset += PHOTO_LIST_PAGE_SIZE;
+  }
+  return paths;
+}
+
+/**
+ * Removes my photos through the Storage API, then deletes the account itself.
+ * The photos have to go first: once the account is gone this session can't reach Storage.
+ */
 export async function deleteAccount() {
+  const userId = await requireUserId();
+  const photoPaths = await listMyPhotoPaths(userId);
+  if (photoPaths.length > 0) {
+    const { error: removeError } = await supabase.storage.from('photos').remove(photoPaths);
+    if (removeError) throw removeError;
+  }
+
   const { error } = await supabase.rpc('delete_account');
   if (error) throw error;
   await supabase.auth.signOut();
