@@ -11,7 +11,7 @@ import { TextField } from '@/components/ui/text-field';
 type Props = Omit<ComponentProps<typeof TextField>, 'secureTextEntry' | 'accessory'>;
 
 export function PasswordField(props: Props) {
-  const { colors } = useTheme();
+  const { colors, layout, size } = useTheme();
   const [visible, setVisible] = useState(false);
 
   let icon: 'eye-outline' | 'eye-off-outline' = 'eye-outline';
@@ -33,8 +33,8 @@ export function PasswordField(props: Props) {
           accessibilityLabel={toggleLabel}
           onPress={() => setVisible((current) => !current)}
           hitSlop={4}
-          style={styles.toggle}>
-          <Ionicons name={icon} size={22} color={colors.textSecondary} />
+          style={[styles.toggle, { width: layout.touchTarget, height: layout.touchTarget }]}>
+          <Ionicons name={icon} size={size.iconLarge} color={colors.textSecondary} />
         </Pressable>
       }
     />
@@ -42,5 +42,5 @@ export function PasswordField(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  toggle: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  toggle: { alignItems: 'center', justifyContent: 'center' },
 });

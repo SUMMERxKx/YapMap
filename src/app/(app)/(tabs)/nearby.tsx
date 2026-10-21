@@ -2,12 +2,14 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ActiveChatBar } from '@/components/chat/active-chat-bar';
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { InfoNote } from '@/components/ui/info-note';
 import { PersonCard, PersonCardSkeleton } from '@/components/profile/person-card';
 import { useCountdown } from '@/hooks/use-countdown';
@@ -26,28 +28,27 @@ export default function Nearby() {
 
 /** You only see people who can see you too, so the list needs you to be live. */
 function NotLive() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={{ padding: spacing.xxl, paddingBottom: 0 }}>
+      <View style={{ paddingHorizontal: layout.screenPadding, paddingTop: spacing.lg }}>
         <ActiveChatBar />
       </View>
-      <View style={[styles.center, { padding: spacing.xxl, gap: spacing.md }]}>
-        <Ionicons name="people-outline" size={48} color={colors.textSecondary} />
-        <AppText variant="title" align="center" accessibilityRole="header">
-          Go live to see who's around
-        </AppText>
-        <AppText color="textSecondary" align="center">
-          You only see people who can see you too. Turn green and everyone nearby who's up for a chat shows up here.
-        </AppText>
-        <Button label="Go live" onPress={() => router.navigate('/')} style={{ alignSelf: 'stretch', marginTop: spacing.sm }} />
+      <View style={[styles.flex, { paddingHorizontal: layout.screenPadding }]}>
+        <EmptyState
+          icon="people-outline"
+          tone="green"
+          title="Go live to see who's around"
+          body="You only see people who can see you too. Turn green and everyone nearby who's up for a chat shows up here.">
+          <Button label="Go live" onPress={() => router.navigate('/')} />
+        </EmptyState>
       </View>
     </SafeAreaView>
   );
 }
 
 function NearbyList() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const expiresAt = useStore((state) => state.availability?.expiresAt);
   const left = useCountdown(expiresAt);
   const { people, refreshing, refresh } = useNearby(true);
@@ -59,19 +60,17 @@ function NearbyList() {
       <View style={{ gap: spacing.md }}>
         <PersonCardSkeleton />
         <PersonCardSkeleton />
+        <PersonCardSkeleton />
       </View>
     );
   } else {
     emptyContent = (
-      <View style={[styles.empty, { gap: spacing.sm }]}>
-        <Ionicons name="cafe-outline" size={40} color={colors.textSecondary} />
-        <AppText variant="bodyStrong" align="center">
-          Nobody else is green here yet
-        </AppText>
-        <AppText color="textSecondary" align="center">
-          Stay live and we'll let you know if someone says hi.
-        </AppText>
-      </View>
+      <EmptyState
+        icon="cafe-outline"
+        size="small"
+        title="Nobody else is green here yet"
+        body="Stay live and we'll let you know if someone says hi."
+      />
     );
   }
 
@@ -80,15 +79,21 @@ function NearbyList() {
       <FlatList
         data={people ?? []}
         keyExtractor={(person) => person.id}
-        contentContainerStyle={{ padding: spacing.xxl, gap: spacing.md, flexGrow: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: layout.screenPadding,
+          paddingTop: spacing.lg,
+          paddingBottom: spacing.xxl,
+          gap: spacing.md,
+          flexGrow: 1,
+        }}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.green} />}
         ListHeaderComponent={
-          <View style={{ gap: spacing.lg, marginBottom: spacing.sm }}>
-            <View style={{ gap: 2 }}>
+          <View style={{ gap: spacing.lg, marginBottom: spacing.xs }}>
+            <View style={{ gap: spacing.xs }}>
               <AppText variant="title" accessibilityRole="header">
                 Nearby
               </AppText>
-              <View style={styles.liveRow}>
+              <View style={[styles.liveRow, { gap: spacing.sm }]}>
                 <View style={[styles.dot, { backgroundColor: colors.green }]} />
                 <AppText variant="caption" color="greenText">
                   {`You're live, ${formatMinutesLeft(left)}`}
@@ -110,7 +115,7 @@ function NearbyList() {
 
 /** Shows a request in progress after the user leaves the waiting screen. */
 function PendingRequestBar() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, size, spacing } = useTheme();
   const outgoing = useStore((state) => state.outgoing);
   // Only a pending request has a countdown.
   let countdownTo: number | null = null;
@@ -129,29 +134,24 @@ function PendingRequestBar() {
   }
 
   return (
-    <Pressable
-      accessibilityRole="button"
+    <Card
+      padding="compact"
       accessibilityLabel={`Waiting for ${outgoing.to.firstName}, ${formatClock(left)} left. Open.`}
       onPress={() => router.push('/waiting')}
-      style={[
-        styles.pending,
-        { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md },
-      ]}>
-      <Ionicons name="hourglass-outline" size={20} color={colors.textSecondary} />
+      style={{ ...styles.pending, gap: spacing.md, paddingHorizontal: spacing.lg }}>
+      <Ionicons name="hourglass-outline" size={size.iconMedium} color={colors.textSecondary} />
       <AppText style={styles.flex}>Waiting for {outgoing.to.firstName}</AppText>
       <AppText variant="caption" color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>
         {formatClock(left)}
       </AppText>
-      <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-    </Pressable>
+      <Ionicons name="chevron-forward" size={size.iconMedium} color={colors.textSecondary} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  liveRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  liveRow: { flexDirection: 'row', alignItems: 'center' },
   dot: { width: 8, height: 8, borderRadius: 4 },
-  pending: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: StyleSheet.hairlineWidth },
-  empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 12 },
+  pending: { flexDirection: 'row', alignItems: 'center' },
 });

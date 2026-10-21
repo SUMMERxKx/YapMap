@@ -8,6 +8,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { VERIFICATION_POSES } from '@/data/constants';
 import { markVerified, useStore, verifySelfie } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -77,7 +78,7 @@ export default function VerifyFace() {
       <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={110} />
       <Ionicons name={compareIcon} size={32} color={compareIconColor} />
       <View
-        style={[styles.selfie, { borderRadius: 30, backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
+        style={[styles.selfie, { borderRadius: radius.lg * 2, backgroundColor: colors.surfaceMuted, borderColor: colors.border }]}>
         {selfieSlot}
       </View>
     </View>
@@ -145,12 +146,10 @@ export default function VerifyFace() {
 
   return (
     <Screen scroll footer={footer}>
-      <AppText variant="title" accessibilityRole="header">
-        Verify it's you
-      </AppText>
-      <AppText color="textSecondary">
-        A quick selfie keeps Yap free of bots and fake profiles. Everyone here has done the same.
-      </AppText>
+      <ScreenHeader
+        title="Verify it's you"
+        subtitle="A quick selfie keeps Yap free of bots and fake profiles. Everyone here has done the same."
+      />
 
       {photos}
 

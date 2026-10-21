@@ -3,11 +3,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
 import { router } from 'expo-router';
-import { Alert, Linking, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { ListGroup, ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { FEATURES } from '@/config/features';
@@ -25,7 +26,7 @@ const LINKS = {
 };
 
 export default function Profile() {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, size, spacing } = useTheme();
   const profile = useStore((state) => state.profile);
   const blockedCount = useStore((state) => state.blockedIds.length);
 
@@ -61,22 +62,12 @@ export default function Profile() {
         Profile
       </AppText>
 
-      <Pressable
-        accessibilityRole="button"
+      <Card
         accessibilityLabel={`${profile?.firstName} ${profile?.lastName}. Edit profile`}
         onPress={() => router.push('/edit-profile')}
-        style={({ pressed }) => {
-          let backgroundColor = colors.surface;
-          if (pressed) {
-            backgroundColor = colors.surfaceMuted;
-          }
-          return [
-            styles.card,
-            { backgroundColor, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg },
-          ];
-        }}>
-        <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={64} />
-        <View style={{ flex: 1 }}>
+        style={{ ...styles.card, gap: spacing.md }}>
+        <Avatar name={profile?.firstName ?? '?'} photoUri={profile?.photoUri ?? null} size={size.avatarLarge} />
+        <View style={{ flex: 1, gap: spacing.xxs }}>
           <AppText variant="bodyStrong">
             {profile?.firstName} {profile?.lastName}
           </AppText>
@@ -84,13 +75,13 @@ export default function Profile() {
             {profile?.intro}
           </AppText>
           {showVerified && (
-            <View style={{ marginTop: 4 }}>
+            <View style={{ marginTop: spacing.xs }}>
               <VerifiedBadge align="flex-start" />
             </View>
           )}
         </View>
-        <Ionicons name="chevron-forward" size={18} color={colors.textSecondary} />
-      </Pressable>
+        <Ionicons name="chevron-forward" size={size.iconMedium} color={colors.textSecondary} />
+      </Card>
 
       <ListGroup>
         <ListRow
@@ -109,12 +100,12 @@ export default function Profile() {
         <ListRow label="Contact support" trailing="external" onPress={() => Linking.openURL(LINKS.support)} last />
       </ListGroup>
 
-      <View style={{ gap: spacing.sm }}>
+      <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
         <Button label="Sign out" variant="secondary" onPress={signOut} />
         <Button label="Delete account" variant="destructiveSoft" onPress={confirmDelete} />
       </View>
 
-      <AppText variant="caption" color="textSecondary" align="center">
+      <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
         Yap {Constants.expoConfig?.version}
       </AppText>
     </Screen>
@@ -122,5 +113,5 @@ export default function Profile() {
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: StyleSheet.hairlineWidth },
+  card: { flexDirection: 'row', alignItems: 'center' },
 });

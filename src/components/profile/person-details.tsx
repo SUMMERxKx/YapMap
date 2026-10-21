@@ -8,6 +8,7 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
+import { Card } from '@/components/ui/card';
 import { InterestList } from '@/components/ui/chip';
 import { VerifiedBadge } from '@/components/profile/verified-badge';
 
@@ -15,21 +16,21 @@ type Props = { person: NearbyPerson; subtitle?: string };
 
 /** The full profile another person sees: photo, name, gender, intro and interests. */
 export function PersonDetails({ person, subtitle }: Props) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, layout, radius, size, spacing } = useTheme();
   const gender = genderLabel(person.gender);
   const showVerified = FEATURES.selfieVerification && person.verified;
 
   return (
-    <View style={{ gap: spacing.lg }}>
+    <View style={{ gap: layout.sectionGap }}>
       <View style={{ alignItems: 'center', gap: spacing.xs }}>
-        <Avatar name={person.firstName} photoUri={person.photoUri} size={150} />
-        <AppText variant="title" accessibilityRole="header" style={{ marginTop: spacing.sm }}>
+        <Avatar name={person.firstName} photoUri={person.photoUri} size={size.avatarHero} />
+        <AppText variant="title" accessibilityRole="header" align="center" style={{ marginTop: spacing.md }}>
           {displayName(person)}
         </AppText>
         {gender !== null && <AppText color="textSecondary">{gender}</AppText>}
         {showVerified && <VerifiedBadge />}
         {person.note !== '' && (
-          <AppText variant="bodyStrong" color="greenText" align="center">
+          <AppText variant="bodyStrong" color="greenText" align="center" style={{ marginTop: spacing.xs }}>
             {`"${person.note}"`}
           </AppText>
         )}
@@ -59,16 +60,12 @@ export function PersonDetails({ person, subtitle }: Props) {
         </ScrollView>
       )}
 
-      <View
-        style={[
-          styles.box,
-          { backgroundColor: colors.background, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.lg },
-        ]}>
+      <Card surface="background" style={{ gap: spacing.sm }}>
         <AppText variant="label" color="textSecondary">
           INTRO
         </AppText>
         <AppText>{person.intro}</AppText>
-      </View>
+      </Card>
 
       <View style={{ gap: spacing.sm }}>
         <AppText variant="label" color="textSecondary">
@@ -81,6 +78,5 @@ export function PersonDetails({ person, subtitle }: Props) {
 }
 
 const styles = StyleSheet.create({
-  box: { gap: 6, borderWidth: StyleSheet.hairlineWidth },
   photo: { width: 150, height: 200 },
 });

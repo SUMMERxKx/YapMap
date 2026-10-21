@@ -12,7 +12,7 @@ import { signInWithProvider } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Welcome() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const showAppleSignIn = FEATURES.socialSignIn && Platform.OS === 'ios';
 
   return (
@@ -46,7 +46,7 @@ export default function Welcome() {
         </>
       }>
       {/* Logo and background image come with the new design (issue #7). */}
-      <View style={[styles.hero, { gap: spacing.md }]}>
+      <View style={[styles.hero, { gap: spacing.md, paddingHorizontal: spacing.sm }]}>
         <AppText
           accessibilityRole="header"
           style={[styles.wordmark, { color: colors.green }]}
@@ -56,7 +56,7 @@ export default function Welcome() {
         <AppText variant="title" align="center">
           The app that gets you off the app.
         </AppText>
-        <AppText variant="body" color="textSecondary" align="center" style={styles.sub}>
+        <AppText variant="body" color="textSecondary" align="center" style={{ maxWidth: layout.maxTextWidth }}>
           Turn green for a spontaneous conversation with someone right here in the room.
         </AppText>
       </View>
@@ -65,7 +65,6 @@ export default function Welcome() {
 }
 
 const styles = StyleSheet.create({
-  hero: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+  hero: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   wordmark: { fontSize: 72, lineHeight: 80, fontWeight: '800', letterSpacing: -2 },
-  sub: { maxWidth: 320 },
 });

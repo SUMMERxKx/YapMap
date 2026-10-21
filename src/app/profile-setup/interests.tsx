@@ -1,15 +1,17 @@
 // Setup step 4: pick 3 to 5 interests.
 
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Chip } from '@/components/ui/chip';
 import { SetupStep } from '@/components/profile/setup-step';
 import { INTERESTS, INTEREST_RANGE } from '@/data/constants';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
+import { useTheme } from '@/theme';
 
 export default function InterestsStep() {
+  const { spacing } = useTheme();
   const { draft, update } = useProfileDraft();
   const picked = draft.interests;
   const atMax = picked.length >= INTEREST_RANGE.max;
@@ -35,7 +37,7 @@ export default function InterestsStep() {
       <AppText variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
         {picked.length}/{INTEREST_RANGE.max} picked
       </AppText>
-      <View style={styles.wrap}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
         {INTERESTS.map((interest) => {
           const selected = picked.includes(interest);
           return (
@@ -52,7 +54,3 @@ export default function InterestsStep() {
     </SetupStep>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-});

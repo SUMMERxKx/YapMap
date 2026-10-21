@@ -46,17 +46,17 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
         styles.row,
         {
           gap: spacing.md,
-          padding: spacing.md,
-          borderRadius: radius.lg,
+          padding: spacing.lg,
+          borderRadius: radius.md,
           borderWidth: 1,
           borderColor: cardBorderColor,
           backgroundColor: colors.surface,
         },
       ]}>
-      <View style={[styles.box, { borderColor: boxBorderColor, backgroundColor: boxColor }]}>
+      <View style={[styles.box, { borderRadius: radius.xs, borderColor: boxBorderColor, backgroundColor: boxColor }]}>
         {checked && <Ionicons name="checkmark" size={18} color={checkColor} />}
       </View>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: spacing.xxs }}>
         <AppText variant="bodyStrong" color={labelColor}>
           {label}
         </AppText>
@@ -67,11 +67,10 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', minHeight: 48 },
+  row: { flexDirection: 'row', alignItems: 'flex-start' },
   box: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: 24,
+    height: 24,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

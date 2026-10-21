@@ -85,7 +85,7 @@ function MenuItem({
   onPress: () => void;
   danger?: boolean;
 }) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, size, spacing } = useTheme();
   let color = colors.textPrimary;
   if (danger) {
     color = colors.destructive;
@@ -96,12 +96,12 @@ function MenuItem({
     if (pressed) {
       backgroundColor = colors.surfaceMuted;
     }
-    return [styles.item, { paddingHorizontal: spacing.xxl, backgroundColor }];
+    return [styles.item, { minHeight: layout.controlHeight + spacing.xs, paddingHorizontal: layout.screenPadding, gap: spacing.lg, backgroundColor }];
   };
 
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={itemStyle}>
-      <Ionicons name={icon} size={22} color={color} />
+      <Ionicons name={icon} size={size.iconLarge} color={color} />
       <AppText variant="bodyStrong" style={{ color }}>
         {label}
       </AppText>
@@ -111,5 +111,5 @@ function MenuItem({
 
 const styles = StyleSheet.create({
   scrim: { flex: 1, justifyContent: 'flex-end' },
-  item: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 14 },
+  item: { flexDirection: 'row', alignItems: 'center' },
 });

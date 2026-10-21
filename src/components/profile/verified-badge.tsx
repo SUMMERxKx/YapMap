@@ -7,7 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 
 /** Shown on profiles whose selfie matched their photo. */
 export function VerifiedBadge({ align = 'center' }: { align?: 'center' | 'flex-start' }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, size, spacing } = useTheme();
   return (
     <View
       accessible
@@ -15,14 +15,14 @@ export function VerifiedBadge({ align = 'center' }: { align?: 'center' | 'flex-s
       style={{
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 4,
+        gap: spacing.xs,
         backgroundColor: colors.greenSoft,
         borderRadius: radius.pill,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xxs,
         alignSelf: align,
       }}>
-      <Ionicons name="checkmark-circle" size={16} color={colors.greenText} />
+      <Ionicons name="checkmark-circle" size={size.iconSmall} color={colors.greenText} />
       <AppText variant="caption" color="greenText">
         Verified
       </AppText>

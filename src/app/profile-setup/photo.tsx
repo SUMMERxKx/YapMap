@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { SetupStep } from '@/components/profile/setup-step';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
+import { useTheme } from '@/theme';
 
 const PICKER: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['images'],
@@ -19,6 +20,7 @@ const PICKER: ImagePicker.ImagePickerOptions = {
 };
 
 export default function PhotoStep() {
+  const { spacing } = useTheme();
   const { draft, update } = useProfileDraft();
   const [cameraDenied, setCameraDenied] = useState(false);
 
@@ -51,10 +53,10 @@ export default function PhotoStep() {
       subtitle="A clear photo of your face. It's the first thing people see, and how they spot you."
       canContinue={draft.photoUri !== null}
       onNext={() => router.push('/profile-setup/photos')}>
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingVertical: spacing.lg }]}>
         <Avatar name={draft.firstName || '?'} photoUri={draft.photoUri} size={180} />
       </View>
-      <View style={{ gap: 10 }}>
+      <View style={{ gap: spacing.sm }}>
         <Button
           label={chooseLabel}
           icon="images-outline"
@@ -76,5 +78,5 @@ export default function PhotoStep() {
 }
 
 const styles = StyleSheet.create({
-  center: { alignItems: 'center', paddingVertical: 8 },
+  center: { alignItems: 'center' },
 });

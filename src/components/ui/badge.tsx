@@ -9,14 +9,14 @@ import { AppText } from '@/components/ui/app-text';
 type Props = { label: string };
 
 export function Badge({ label }: Props) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   return (
     <View
       style={{
         backgroundColor: colors.greenSoft,
         borderRadius: radius.pill,
-        paddingHorizontal: 10,
-        paddingVertical: 3,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xxs,
       }}>
       <AppText variant="caption" color="greenText">
         {label}

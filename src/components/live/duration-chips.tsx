@@ -13,9 +13,9 @@ type Props = { value: Duration; onChange: (value: Duration) => void };
 const DEFAULT_DURATION = 60;
 
 export function DurationChips({ value, onChange }: Props) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   return (
-    <View accessibilityRole="radiogroup" accessibilityLabel="Duration" style={styles.row}>
+    <View accessibilityRole="radiogroup" accessibilityLabel="Duration" style={[styles.row, { gap: spacing.sm }]}>
       {DURATIONS.map((minutes) => {
         const selected = minutes === value;
         const isDefault = minutes === DEFAULT_DURATION;
@@ -67,7 +67,7 @@ export function DurationChips({ value, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: 10 },
+  row: { flexDirection: 'row' },
   chip: {
     flex: 1,
     minHeight: 64,

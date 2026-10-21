@@ -9,6 +9,8 @@ import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
 import { errorMessage } from '@/lib/error-message';
 import { confirmSignUp } from '@/state/store';
@@ -19,7 +21,7 @@ const RESEND_SECONDS = 60; // Supabase sends at most one code per minute
 
 export default function Verify() {
   const { email = '', purpose = 'signup' } = useLocalSearchParams<{ email: string; purpose: 'signup' | 'reset' }>();
-  const { colors, radius, type } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const input = useRef<TextInput>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -85,21 +87,21 @@ export default function Verify() {
       footer={
         <Button label="Verify and continue" onPress={() => verify()} loading={verifying} disabled={code.length !== LENGTH} />
       }>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-      <AppText variant="title" accessibilityRole="header">
-        Check your email
-      </AppText>
-      <AppText color="textSecondary">
-        We sent an {LENGTH}-digit code to <AppText variant="bodyStrong">{email}</AppText>
-      </AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader
+        title="Check your email"
+        subtitle={
+          <>
+            We sent an {LENGTH}-digit code to <AppText variant="bodyStrong">{email}</AppText>
+          </>
+        }
+      />
 
       {/* One real input behind one display box per digit, so paste and SMS/email autofill work. */}
       <Pressable
         accessibilityLabel={`Code, ${code.length} of ${LENGTH} digits entered`}
         onPress={() => input.current?.focus()}
-        style={styles.boxes}>
+        style={[styles.boxes, { gap: spacing.sm }]}>
         {Array.from({ length: LENGTH }).map((_, index) => {
           // The box where the next digit will go is highlighted.
           const active = index === code.length && !error;
@@ -151,19 +153,17 @@ export default function Verify() {
         </InfoNote>
       )}
 
-      <View style={styles.resend}>
-        <AppText variant="caption" color="textSecondary">
-          Didn't receive it?
-        </AppText>
-        <Button label={resendLabel} variant="ghost" onPress={resend} disabled={cooldown > 0} />
+      <View style={[styles.resend, { gap: spacing.sm }]}>
+        <AppText color="textSecondary">Didn't receive it?</AppText>
+        <Button label={resendLabel} variant="link" onPress={resend} disabled={cooldown > 0} />
       </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  boxes: { flexDirection: 'row', gap: 6, justifyContent: 'space-between' },
-  box: { flex: 1, aspectRatio: 0.85, maxWidth: 56, alignItems: 'center', justifyContent: 'center' },
+  boxes: { flexDirection: 'row', justifyContent: 'space-between' },
+  box: { flex: 1, aspectRatio: 0.8, maxWidth: 56, alignItems: 'center', justifyContent: 'center' },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
-  resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  resend: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap' },
 });

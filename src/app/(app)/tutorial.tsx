@@ -50,7 +50,7 @@ const PAGES: Page[] = [
 ];
 
 export default function Tutorial() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const { width } = useWindowDimensions();
   const list = useRef<FlatList<Page>>(null);
   const [index, setIndex] = useState(0);
@@ -77,7 +77,7 @@ export default function Tutorial() {
   // No Skip on the last page; an empty View keeps the top row's height.
   let skipButton = <View />;
   if (!last) {
-    skipButton = <Button label="Skip" variant="ghost" onPress={done} style={{ minHeight: 44 }} />;
+    skipButton = <Button label="Skip" variant="ghost" size="compact" onPress={done} />;
   }
 
   let nextLabel = 'Next';
@@ -104,12 +104,12 @@ export default function Tutorial() {
       );
     }
     return (
-      <View style={[styles.page, { width, paddingHorizontal: spacing.xxxl, gap: spacing.lg }]}>
+      <View style={[styles.page, { width, paddingHorizontal: spacing.xxxl, gap: spacing.md }]}>
         {art}
         <AppText variant="title" align="center" accessibilityRole="header">
           {item.title}
         </AppText>
-        <AppText color="textSecondary" align="center">
+        <AppText color="textSecondary" align="center" style={{ maxWidth: layout.maxTextWidth }}>
           {item.body}
         </AppText>
       </View>
@@ -118,7 +118,7 @@ export default function Tutorial() {
 
   return (
     <SafeAreaView style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.top, { paddingHorizontal: spacing.xxl }]}>
+      <View style={[styles.top, { minHeight: layout.topBarHeight, paddingHorizontal: spacing.md }]}>
         {skipButton}
       </View>
 
@@ -134,8 +134,8 @@ export default function Tutorial() {
         renderItem={renderPage}
       />
 
-      <View style={[styles.bottom, { padding: spacing.xxl, gap: spacing.lg }]}>
-        <View style={styles.dots} accessibilityLabel={`Page ${index + 1} of ${PAGES.length}`} accessible>
+      <View style={{ paddingHorizontal: layout.screenPadding, paddingTop: spacing.md, paddingBottom: spacing.lg, gap: spacing.xl }}>
+        <View style={[styles.dots, { gap: spacing.sm }]} accessibilityLabel={`Page ${index + 1} of ${PAGES.length}`} accessible>
           {PAGES.map((page, pageIndex) => {
             // The current page's dot is wider and green.
             let dotColor = colors.border;
@@ -155,11 +155,10 @@ export default function Tutorial() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  top: { minHeight: 52, alignItems: 'flex-end', justifyContent: 'center' },
+  top: { alignItems: 'flex-end', justifyContent: 'center' },
   page: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  art: { width: 200, height: 200, borderRadius: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  art: { width: 200, height: 200, borderRadius: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   yap: { fontSize: 56, lineHeight: 64, fontWeight: '900', letterSpacing: 2 },
-  bottom: {},
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  dots: { flexDirection: 'row', justifyContent: 'center' },
   dot: { height: 8, borderRadius: 4 },
 });

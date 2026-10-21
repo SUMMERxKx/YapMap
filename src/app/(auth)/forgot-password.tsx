@@ -3,12 +3,12 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
+import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
 import { errorMessage } from '@/lib/error-message';
 
@@ -37,15 +37,11 @@ export default function ForgotPassword() {
     <Screen
       scroll
       footer={<Button label="Send code" onPress={send} loading={sending} disabled={!email.includes('@')} />}>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-      <AppText variant="title" accessibilityRole="header">
-        Reset your password
-      </AppText>
-      <AppText color="textSecondary">
-        We'll send an 8-digit code to your email. Enter it next, then choose a new password.
-      </AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader
+        title="Reset your password"
+        subtitle="We'll send an 8-digit code to your email. Enter it next, then choose a new password."
+      />
       <TextField
         label="Email"
         value={email}

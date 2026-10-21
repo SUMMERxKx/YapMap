@@ -12,7 +12,7 @@ import { Avatar } from '@/components/profile/avatar';
 /** Shown on Go live and Nearby while a 1:1 chat is open, so leaving the chat never loses it. */
 export function ActiveChatBar() {
   const chat = useStore((state) => state.chat);
-  const { colors, radius, spacing, elevation } = useTheme();
+  const { colors, radius, size, spacing, elevation } = useTheme();
   if (!chat) return null;
 
   return (
@@ -23,16 +23,22 @@ export function ActiveChatBar() {
       style={[
         styles.bar,
         elevation.card,
-        { backgroundColor: colors.greenSoft, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
+        {
+          backgroundColor: colors.greenSoft,
+          borderRadius: radius.lg,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.lg,
+          gap: spacing.md,
+        },
       ]}>
-      <Avatar name={chat.other.firstName} photoUri={chat.other.photoUri} size={40} />
+      <Avatar name={chat.other.firstName} photoUri={chat.other.photoUri} size={size.avatarSmall} />
       <AppText variant="bodyStrong" color="greenText" style={styles.flex} numberOfLines={1}>
         Yapping with {displayName(chat.other)}
       </AppText>
       <AppText variant="caption" color="greenText">
         Open
       </AppText>
-      <Ionicons name="chevron-forward" size={18} color={colors.greenText} />
+      <Ionicons name="chevron-forward" size={size.iconMedium} color={colors.greenText} />
     </Pressable>
   );
 }

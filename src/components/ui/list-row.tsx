@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: Props) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, size, spacing } = useTheme();
 
   // An external row opens a web page, so it is announced as a link with an "open" icon.
   let role: 'link' | 'button' = 'button';
@@ -46,7 +46,9 @@ export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: 
     return [
       styles.row,
       {
+        minHeight: layout.controlHeight,
         paddingHorizontal: spacing.lg,
+        gap: spacing.sm,
         backgroundColor,
         borderBottomWidth,
         borderBottomColor: colors.border,
@@ -58,7 +60,7 @@ export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: 
     <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} onPress={onPress} style={rowStyle}>
       <AppText style={{ flex: 1 }}>{label}</AppText>
       {Boolean(detail) && <AppText color="textSecondary">{detail}</AppText>}
-      <Ionicons name={trailingIcon} size={18} color={colors.textSecondary} />
+      <Ionicons name={trailingIcon} size={size.iconMedium} color={colors.textSecondary} />
     </Pressable>
   );
 }
@@ -80,5 +82,5 @@ export function ListGroup({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  row: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center' },
 });

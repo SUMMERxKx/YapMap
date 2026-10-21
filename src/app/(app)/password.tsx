@@ -2,7 +2,7 @@
 
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Alert, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
@@ -42,7 +42,10 @@ export default function ChangePassword() {
   };
 
   return (
-    <Screen scroll edges={['bottom']}>
+    <Screen
+      scroll
+      edges={['bottom']}
+      footer={<Button label="Save password" onPress={save} loading={saving} disabled={!canSave} />}>
       <AppText color="textSecondary">Choose a new password to sign in with.</AppText>
       <PasswordField
         label="New password"
@@ -68,9 +71,6 @@ export default function ChangePassword() {
           {error}
         </InfoNote>
       )}
-      <View style={{ marginTop: 8 }}>
-        <Button label="Save password" onPress={save} loading={saving} disabled={!canSave} />
-      </View>
     </Screen>
   );
 }

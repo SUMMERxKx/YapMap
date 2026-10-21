@@ -17,7 +17,7 @@ const SHOW_FOR_MS = 8000;
 /** "Someone is near you" prompt that slides in at the top while you're live. */
 export function NearbyToast() {
   const alert = useStore((state) => state.nearbyAlert);
-  const { colors, radius, spacing, elevation } = useTheme();
+  const { colors, radius, size, spacing, elevation } = useTheme();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -36,14 +36,14 @@ export function NearbyToast() {
     title = `${displayName(alert.person)} is near you`;
     body = 'They’re live and up for a chat.';
     action = 'Say hi';
-    picture = <Avatar name={alert.person.firstName} photoUri={alert.person.photoUri} size={44} />;
+    picture = <Avatar name={alert.person.firstName} photoUri={alert.person.photoUri} size={size.avatarSmall} />;
   } else {
     title = `${alert.count} people near you are up for a chat`;
     body = 'See who’s around and say hi.';
     action = 'See them';
     picture = (
       <View style={[styles.icon, { backgroundColor: colors.greenSoft }]}>
-        <Ionicons name="people" size={22} color={colors.greenText} />
+        <Ionicons name="people" size={size.iconMedium} color={colors.greenText} />
       </View>
     );
   }
@@ -64,7 +64,7 @@ export function NearbyToast() {
       exiting={FadeOutUp.duration(200)}
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
-      style={[styles.wrap, { top: insets.top + spacing.sm, paddingHorizontal: spacing.lg }]}>
+      style={[styles.wrap, { top: insets.top + spacing.sm, paddingHorizontal: spacing.md }]}>
       <View
         style={[
           styles.card,
@@ -72,7 +72,7 @@ export function NearbyToast() {
           { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.lg, padding: spacing.md, gap: spacing.md },
         ]}>
         {picture}
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, gap: spacing.xxs }}>
           <AppText variant="bodyStrong" numberOfLines={1}>
             {title}
           </AppText>
@@ -84,13 +84,14 @@ export function NearbyToast() {
           accessibilityRole="button"
           accessibilityLabel={action}
           onPress={open}
-          style={[styles.action, { backgroundColor: colors.green, borderRadius: radius.pill }]}>
+          hitSlop={4}
+          style={[styles.action, { paddingHorizontal: spacing.md, backgroundColor: colors.green, borderRadius: radius.pill }]}>
           <AppText variant="caption" style={{ color: colors.onGreen, fontWeight: '700' }}>
             {action}
           </AppText>
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={dismissNearbyAlert} hitSlop={10}>
-          <Ionicons name="close" size={20} color={colors.textSecondary} />
+        <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={dismissNearbyAlert} hitSlop={12}>
+          <Ionicons name="close" size={size.iconMedium} color={colors.textSecondary} />
         </Pressable>
       </View>
     </Animated.View>
@@ -100,6 +101,6 @@ export function NearbyToast() {
 const styles = StyleSheet.create({
   wrap: { position: 'absolute', left: 0, right: 0, zIndex: 50 },
   card: { flexDirection: 'row', alignItems: 'center', borderWidth: StyleSheet.hairlineWidth },
-  icon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
-  action: { paddingHorizontal: 14, minHeight: 36, justifyContent: 'center' },
+  icon: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  action: { minHeight: 36, justifyContent: 'center' },
 });

@@ -4,12 +4,13 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
+import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
 import { errorMessage } from '@/lib/error-message';
 import { signInWithPassword } from '@/state/store';
@@ -55,12 +56,8 @@ export default function SignIn() {
           <Button label="New here? Create an account" variant="ghost" onPress={() => router.replace('/sign-up')} />
         </>
       }>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-      <AppText variant="title" accessibilityRole="header">
-        Welcome back
-      </AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader title="Welcome back" />
       <TextField
         label="Email"
         value={email}
@@ -86,7 +83,7 @@ export default function SignIn() {
       <View style={{ alignSelf: 'flex-end' }}>
         <Button
           label="Forgot password?"
-          variant="ghost"
+          variant="link"
           onPress={() => router.push({ pathname: '/forgot-password', params: { email: email.trim() } })}
         />
       </View>

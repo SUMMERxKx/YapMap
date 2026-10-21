@@ -14,11 +14,16 @@ type ChipProps = {
 };
 
 export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: ChipProps) {
-  const { colors, radius } = useTheme();
+  const { colors, layout, radius, spacing } = useTheme();
 
   if (!onPress) {
     return (
-      <View style={[styles.chip, styles.readOnly, { borderRadius: radius.pill, backgroundColor: colors.surfaceMuted }]}>
+      <View
+        style={[
+          styles.chip,
+          styles.readOnly,
+          { paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },
+        ]}>
         <AppText variant="caption" color="textSecondary" style={{ fontWeight: '600' }}>
           {label}
         </AppText>
@@ -57,7 +62,17 @@ export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: 
       accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
-      style={[styles.chip, { borderRadius: radius.pill, backgroundColor, borderColor, opacity }]}>
+      style={[
+        styles.chip,
+        {
+          minHeight: layout.touchTarget,
+          paddingHorizontal: spacing.lg,
+          borderRadius: radius.pill,
+          backgroundColor,
+          borderColor,
+          opacity,
+        },
+      ]}>
       {isSelected && <Ionicons name="checkmark" size={16} color={colors.onGreen} />}
       <AppText variant="caption" style={{ color: textColor, fontWeight: '600' }}>
         {label}
@@ -86,13 +101,11 @@ export function InterestList({ interests, max }: { interests: string[]; max?: nu
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: 40,
-    paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     borderWidth: 1,
   },
-  readOnly: { minHeight: 28, paddingHorizontal: 10, borderWidth: 0 },
+  readOnly: { minHeight: 28, borderWidth: 0 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
 });

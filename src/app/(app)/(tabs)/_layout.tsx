@@ -25,7 +25,7 @@ function TabIcon({ focused, color, size, filled, outline }: TabIconProps) {
 
 // Go live (the button), Nearby (the list), Map (events) and Profile.
 export default function TabsLayout() {
-  const { colors } = useTheme();
+  const { colors, size, type } = useTheme();
   return (
     <Tabs
       screenOptions={{
@@ -33,14 +33,14 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.greenText,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: type.label.fontSize, fontWeight: type.label.fontWeight },
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Go live',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon focused={focused} color={color} size={26} filled="radio" outline="radio-outline" />
+            <TabIcon focused={focused} color={color} size={size.iconLarge} filled="radio" outline="radio-outline" />
           ),
         }}
       />
@@ -49,7 +49,7 @@ export default function TabsLayout() {
         options={{
           title: 'Nearby',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon focused={focused} color={color} size={24} filled="people" outline="people-outline" />
+            <TabIcon focused={focused} color={color} size={size.iconLarge} filled="people" outline="people-outline" />
           ),
         }}
       />
@@ -58,7 +58,7 @@ export default function TabsLayout() {
         options={{
           title: 'Map',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon focused={focused} color={color} size={24} filled="map" outline="map-outline" />
+            <TabIcon focused={focused} color={color} size={size.iconLarge} filled="map" outline="map-outline" />
           ),
         }}
       />
@@ -67,13 +67,7 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon
-              focused={focused}
-              color={color}
-              size={26}
-              filled="person-circle"
-              outline="person-circle-outline"
-            />
+            <TabIcon focused={focused} color={color} size={size.iconLarge} filled="person-circle" outline="person-circle-outline" />
           ),
         }}
       />

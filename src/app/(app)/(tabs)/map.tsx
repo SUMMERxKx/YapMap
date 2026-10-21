@@ -15,7 +15,7 @@ const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitu
 
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
 export default function EventsMap() {
-  const { colors, radius, spacing, elevation } = useTheme();
+  const { colors, layout, radius, spacing, elevation } = useTheme();
   const events = useStore((state) => state.events);
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
@@ -98,7 +98,16 @@ export default function EventsMap() {
           style={[
             styles.banner,
             elevation.card,
-            { backgroundColor: colors.surface, borderRadius: radius.lg, margin: spacing.lg, padding: spacing.md },
+            {
+              backgroundColor: colors.surface,
+              borderColor: colors.border,
+              borderRadius: radius.lg,
+              marginHorizontal: layout.screenPadding,
+              marginTop: spacing.sm,
+              paddingVertical: spacing.md,
+              paddingHorizontal: spacing.lg,
+              gap: spacing.xxs,
+            },
           ]}>
           <AppText variant="bodyStrong">Events near you</AppText>
           <AppText variant="caption" color="textSecondary">
@@ -107,7 +116,7 @@ export default function EventsMap() {
         </View>
       </SafeAreaView>
 
-      <View pointerEvents="box-none" style={[styles.bottom, { padding: spacing.lg }]}>
+      <View pointerEvents="box-none" style={[styles.bottom, { paddingHorizontal: layout.screenPadding, paddingBottom: spacing.lg }]}>
         <Button
           label="Create event here"
           icon="add-circle-outline"
@@ -122,7 +131,7 @@ export default function EventsMap() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   overlay: { position: 'absolute', top: 0, left: 0, right: 0 },
-  banner: { gap: 2 },
+  banner: { borderWidth: StyleSheet.hairlineWidth },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   pin: {
     flexDirection: 'row',

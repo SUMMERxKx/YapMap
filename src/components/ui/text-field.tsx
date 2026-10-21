@@ -7,6 +7,7 @@ import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { FieldLabel } from '@/components/ui/form-section';
 
 type Props = Omit<TextInputProps, 'style'> & {
   ref?: Ref<TextInput>;
@@ -18,7 +19,7 @@ type Props = Omit<TextInputProps, 'style'> & {
 };
 
 export function TextField({ label, required, error, showCounter, accessory, maxLength, value, ...rest }: Props) {
-  const { colors, radius, spacing, type } = useTheme();
+  const { colors, layout, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
 
@@ -36,35 +37,32 @@ export function TextField({ label, required, error, showCounter, accessory, maxL
   }
 
   // Multiline fields are taller and start typing at the top.
-  let minHeight = 52;
+  let minHeight: number = layout.controlHeight;
   let textAlignVertical: 'top' | 'center' = 'center';
   if (rest.multiline) {
-    minHeight = 88;
+    minHeight = 104;
     textAlignVertical = 'top';
   }
 
   // Leave room on the right so typed text never runs under the accessory.
-  let paddingRight = 14;
+  let paddingRight: number = spacing.lg;
   if (accessory) {
-    paddingRight = 52;
+    paddingRight = layout.touchTarget + spacing.sm;
   }
 
   const length = value?.length ?? 0;
   const showCounterText = Boolean(showCounter) && Boolean(maxLength);
 
   return (
-    <View style={{ gap: spacing.xs }}>
+    <View style={{ gap: spacing.sm }}>
       <View style={styles.labelRow}>
-        <AppText variant="caption" color="textPrimary">
-          {label}
-          {required && (
-            <AppText variant="caption" color="destructive">
-              {' *'}
-            </AppText>
-          )}
-        </AppText>
+        <FieldLabel label={label} required={required} />
         {showCounterText && (
-          <AppText variant="caption" color="textSecondary" accessibilityLabel={`${length} of ${maxLength} characters`}>
+          <AppText
+            variant="caption"
+            color="textSecondary"
+            accessibilityLabel={`${length} of ${maxLength} characters`}
+            style={styles.counter}>
             {length}/{maxLength}
           </AppText>
         )}
@@ -88,6 +86,7 @@ export function TextField({ label, required, error, showCounter, accessory, maxL
             type.body,
             styles.input,
             {
+              paddingLeft: spacing.lg,
               color: colors.textPrimary,
               backgroundColor: colors.surface,
               borderColor,
@@ -111,7 +110,8 @@ export function TextField({ label, required, error, showCounter, accessory, maxL
 }
 
 const styles = StyleSheet.create({
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  input: { paddingHorizontal: 14, paddingVertical: 12 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  counter: { fontVariant: ['tabular-nums'] },
+  input: { paddingVertical: 14 },
   accessory: { position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' },
 });

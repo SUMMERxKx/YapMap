@@ -1,10 +1,11 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
@@ -15,7 +16,7 @@ import { useTheme } from '@/theme';
 /** Group chat for a map event. Long-press someone's message to report or block them. */
 export default function GroupChat() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, spacing } = useTheme();
+  const { colors } = useTheme();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const blockedIds = useStore((state) => state.blockedIds);
   const myId = useStore((state) => state.myId);
@@ -63,6 +64,12 @@ export default function GroupChat() {
   // Hide messages from anyone you've blocked.
   const visibleMessages = event.messages.filter((message) => !blockedIds.includes(message.senderId));
 
+  // Only guests get a Leave button; the host stays with their event.
+  let leaveButton = null;
+  if (!hostedByMe) {
+    leaveButton = <Button label="Leave" variant="secondary" size="compact" onPress={leave} />;
+  }
+
   let headerNote = 'Long-press a message to report or block someone.';
   if (hostedByMe) {
     headerNote = 'You created this event. Everyone who joins will chat here.';
@@ -70,24 +77,14 @@ export default function GroupChat() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: colors.border, paddingHorizontal: spacing.lg, gap: spacing.md },
-        ]}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-        <View style={styles.flex}>
-          <AppText variant="bodyStrong" numberOfLines={1} accessibilityRole="header">
-            {event.emoji} {event.title}
-          </AppText>
-          <AppText variant="caption" color="textSecondary">
-            {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}
-          </AppText>
-        </View>
-        {!hostedByMe && (
-          <Button label="Leave" variant="secondary" onPress={leave} style={{ minHeight: 44, paddingHorizontal: 16 }} />
-        )}
-      </View>
+      <ChatHeader onBack={() => router.back()} trailing={leaveButton}>
+        <AppText variant="bodyStrong" numberOfLines={1} accessibilityRole="header">
+          {event.emoji} {event.title}
+        </AppText>
+        <AppText variant="caption" color="textSecondary" numberOfLines={1}>
+          {`${event.memberCount} going · ${formatEventTime(event.startsAt)}`}
+        </AppText>
+      </ChatHeader>
 
       <ChatThread
         messages={visibleMessages}
@@ -105,5 +102,4 @@ export default function GroupChat() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', minHeight: 64, borderBottomWidth: StyleSheet.hairlineWidth },
 });

@@ -2,14 +2,14 @@
 
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
+import { TopBar } from '@/components/ui/top-bar';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
 import { passwordProblem } from '@/lib/password-problem';
@@ -56,13 +56,8 @@ export default function SignUp() {
           <Button label="Already have an account? Sign in" variant="ghost" onPress={() => router.replace('/sign-in')} />
         </>
       }>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-      <AppText variant="title" accessibilityRole="header">
-        Create your account
-      </AppText>
-      <AppText color="textSecondary">We'll email you an 8-digit code to confirm it's your address.</AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader title="Create your account" subtitle="We'll email you an 8-digit code to confirm it's your address." />
       <TextField
         label="Email"
         value={email}
