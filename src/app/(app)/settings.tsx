@@ -34,6 +34,14 @@ export default function Settings() {
     blockedDetail = String(blockedCount);
   }
 
+  const onSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      Alert.alert('Could not sign out', errorMessage(error, 'Try again.'));
+    }
+  };
+
   const onDeleteAccount = async () => {
     try {
       await deleteAccount();
@@ -75,7 +83,7 @@ export default function Settings() {
       </SettingsSection>
 
       <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-        <Button label="Sign out" variant="secondary" onPress={signOut} />
+        <Button label="Sign out" variant="secondary" onPress={() => void onSignOut()} />
         <Button label="Delete account" variant="destructiveSoft" onPress={confirmDelete} />
       </View>
 

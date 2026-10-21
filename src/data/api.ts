@@ -95,7 +95,10 @@ export function onAuthStateChange(onChange: (signedIn: boolean) => void) {
 }
 
 export async function signOut() {
-  await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut();
+  if (!error) return;
+  const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
+  if (localError) throw new Error(friendlyAuthError(localError));
 }
 
 /** Turns a Supabase Auth error into a sentence for the screen. */
@@ -814,7 +817,7 @@ export async function deleteAccount() {
 
   const { error } = await supabase.rpc('delete_account');
   if (error) throw new Error(friendlyRpcError(error));
-  await supabase.auth.signOut();
+  await signOut();
 }
 
 // ---------------------------------------------------------------- restart

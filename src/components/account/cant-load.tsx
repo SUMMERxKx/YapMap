@@ -10,8 +10,6 @@ import { Screen } from '@/components/ui/screen';
 import { errorMessage } from '@/lib/error-message';
 import { retryLoad } from '@/state/store';
 
-import { SwitchAccountButton } from './switch-account-button';
-
 export function CantLoad() {
   const [retrying, setRetrying] = useState(false);
 
@@ -28,12 +26,7 @@ export function CantLoad() {
 
   return (
     <Screen
-      footer={
-        <>
-          <Button label="Try again" onPress={() => void retry()} loading={retrying} />
-          <SwitchAccountButton />
-        </>
-      }>
+      footer={<Button label="Try again" onPress={() => void retry()} loading={retrying} />}>
       <EmptyState
         icon="cloud-offline-outline"
         title="Can't reach Yap"
