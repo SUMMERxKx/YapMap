@@ -1,6 +1,7 @@
-// Email sign-in, step 1: ask for the address and send an 8-digit code.
+// Forgot password, step 1: email an 8-digit code that lets the user choose a new password.
+// Accounts made before passwords existed set their first password this way too.
 
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
@@ -11,18 +12,20 @@ import { TextField } from '@/components/ui/text-field';
 import * as api from '@/data/api';
 import { errorMessage } from '@/lib/error-message';
 
-export default function Email() {
-  const [email, setEmail] = useState('');
+export default function ForgotPassword() {
+  const params = useLocalSearchParams<{ email?: string }>();
+  const [email, setEmail] = useState(params.email ?? '');
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
   const send = async () => {
+    if (!email.includes('@')) return;
     const trimmedEmail = email.trim();
     setError(null);
     setSending(true);
     try {
-      await api.requestEmailCode(trimmedEmail);
-      router.push({ pathname: '/verify', params: { email: trimmedEmail } });
+      await api.requestPasswordReset(trimmedEmail);
+      router.push({ pathname: '/verify', params: { email: trimmedEmail, purpose: 'reset' } });
     } catch (error) {
       setError(errorMessage(error, 'Something went wrong. Try again.'));
     } finally {
@@ -38,9 +41,11 @@ export default function Email() {
         <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
       </View>
       <AppText variant="title" accessibilityRole="header">
-        What's your email?
+        Reset your password
       </AppText>
-      <AppText color="textSecondary">We'll send you an 8-digit code. No password needed.</AppText>
+      <AppText color="textSecondary">
+        We'll send an 8-digit code to your email. Enter it next, then choose a new password.
+      </AppText>
       <TextField
         label="Email"
         value={email}

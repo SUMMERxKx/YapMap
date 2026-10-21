@@ -1,4 +1,4 @@
-// First screen: the Yap pitch and the three ways to sign in.
+// First screen: the Yap pitch, then create an account or sign in.
 
 import { router } from 'expo-router';
 import { Platform, StyleSheet, View } from 'react-native';
@@ -38,7 +38,8 @@ export default function Welcome() {
               onPress={() => signInWithProvider('google')}
             />
           )}
-          <Button label="Continue with email" icon="mail-outline" onPress={() => router.push('/email')} />
+          <Button label="Create account" icon="mail-outline" onPress={() => router.push('/sign-up')} />
+          <Button label="Sign in" variant="secondary" onPress={() => router.push('/sign-in')} />
           <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.sm }}>
             By continuing you agree to the Community Rules and Privacy Policy.
           </AppText>

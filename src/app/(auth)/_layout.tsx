@@ -1,4 +1,4 @@
-// The signed-out stack: welcome, email entry, code verification.
+// The signed-out stack: welcome, sign in, sign up, the emailed code, and forgot password.
 
 import { Stack } from 'expo-router';
 
@@ -9,8 +9,11 @@ export default function AuthLayout() {
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
       <Stack.Screen name="welcome" />
-      <Stack.Screen name="email" />
+      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="sign-up" />
       <Stack.Screen name="verify" />
+      <Stack.Screen name="forgot-password" />
+      <Stack.Screen name="new-password" />
     </Stack>
   );
 }

@@ -112,6 +112,7 @@ export default function AppLayout() {
         <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
         <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />
+        <Stack.Screen name="password" options={{ headerShown: true, title: 'Change password' }} />
       </Stack>
       <NearbyToast />
     </View>

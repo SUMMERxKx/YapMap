@@ -172,8 +172,28 @@ function nearestDuration(ms: number): Availability['minutes'] {
 
 // ---------------------------------------------------------------- auth & profile
 
-export async function signInWithEmail(email: string, code: string) {
-  await api.verifyEmailCode(email, code);
+/** Returns true when a code was emailed to confirm the account (the verify screen is next). */
+export async function signUp(email: string, password: string) {
+  const needsCode = await api.signUp(email, password);
+  if (!needsCode) await refreshAfterAuth();
+  return needsCode;
+}
+
+export async function confirmSignUp(email: string, code: string) {
+  await api.verifySignUpCode(email, code);
+  await refreshAfterAuth(); // the root layout then moves on to profile setup
+}
+
+/** Returns 'unconfirmed' when the account still needs its emailed code. */
+export async function signInWithPassword(email: string, password: string) {
+  const result = await api.signInWithPassword(email, password);
+  if (result === 'signed-in') await refreshAfterAuth();
+  return result;
+}
+
+/** Forgot password, last step: use the emailed code with the new password, then go in. */
+export async function finishPasswordReset(email: string, code: string, password: string) {
+  await api.resetPassword(email, code, password);
   await refreshAfterAuth();
 }
 

@@ -1,6 +1,7 @@
-// Labelled text input with focus/error borders and an optional character counter.
+// Labelled text input with focus/error borders, an optional character counter and an
+// optional accessory inside the input on the right (e.g. a show/hide password button).
 
-import { useState, type Ref } from 'react';
+import { useState, type ReactNode, type Ref } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 
 import { useTheme } from '@/theme';
@@ -13,9 +14,10 @@ type Props = Omit<TextInputProps, 'style'> & {
   required?: boolean;
   error?: string | null;
   showCounter?: boolean;
+  accessory?: ReactNode;
 };
 
-export function TextField({ label, required, error, showCounter, maxLength, value, ...rest }: Props) {
+export function TextField({ label, required, error, showCounter, accessory, maxLength, value, ...rest }: Props) {
   const { colors, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
@@ -41,6 +43,12 @@ export function TextField({ label, required, error, showCounter, maxLength, valu
     textAlignVertical = 'top';
   }
 
+  // Leave room on the right so typed text never runs under the accessory.
+  let paddingRight = 14;
+  if (accessory) {
+    paddingRight = 52;
+  }
+
   const length = value?.length ?? 0;
   const showCounterText = Boolean(showCounter) && Boolean(maxLength);
 
@@ -61,34 +69,38 @@ export function TextField({ label, required, error, showCounter, maxLength, valu
           </AppText>
         )}
       </View>
-      <TextInput
-        {...rest}
-        value={value}
-        maxLength={maxLength}
-        accessibilityLabel={label}
-        placeholderTextColor={colors.textSecondary}
-        onFocus={(e) => {
-          setFocused(true);
-          rest.onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          rest.onBlur?.(e);
-        }}
-        style={[
-          type.body,
-          styles.input,
-          {
-            color: colors.textPrimary,
-            backgroundColor: colors.surface,
-            borderColor,
-            borderWidth,
-            borderRadius: radius.md,
-            minHeight,
-            textAlignVertical,
-          },
-        ]}
-      />
+      <View>
+        <TextInput
+          {...rest}
+          value={value}
+          maxLength={maxLength}
+          accessibilityLabel={label}
+          placeholderTextColor={colors.textSecondary}
+          onFocus={(e) => {
+            setFocused(true);
+            rest.onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            rest.onBlur?.(e);
+          }}
+          style={[
+            type.body,
+            styles.input,
+            {
+              color: colors.textPrimary,
+              backgroundColor: colors.surface,
+              borderColor,
+              borderWidth,
+              borderRadius: radius.md,
+              minHeight,
+              paddingRight,
+              textAlignVertical,
+            },
+          ]}
+        />
+        {Boolean(accessory) && <View style={styles.accessory}>{accessory}</View>}
+      </View>
       {hasError && (
         <AppText variant="caption" color="destructive" accessibilityLiveRegion="polite">
           {error}
@@ -101,4 +113,5 @@ export function TextField({ label, required, error, showCounter, maxLength, valu
 const styles = StyleSheet.create({
   labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
   input: { paddingHorizontal: 14, paddingVertical: 12 },
+  accessory: { position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' },
 });
