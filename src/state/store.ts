@@ -85,6 +85,9 @@ let stopIncoming: (() => void) | null = null;
 let stopChatMessages: (() => void) | null = null;
 let stopEventMessages: (() => void) | null = null;
 
+// Say-hi requests already shown on the incoming screen, so each one only appears once.
+const shownRequestIds = new Set<string>();
+
 function teardownRealtime() {
   stopIncoming?.();
   stopChatMessages?.();
@@ -92,6 +95,13 @@ function teardownRealtime() {
   stopIncoming = null;
   stopChatMessages = null;
   stopEventMessages = null;
+  shownRequestIds.clear();
+}
+
+/** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
+function listenForRequests(userId: string) {
+  if (stopIncoming) return;
+  stopIncoming = api.subscribeIncoming(userId, (request) => void onIncoming(request));
 }
 
 // ---------------------------------------------------------------- boot
@@ -131,7 +141,8 @@ async function refreshAfterAuth() {
 
   const profile = await api.fetchMyProfile();
   set({ profile });
-  if (!profile) return; // the layout sends them to profile setup
+  // The layout sends them to profile setup; saveProfile starts listening once it's saved.
+  if (!profile) return;
 
   const blocked = await api.blockedList();
   const blockedIds: string[] = [];
@@ -142,9 +153,8 @@ async function refreshAfterAuth() {
   }
   set({ blockedIds, blockedNames });
 
-  // New say-hi requests arrive over Realtime for the whole session.
-  stopIncoming?.();
-  stopIncoming = api.subscribeIncoming(user.id, (request) => void onIncoming(request));
+  // New say-hi requests arrive for the whole session.
+  listenForRequests(user.id);
 
   // If the app was killed while live or mid-chat, pick up where things stand.
   const status = await api.myStatus();
@@ -212,6 +222,9 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
     keepsVerification = true;
   }
   set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
+  // A new account can be said hi to from now on, so start listening (sign-in only does
+  // this for accounts that already had a profile).
+  listenForRequests(stored.id);
 }
 
 export async function verifySelfie(selfieUri: string) {
@@ -318,12 +331,15 @@ export function clearOutgoing() {
 }
 
 async function onIncoming(request: { id: string; expiresAt: number }) {
-  // One thing at a time: while a request or chat is on screen, later ones just expire
-  // on the server and their senders see the usual "not this time".
+  // One thing at a time: while a request or chat is on screen, later ones wait. One still
+  // waiting when the screen is free is shown then (the poll reports it again); otherwise
+  // it expires on the server and its sender sees the usual "not this time".
   if (state.incoming || state.chat) return;
+  if (shownRequestIds.has(request.id)) return; // already answered, or timed out on screen
   try {
     const from = await api.requestPerson(request.id);
-    if (from && !state.incoming && !state.chat) {
+    if (from && !state.incoming && !state.chat && !shownRequestIds.has(request.id)) {
+      shownRequestIds.add(request.id);
       set({ incoming: { id: request.id, from, expiresAt: request.expiresAt } });
     }
   } catch {
