@@ -2,12 +2,14 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
+import { FormSection } from '@/components/ui/form-section';
 import { InfoNote } from '@/components/ui/info-note';
+import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { EVENT_EMOJIS, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
 import { formatStartTime } from '@/lib/format-time';
@@ -17,8 +19,7 @@ import { useTheme } from '@/theme';
 /** Create an event at the spot picked on the map: emoji, title, details and a start time. */
 export default function NewEvent() {
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
-  const { colors, radius, spacing, scheme } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors, layout, radius, size, spacing, scheme } = useTheme();
   const [emoji, setEmoji] = useState<string>(EVENT_EMOJIS[0]);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -78,19 +79,20 @@ export default function NewEvent() {
   };
 
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: spacing.xxl, paddingBottom: insets.bottom + spacing.xxl, gap: spacing.xl }}
-      keyboardShouldPersistTaps="handled">
-      <View style={{ gap: spacing.xs }}>
-        <AppText variant="title" accessibilityRole="header">
-          Create an event
-        </AppText>
-        <AppText color="textSecondary">It goes on the map at the spot you picked. Anyone can join.</AppText>
-      </View>
+    <Screen
+      scroll
+      surface="surface"
+      edges={['bottom']}
+      footer={
+        <>
+          <Button label="Post event" onPress={post} loading={busy} disabled={!title.trim()} haptic />
+          <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+        </>
+      }>
+      <ScreenHeader title="Create an event" subtitle="It goes on the map at the spot you picked. Anyone can join." />
 
-      <View style={{ gap: spacing.sm }}>
-        <AppText variant="caption">Pick an emoji — it's the pin on the map</AppText>
-        <View accessibilityRole="radiogroup" accessibilityLabel="Event emoji" style={styles.wrap}>
+      <FormSection label="Pick an emoji — it's the pin on the map">
+        <View accessibilityRole="radiogroup" accessibilityLabel="Event emoji" style={[styles.wrap, { gap: spacing.sm }]}>
           {EVENT_EMOJIS.map((option) => {
             const selected = emoji === option;
             let backgroundColor = colors.surfaceMuted;
@@ -114,7 +116,7 @@ export default function NewEvent() {
             );
           })}
         </View>
-      </View>
+      </FormSection>
 
       <TextField
         label="What's happening?"
@@ -134,21 +136,27 @@ export default function NewEvent() {
         placeholder="e.g. Whoever wants to join, join. I'll be at the big table."
       />
 
-      <View style={{ gap: spacing.sm }}>
-        <AppText variant="caption">Starts</AppText>
+      <FormSection label="Starts">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`Starts ${formatStartTime(startsAt)}. Change`}
           onPress={pickStart}
           style={[
             styles.startRow,
-            { borderRadius: radius.md, backgroundColor: colors.surface, borderColor: colors.inputBorder },
+            {
+              minHeight: layout.controlHeight,
+              paddingHorizontal: spacing.lg,
+              gap: spacing.md,
+              borderRadius: radius.md,
+              backgroundColor: colors.surface,
+              borderColor: colors.inputBorder,
+            },
           ]}>
-          <Ionicons name="calendar-outline" size={20} color={colors.greenText} />
+          <Ionicons name="calendar-outline" size={size.iconMedium} color={colors.greenText} />
           <AppText variant="bodyStrong" style={{ flex: 1 }}>
             {formatStartTime(startsAt)}
           </AppText>
-          <AppText variant="caption" color="greenText">
+          <AppText variant="fieldLabel" color="greenText">
             Change
           </AppText>
         </Pressable>
@@ -168,21 +176,17 @@ export default function NewEvent() {
         <AppText variant="caption" color="textSecondary">
           Any time from now up to a week ahead.
         </AppText>
-      </View>
+      </FormSection>
 
       <InfoNote icon="chatbubbles-outline">Everyone who joins is added to the event's group chat.</InfoNote>
-
-      <View style={{ gap: spacing.sm }}>
-        <Button label="Post event" onPress={post} loading={busy} disabled={!title.trim()} haptic />
-        <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
-      </View>
-    </ScrollView>
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  emoji: { width: 52, height: 52, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap' },
+  // Four to a row on every screen width: 22% leaves room for the gaps, and flexGrow fills the rest.
+  emoji: { flexBasis: '22%', flexGrow: 1, height: 52, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
   emojiGlyph: { fontSize: 26, lineHeight: 32 },
-  startRow: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 16, borderWidth: 1 },
+  startRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1 },
 });

@@ -1,42 +1,46 @@
 // The people you've blocked, with unblock.
 
-import { FlatList, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { unblockUser, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Blocked() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, size, spacing } = useTheme();
   const names = useStore((state) => state.blockedNames);
   const entries = Object.entries(names);
 
   return (
     <FlatList
       style={{ backgroundColor: colors.background }}
-      contentContainerStyle={{ padding: spacing.xxl, gap: spacing.md, flexGrow: 1 }}
+      contentContainerStyle={{
+        paddingHorizontal: layout.screenPadding,
+        paddingVertical: spacing.lg,
+        gap: spacing.sm,
+        flexGrow: 1,
+      }}
       data={entries}
       keyExtractor={([id]) => id}
       renderItem={({ item: [id, name] }) => (
-        <View style={styles.row}>
-          <Avatar name={name} photoUri={null} size={48} />
-          <AppText variant="bodyStrong" style={{ flex: 1 }}>
+        <Card padding="compact" style={{ ...styles.row, gap: spacing.md }}>
+          <Avatar name={name} photoUri={null} size={size.avatarMedium} />
+          <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
             {name}
           </AppText>
-          <Button label="Unblock" variant="secondary" onPress={() => unblockUser(id)} style={{ minHeight: 44 }} />
-        </View>
+          <Button label="Unblock" variant="secondary" size="compact" onPress={() => unblockUser(id)} />
+        </Card>
       )}
-      ListEmptyComponent={
-        <AppText color="textSecondary" align="center" style={{ marginTop: spacing.huge }}>
-          You haven't blocked anyone.
-        </AppText>
-      }
+      ListEmptyComponent={<EmptyState icon="people-outline" title="You haven't blocked anyone." />}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 56 },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  name: { flex: 1 },
 });

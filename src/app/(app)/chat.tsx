@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
-import { Button, IconButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
+import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import { SafetyMenu } from '@/components/safety/safety-menu';
@@ -17,7 +18,7 @@ const SAFETY_TIP_TIMES = 3;
 
 /** The 1:1 chat with your yap partner, opened when a request is accepted. */
 export default function Chat() {
-  const { colors, spacing } = useTheme();
+  const { colors, size, spacing } = useTheme();
   const chat = useStore((state) => state.chat);
   const tipViews = useStore((state) => state.safetyTipViews);
   const [showTip, setShowTip] = useState(() => tipViews < SAFETY_TIP_TIMES); // decided once per chat
@@ -63,31 +64,31 @@ export default function Chat() {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View
-        style={[
-          styles.header,
-          { borderBottomColor: colors.border, paddingHorizontal: spacing.md, gap: spacing.sm },
-        ]}>
-        {/* Going back keeps the chat alive; the bar on Go live and Nearby reopens it. */}
-        <IconButton icon="chevron-back" label="Back" onPress={() => router.back()} />
+      {/* Going back keeps the chat alive; the bar on Go live and Nearby reopens it. */}
+      <ChatHeader
+        onBack={() => router.back()}
+        trailing={
+          <>
+            <SafetyMenu userId={other.id} firstName={displayName(other)} />
+            <Button label="End" variant="secondary" size="compact" onPress={end} />
+          </>
+        }>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`${displayName(other)}. View profile`}
           onPress={() => router.push({ pathname: '/person/[id]', params: { id: other.id } })}
           style={[styles.who, { gap: spacing.sm }]}>
-          <Avatar name={other.firstName} photoUri={other.photoUri} size={44} />
+          <Avatar name={other.firstName} photoUri={other.photoUri} size={size.avatarSmall} />
           <View style={styles.flex}>
             <AppText variant="bodyStrong" numberOfLines={1}>
               {displayName(other)}
             </AppText>
-            <AppText variant="caption" color="greenText">
+            <AppText variant="caption" color="greenText" numberOfLines={1}>
               Your yap partner — go say hi
             </AppText>
           </View>
         </Pressable>
-        <SafetyMenu userId={other.id} firstName={displayName(other)} />
-        <Button label="End" variant="secondary" onPress={end} style={{ minHeight: 44, paddingHorizontal: 16 }} />
-      </View>
+      </ChatHeader>
 
       <ChatThread
         messages={chat.messages}
@@ -103,6 +104,5 @@ export default function Chat() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', minHeight: 64, borderBottomWidth: StyleSheet.hairlineWidth },
-  who: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  who: { flexDirection: 'row', alignItems: 'center' },
 });

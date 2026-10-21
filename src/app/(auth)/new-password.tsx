@@ -3,13 +3,13 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { TopBar } from '@/components/ui/top-bar';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
 import { passwordProblem } from '@/lib/password-problem';
@@ -46,13 +46,8 @@ export default function NewPassword() {
     <Screen
       scroll
       footer={<Button label="Save and sign in" onPress={save} loading={saving} disabled={!canSave} />}>
-      <View style={{ alignSelf: 'flex-start' }}>
-        <IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />
-      </View>
-      <AppText variant="title" accessibilityRole="header">
-        Choose a new password
-      </AppText>
-      <AppText color="textSecondary">You'll use it with your email to sign in from now on.</AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader title="Choose a new password" subtitle="You'll use it with your email to sign in from now on." />
       <PasswordField
         label="New password"
         value={password}

@@ -8,9 +8,11 @@ import { useTheme } from '@/theme';
 
 type Props = { photos: string[]; onChange: (photos: string[]) => void };
 
-/** Grid of photo slots: the first few are required, the rest optional. */
+const COLUMNS = 3;
+
+/** Grid of photo slots, three to a row: the first few are required, the rest optional. */
 export function PhotoGrid({ photos, onChange }: Props) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, size, spacing } = useTheme();
 
   const addPhotos = async () => {
     const remaining = PHOTO_RANGE.max - photos.length;
@@ -69,8 +71,8 @@ export function PhotoGrid({ photos, onChange }: Props) {
             },
           ]}>
           <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <View style={[styles.badge, { backgroundColor: colors.surface }]}>
-            <Ionicons name="ellipsis-horizontal" size={14} color={colors.textPrimary} />
+          <View style={[styles.badge, { top: spacing.sm, right: spacing.sm, backgroundColor: colors.surface }]}>
+            <Ionicons name="ellipsis-horizontal" size={size.iconSmall} color={colors.textPrimary} />
           </View>
         </Pressable>
       );
@@ -99,20 +101,36 @@ export function PhotoGrid({ photos, onChange }: Props) {
             borderStyle: 'dashed',
           },
         ]}>
-        <Ionicons name="add" size={28} color={colors.textSecondary} />
+        <Ionicons name="add" size={size.iconLarge} color={colors.textSecondary} />
       </Pressable>
     );
   };
 
-  const slotIndexes = Array.from({ length: PHOTO_RANGE.max }, (_, index) => index);
+  // Rows of equal-width slots, so the grid stays three across on every screen width.
+  const rows: number[][] = [];
+  for (let start = 0; start < PHOTO_RANGE.max; start += COLUMNS) {
+    const row: number[] = [];
+    for (let index = start; index < start + COLUMNS && index < PHOTO_RANGE.max; index += 1) {
+      row.push(index);
+    }
+    rows.push(row);
+  }
 
-  return <View style={styles.grid}>{slotIndexes.map((index) => renderSlot(index))}</View>;
+  return (
+    <View style={{ gap: spacing.sm }}>
+      {rows.map((row) => (
+        <View key={row[0]} style={[styles.row, { gap: spacing.sm }]}>
+          {row.map((index) => renderSlot(index))}
+        </View>
+      ))}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  row: { flexDirection: 'row' },
   slot: {
-    width: '31%',
+    flex: 1,
     aspectRatio: 3 / 4,
     alignItems: 'center',
     justifyContent: 'center',
@@ -121,11 +139,9 @@ const styles = StyleSheet.create({
   },
   badge: {
     position: 'absolute',
-    right: 6,
-    top: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },

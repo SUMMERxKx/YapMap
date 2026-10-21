@@ -2,25 +2,23 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, Linking } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { DurationChips } from '@/components/live/duration-chips';
+import { FormSection } from '@/components/ui/form-section';
 import { InfoNote } from '@/components/ui/info-note';
+import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { LIMITS } from '@/data/constants';
 import { useForegroundLocation } from '@/hooks/use-foreground-location';
 import { errorMessage } from '@/lib/error-message';
 import { goGreen, updateNote, useStore } from '@/state/store';
-import { useTheme } from '@/theme';
 
 export default function GoAvailable() {
   const { mode } = useLocalSearchParams<{ mode?: 'edit' }>();
   const editing = mode === 'edit';
-  const { spacing } = useTheme();
-  const insets = useSafeAreaInsets();
   const current = useStore((state) => state.availability);
   const [minutes, setMinutes] = useState<30 | 60 | 120>(current?.minutes ?? 60);
   const [note, setNote] = useState(current?.note ?? '');
@@ -86,21 +84,22 @@ export default function GoAvailable() {
   }
 
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: spacing.xxl, paddingBottom: insets.bottom + spacing.xxl, gap: spacing.xl }}
-      keyboardShouldPersistTaps="handled">
-      <View style={{ gap: spacing.xs }}>
-        <AppText variant="title" accessibilityRole="header">
-          {title}
-        </AppText>
-        <AppText color="textSecondary">{subtitle}</AppText>
-      </View>
+    <Screen
+      scroll
+      surface="surface"
+      edges={['bottom']}
+      footer={
+        <>
+          {mainButton}
+          <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
+        </>
+      }>
+      <ScreenHeader title={title} subtitle={subtitle} />
 
       {!editing && (
-        <View style={{ gap: spacing.sm }}>
-          <AppText variant="caption">Duration</AppText>
+        <FormSection label="Duration">
           <DurationChips value={minutes} onChange={setMinutes} />
-        </View>
+        </FormSection>
       )}
 
       <TextField
@@ -113,11 +112,6 @@ export default function GoAvailable() {
       />
 
       {locationNote}
-
-      <View style={{ gap: spacing.sm }}>
-        {mainButton}
-        <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
-      </View>
-    </ScrollView>
+    </Screen>
   );
 }

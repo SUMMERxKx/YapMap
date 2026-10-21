@@ -2,13 +2,14 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Alert, View } from 'react-native';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PersonDetails } from '@/components/profile/person-details';
 import { SafetyMenu } from '@/components/safety/safety-menu';
+import { Screen } from '@/components/ui/screen';
+import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
 import type { NearbyPerson } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
@@ -18,8 +19,7 @@ import { useTheme } from '@/theme';
 
 export default function PersonSheet() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors, spacing } = useTheme();
-  const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const blockedIds = useStore((state) => state.blockedIds);
   const outgoing = useStore((state) => state.outgoing);
   const chatPartner = useStore((state) => state.chat?.other);
@@ -86,21 +86,13 @@ export default function PersonSheet() {
   }
 
   return (
-    <ScrollView
-      style={{ backgroundColor: colors.surface }}
-      contentContainerStyle={{ padding: spacing.xxl, paddingBottom: insets.bottom + spacing.xxl, gap: spacing.xl }}>
-      <View style={styles.topRow}>
-        <IconButton icon="close" label="Close" onPress={() => router.back()} />
-        <SafetyMenu userId={person.id} firstName={displayName(person)} onBlocked={() => router.back()} />
-      </View>
+    <Screen scroll surface="surface" edges={['bottom']} footer={action}>
+      <TopBar
+        leading={<IconButton icon="close" label="Close" onPress={() => router.back()} />}
+        trailing={<SafetyMenu userId={person.id} firstName={displayName(person)} onBlocked={() => router.back()} />}
+      />
 
       <PersonDetails person={person} />
-
-      {action}
-    </ScrollView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', justifyContent: 'space-between' },
-});

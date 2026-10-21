@@ -23,19 +23,33 @@ export function Screen({
   edges = ['top', 'bottom'],
   surface = 'background',
 }: Props) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
+
+  // The same edges on every screen: the side padding lines content up with the top bar,
+  // and the bottom padding is smaller when a pinned footer follows.
+  let paddingBottom: number = spacing.xxl;
+  if (footer) {
+    paddingBottom = spacing.sm;
+  }
+  const contentStyle = {
+    paddingHorizontal: layout.screenPadding,
+    paddingTop: spacing.lg,
+    paddingBottom,
+    gap: layout.stackGap,
+  };
 
   let body;
   if (scroll) {
     body = (
       <ScrollView
-        contentContainerStyle={{ padding: spacing.xxl, gap: spacing.lg, flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled">
+        contentContainerStyle={[contentStyle, styles.grow]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="interactive">
         {children}
       </ScrollView>
     );
   } else {
-    body = <View style={{ flex: 1, padding: spacing.xxl, gap: spacing.lg }}>{children}</View>;
+    body = <View style={[contentStyle, styles.flex]}>{children}</View>;
   }
 
   let keyboardBehavior: 'padding' | undefined;
@@ -49,7 +63,13 @@ export function Screen({
       <KeyboardAvoidingView style={styles.flex} behavior={keyboardBehavior}>
         {body}
         {Boolean(footer) && (
-          <View style={{ paddingHorizontal: spacing.xxl, paddingBottom: spacing.lg, gap: spacing.sm }}>
+          <View
+            style={{
+              paddingHorizontal: layout.screenPadding,
+              paddingTop: spacing.md,
+              paddingBottom: spacing.lg,
+              gap: spacing.sm,
+            }}>
             {footer}
           </View>
         )}
@@ -58,4 +78,4 @@ export function Screen({
   );
 }
 
-const styles = StyleSheet.create({ flex: { flex: 1 } });
+const styles = StyleSheet.create({ flex: { flex: 1 }, grow: { flexGrow: 1 } });

@@ -12,6 +12,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Chip } from '@/components/ui/chip';
+import { FormSection } from '@/components/ui/form-section';
 import { InfoNote } from '@/components/ui/info-note';
 import { PhotoGrid } from '@/components/profile/photo-grid';
 import { TextField } from '@/components/ui/text-field';
@@ -26,7 +27,7 @@ type Props = {
 };
 
 export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = true }: Props) {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, size, spacing } = useTheme();
   const [photoUri, setPhotoUri] = useState<string | null>(initial?.photoUri ?? null);
   const [photos, setPhotos] = useState<string[]>(initial?.photos ?? []);
   const [firstName, setFirstName] = useState(initial?.firstName ?? '');
@@ -101,19 +102,19 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const showMissing = tried && missing.length > 0;
 
   return (
-    <View style={{ gap: spacing.xl }}>
+    <View style={{ gap: layout.sectionGap }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={photoButtonLabel}
         onPress={pick}
-        style={styles.photoRow}>
+        style={[styles.photoRow, { gap: spacing.lg }]}>
         <View>
-          <Avatar name={firstName || '?'} photoUri={photoUri} size={96} />
+          <Avatar name={firstName || '?'} photoUri={photoUri} size={size.avatarXL} />
           <View style={[styles.camera, { backgroundColor: colors.green, borderColor: colors.background }]}>
-            <Ionicons name="camera" size={16} color={colors.onGreen} />
+            <Ionicons name="camera" size={size.iconSmall} color={colors.onGreen} />
           </View>
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
+        <View style={{ flex: 1, gap: spacing.xs }}>
           <AppText variant="bodyStrong">
             Profile picture <AppText variant="bodyStrong" color="destructive">*</AppText>
           </AppText>
@@ -126,18 +127,12 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </View>
       </Pressable>
 
-      <View style={{ gap: spacing.sm }}>
-        <AppText variant="caption">
-          More photos <AppText variant="caption" color="destructive">*</AppText>
-        </AppText>
-        <AppText variant="caption" color="textSecondary">
-          At least {PHOTO_RANGE.min}, up to {PHOTO_RANGE.max}.
-        </AppText>
+      <FormSection label="More photos" required hint={`At least ${PHOTO_RANGE.min}, up to ${PHOTO_RANGE.max}.`}>
         <PhotoGrid photos={photos} onChange={setPhotos} />
-      </View>
+      </FormSection>
 
       <View style={{ gap: spacing.sm }}>
-        <View style={styles.nameRow}>
+        <View style={[styles.nameRow, { gap: spacing.md }]}>
           <View style={styles.flex}>
             <TextField
               label="First name"
@@ -168,11 +163,8 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </AppText>
       </View>
 
-      <View style={{ gap: spacing.sm }}>
-        <AppText variant="caption">
-          Gender <AppText variant="caption" color="destructive">*</AppText>
-        </AppText>
-        <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={styles.wrap}>
+      <FormSection label="Gender" required>
+        <View accessibilityRole="radiogroup" accessibilityLabel="Gender" style={[styles.wrap, { gap: spacing.sm }]}>
           {GENDERS.map((option) => (
             <Chip
               key={option.value}
@@ -189,7 +181,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
           onChange={setShowGender}
           disabled={gender === 'prefer-not'}
         />
-      </View>
+      </FormSection>
 
       <TextField
         label="Intro"
@@ -202,19 +194,12 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         placeholder="e.g. Studying computer science, always up for talking about startups, films or the best coffee in town."
       />
 
-      <View style={{ gap: spacing.sm }}>
-        <View style={styles.labelRow}>
-          <AppText variant="caption">
-            Interests <AppText variant="caption" color="destructive">*</AppText>
-          </AppText>
-          <AppText variant="caption" color="textSecondary">
-            {interests.length}/{INTEREST_RANGE.max}
-          </AppText>
-        </View>
-        <AppText variant="caption" color="textSecondary">
-          Pick {INTEREST_RANGE.min} to {INTEREST_RANGE.max}, so people have something to talk about.
-        </AppText>
-        <View style={styles.wrap}>
+      <FormSection
+        label="Interests"
+        required
+        count={`${interests.length}/${INTEREST_RANGE.max}`}
+        hint={`Pick ${INTEREST_RANGE.min} to ${INTEREST_RANGE.max}, so people have something to talk about.`}>
+        <View style={[styles.wrap, { gap: spacing.sm }]}>
           {INTERESTS.map((interest) => {
             const selected = interests.includes(interest);
             return (
@@ -228,7 +213,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
             );
           })}
         </View>
-      </View>
+      </FormSection>
 
       {showAgeCheck && (
         <Checkbox checked={isAdult} onChange={setIsAdult} label="I confirm I am 18 or older">
@@ -252,7 +237,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  photoRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  photoRow: { flexDirection: 'row', alignItems: 'center' },
   camera: {
     position: 'absolute',
     right: -6,
@@ -264,7 +249,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  nameRow: { flexDirection: 'row', gap: 12 },
-  labelRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  nameRow: { flexDirection: 'row' },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap' },
 });

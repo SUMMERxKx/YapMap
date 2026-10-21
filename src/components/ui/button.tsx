@@ -1,4 +1,4 @@
-// Buttons: one pill Button with variants, and a round IconButton for icon-only actions.
+// Buttons: one pill Button with variants and two sizes, and a round IconButton for icon-only actions.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
@@ -9,12 +9,17 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'inverse' | 'destructive' | 'destructiveSoft';
+// `link` is a text-only action (e.g. "Forgot password?") that lines up with the text around it.
+type Variant = 'primary' | 'secondary' | 'ghost' | 'link' | 'inverse' | 'destructive' | 'destructiveSoft';
+
+// `compact` is the smaller button that sits inside a header or a row.
+type Size = 'regular' | 'compact';
 
 type Props = {
   label: string;
   onPress: () => void;
   variant?: Variant;
+  size?: Size;
   icon?: ComponentProps<typeof Ionicons>['name'];
   loading?: boolean;
   disabled?: boolean;
@@ -27,6 +32,7 @@ export function Button({
   label,
   onPress,
   variant = 'primary',
+  size = 'regular',
   icon,
   loading,
   disabled,
@@ -34,13 +40,14 @@ export function Button({
   style,
   accessibilityHint,
 }: Props) {
-  const { colors, radius } = useTheme();
+  const { colors, layout, radius, spacing, size: sizes } = useTheme();
 
   // Colours for each variant: background, background while pressed, text/icon, border.
   const looks = {
     primary: { bg: colors.green, pressed: colors.greenPressed, fg: colors.onGreen, border: undefined },
     secondary: { bg: colors.surfaceMuted, pressed: colors.border, fg: colors.textPrimary, border: colors.border },
     ghost: { bg: 'transparent', pressed: colors.surfaceMuted, fg: colors.textPrimary, border: undefined },
+    link: { bg: 'transparent', pressed: 'transparent', fg: colors.greenText, border: undefined },
     // Black in light mode, white in dark mode: Apple's sign-in button guidelines.
     inverse: { bg: colors.textPrimary, pressed: colors.textSecondary, fg: colors.background, border: undefined },
     destructive: {
@@ -72,6 +79,22 @@ export function Button({
     opacity = 0.5;
   }
 
+  // Regular buttons are full height; compact ones fit in a header row; links have no padding
+  // so their text lines up with the text around them.
+  let minHeight: number = layout.controlHeight;
+  let paddingHorizontal: number = spacing.xl;
+  let labelVariant: 'button' | 'bodyStrong' | 'fieldLabel' = 'button';
+  if (size === 'compact') {
+    minHeight = layout.touchTarget;
+    paddingHorizontal = spacing.lg;
+    labelVariant = 'fieldLabel';
+  }
+  if (variant === 'link') {
+    minHeight = layout.touchTarget;
+    paddingHorizontal = 0;
+    labelVariant = 'bodyStrong';
+  }
+
   const handlePress = () => {
     if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress();
@@ -80,18 +103,24 @@ export function Button({
   const buttonStyle = ({ pressed }: { pressed: boolean }) => {
     let backgroundColor = look.bg;
     let scale = 1;
+    let pressedOpacity = opacity;
     if (pressed) {
       backgroundColor = look.pressed;
       scale = 0.98;
     }
+    if (pressed && variant === 'link') {
+      pressedOpacity = 0.6; // a link has no background to darken, so it dims instead
+    }
     return [
       styles.base,
       {
+        minHeight,
+        paddingHorizontal,
         borderRadius: radius.pill,
         backgroundColor,
         borderColor: look.border,
         borderWidth,
-        opacity,
+        opacity: pressedOpacity,
         transform: [{ scale }],
       },
       style,
@@ -104,8 +133,8 @@ export function Button({
   } else {
     content = (
       <View style={styles.row}>
-        {icon !== undefined && <Ionicons name={icon} size={20} color={look.fg} />}
-        <AppText variant="button" style={{ color: look.fg }}>
+        {icon !== undefined && <Ionicons name={icon} size={sizes.iconMedium} color={look.fg} />}
+        <AppText variant={labelVariant} align="center" style={[styles.label, { color: look.fg }]}>
           {label}
         </AppText>
       </View>
@@ -134,14 +163,22 @@ type IconButtonProps = {
 };
 
 export function IconButton({ icon, label, onPress }: IconButtonProps) {
-  const { colors } = useTheme();
+  const { colors, layout, size } = useTheme();
 
   const iconButtonStyle = ({ pressed }: { pressed: boolean }) => {
     let backgroundColor = colors.surfaceMuted;
     if (pressed) {
       backgroundColor = colors.border;
     }
-    return [styles.icon, { backgroundColor }];
+    return [
+      styles.icon,
+      {
+        width: layout.touchTarget,
+        height: layout.touchTarget,
+        borderRadius: layout.touchTarget / 2,
+        backgroundColor,
+      },
+    ];
   };
 
   return (
@@ -151,24 +188,20 @@ export function IconButton({ icon, label, onPress }: IconButtonProps) {
       onPress={onPress}
       hitSlop={4}
       style={iconButtonStyle}>
-      <Ionicons name={icon} size={22} color={colors.textPrimary} />
+      <Ionicons name={icon} size={size.iconLarge} color={colors.textPrimary} />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: 52,
-    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  label: { flexShrink: 1 },
   icon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },

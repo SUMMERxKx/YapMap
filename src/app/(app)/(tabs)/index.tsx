@@ -14,7 +14,7 @@ import { useTheme } from '@/theme';
 
 /** Go live: just the button. Green YAP to go live, red while live, tap again to get off. */
 export default function GoLive() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const availability = useStore((state) => state.availability);
   const expired = useStore((state) => state.availabilityExpired);
   const left = useCountdown(availability?.expiresAt);
@@ -70,18 +70,18 @@ export default function GoLive() {
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       <GlassBackdrop tint={backdropTint} />
-      <View style={[styles.header, { paddingHorizontal: spacing.xxl }]}>
+      <View style={[styles.header, { paddingHorizontal: layout.screenPadding }]}>
         <AppText variant="heading" style={{ color: colors.green, fontWeight: '800' }}>
           Yap
         </AppText>
       </View>
 
-      <View style={{ paddingHorizontal: spacing.xxl }}>
+      <View style={{ paddingHorizontal: layout.screenPadding }}>
         <ActiveChatBar />
       </View>
 
       {expired && !live && (
-        <View style={{ paddingHorizontal: spacing.xxl }}>
+        <View style={{ paddingHorizontal: layout.screenPadding }}>
           <InfoNote icon="time-outline" title="Your time's up." onDismiss={dismissExpired}>
             You're no longer visible. Tap YAP whenever you want to go live again.
           </InfoNote>

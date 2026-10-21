@@ -31,7 +31,7 @@ export function ChatThread({
   header,
   onLongPressMessage,
 }: Props) {
-  const { colors, radius, spacing, type } = useTheme();
+  const { colors, layout, radius, size, spacing, type } = useTheme();
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
 
@@ -51,7 +51,7 @@ export function ChatThread({
 
   let footer = null;
   if (header) {
-    footer = <View style={{ marginBottom: spacing.md }}>{header}</View>;
+    footer = <View style={{ marginBottom: spacing.lg }}>{header}</View>;
   }
 
   const renderMessage = ({ item, index }: { item: Message; index: number }) => {
@@ -60,6 +60,11 @@ export function ChatThread({
     const older = newestFirst[index + 1];
     const sameSenderAsOlder = older?.senderId === item.senderId;
     const showName = Boolean(showSenderNames) && !mine && !sameSenderAsOlder;
+    // Messages in a row from the same person sit close together; a new sender gets more room.
+    let marginTop: number = spacing.md;
+    if (sameSenderAsOlder) {
+      marginTop = spacing.xs;
+    }
 
     let senderLabel = item.senderName;
     let onLongPress: (() => void) | undefined;
@@ -67,7 +72,7 @@ export function ChatThread({
     let bubbleColor = colors.surface;
     let bubbleBorderColor = colors.border;
     let bottomRightRadius: number = radius.lg;
-    let bottomLeftRadius: number = 6;
+    let bottomLeftRadius: number = radius.xs;
     let textColor = colors.textPrimary;
 
     if (mine) {
@@ -75,7 +80,7 @@ export function ChatThread({
       rowAlign = 'flex-end';
       bubbleColor = colors.green;
       bubbleBorderColor = colors.green;
-      bottomRightRadius = 6;
+      bottomRightRadius = radius.xs;
       bottomLeftRadius = radius.lg;
       textColor = colors.onGreen;
     } else if (onLongPressMessage) {
@@ -87,10 +92,10 @@ export function ChatThread({
         accessibilityRole="text"
         accessibilityLabel={`${senderLabel}: ${item.text}`}
         onLongPress={onLongPress}
-        style={[styles.row, { justifyContent: rowAlign }]}>
-        <View style={{ maxWidth: '80%', gap: 2 }}>
+        style={[styles.row, { justifyContent: rowAlign, marginTop }]}>
+        <View style={{ maxWidth: '80%', gap: spacing.xs }}>
           {showName && (
-            <AppText variant="caption" color="textSecondary" style={{ marginLeft: 4 }}>
+            <AppText variant="caption" color="textSecondary" style={{ marginLeft: spacing.md }}>
               {item.senderName}
             </AppText>
           )}
@@ -98,6 +103,8 @@ export function ChatThread({
             style={[
               styles.bubble,
               {
+                paddingHorizontal: spacing.md + spacing.xxs,
+                paddingVertical: spacing.sm + spacing.xxs,
                 backgroundColor: bubbleColor,
                 borderColor: bubbleBorderColor,
                 borderRadius: radius.lg,
@@ -123,7 +130,7 @@ export function ChatThread({
   let composerContent;
   if (disabled) {
     composerContent = (
-      <AppText color="textSecondary" align="center" style={{ flex: 1, paddingVertical: spacing.md }}>
+      <AppText color="textSecondary" align="center" style={{ flex: 1, paddingVertical: spacing.md, minHeight: layout.touchTarget }}>
         {disabledText}
       </AppText>
     );
@@ -145,7 +152,9 @@ export function ChatThread({
               color: colors.textPrimary,
               backgroundColor: colors.background,
               borderColor: colors.inputBorder,
-              borderRadius: radius.xl,
+              borderRadius: layout.touchTarget / 2,
+              minHeight: layout.touchTarget,
+              paddingHorizontal: spacing.lg,
             },
           ]}
         />
@@ -155,8 +164,16 @@ export function ChatThread({
           accessibilityState={{ disabled: !canSend }}
           disabled={!canSend}
           onPress={send}
-          style={[styles.send, { backgroundColor: sendBackground }]}>
-          <Ionicons name="arrow-up" size={22} color={sendIconColor} />
+          style={[
+            styles.send,
+            {
+              width: layout.touchTarget,
+              height: layout.touchTarget,
+              borderRadius: layout.touchTarget / 2,
+              backgroundColor: sendBackground,
+            },
+          ]}>
+          <Ionicons name="arrow-up" size={size.iconLarge} color={sendIconColor} />
         </Pressable>
       </>
     );
@@ -169,7 +186,7 @@ export function ChatThread({
         inverted
         data={newestFirst}
         keyExtractor={(message) => message.id}
-        contentContainerStyle={{ padding: spacing.lg, gap: spacing.sm }}
+        contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.lg }}
         ListFooterComponent={footer}
         renderItem={renderMessage}
       />
@@ -180,8 +197,9 @@ export function ChatThread({
           {
             borderTopColor: colors.border,
             backgroundColor: colors.surface,
+            paddingTop: spacing.sm,
             paddingBottom: Math.max(insets.bottom, spacing.sm),
-            paddingHorizontal: spacing.lg,
+            paddingHorizontal: spacing.md,
             gap: spacing.sm,
           },
         ]}>
@@ -194,8 +212,8 @@ export function ChatThread({
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   row: { flexDirection: 'row' },
-  bubble: { paddingHorizontal: 14, paddingVertical: 10, borderWidth: StyleSheet.hairlineWidth },
-  composer: { flexDirection: 'row', alignItems: 'flex-end', paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth },
-  input: { flex: 1, minHeight: 44, maxHeight: 120, paddingHorizontal: 16, paddingTop: 11, paddingBottom: 11, borderWidth: 1 },
-  send: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  bubble: { borderWidth: StyleSheet.hairlineWidth },
+  composer: { flexDirection: 'row', alignItems: 'flex-end', borderTopWidth: StyleSheet.hairlineWidth },
+  input: { flex: 1, maxHeight: 120, paddingTop: 11, paddingBottom: 11, borderWidth: 1 },
+  send: { alignItems: 'center', justifyContent: 'center' },
 });

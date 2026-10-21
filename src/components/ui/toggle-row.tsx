@@ -33,14 +33,15 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
         styles.row,
         {
           gap: spacing.md,
-          padding: spacing.md,
-          borderRadius: radius.lg,
+          paddingVertical: spacing.md,
+          paddingHorizontal: spacing.lg,
+          borderRadius: radius.md,
           backgroundColor: colors.surface,
           borderColor: colors.border,
           opacity,
         },
       ]}>
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: spacing.xxs }}>
         <AppText variant="bodyStrong">{label}</AppText>
         {Boolean(description) && (
           <AppText variant="caption" color="textSecondary">
@@ -63,5 +64,5 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', minHeight: 56, borderWidth: StyleSheet.hairlineWidth },
+  row: { flexDirection: 'row', alignItems: 'center', minHeight: 56, borderWidth: 1 },
 });

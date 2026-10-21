@@ -13,7 +13,7 @@ import { useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
 
 export default function SetupStart() {
-  const { colors, spacing } = useTheme();
+  const { colors, layout, spacing } = useTheme();
   const { draft, update } = useProfileDraft();
 
   return (
@@ -30,11 +30,10 @@ export default function SetupStart() {
             label="Let's go"
             onPress={() => router.push('/profile-setup/name')}
             disabled={!draft.isAdult}
-            style={{ marginTop: spacing.sm }}
           />
         </>
       }>
-      <View style={[styles.center, { gap: spacing.md }]}>
+      <View style={[styles.center, { gap: spacing.md, paddingHorizontal: spacing.sm }]}>
         <View
           style={[styles.mark, { backgroundColor: colors.greenSoft }]}
           accessibilityElementsHidden
@@ -44,10 +43,10 @@ export default function SetupStart() {
         <AppText variant="display" align="center" accessibilityRole="header">
           Hey! Let's create your profile
         </AppText>
-        <AppText color="textSecondary" align="center" style={{ maxWidth: 320 }}>
+        <AppText color="textSecondary" align="center" style={{ maxWidth: layout.maxTextWidth }}>
           A few quick questions so people nearby know who they're saying hi to. It takes about a minute.
         </AppText>
-        <View style={[styles.rule, { backgroundColor: colors.green }]} />
+        <View style={[styles.rule, { backgroundColor: colors.green, marginTop: spacing.sm }]} />
       </View>
     </Screen>
   );
@@ -56,5 +55,5 @@ export default function SetupStart() {
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   mark: { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center' },
-  rule: { width: 48, height: 4, borderRadius: 2, marginTop: 8 },
+  rule: { width: 48, height: 4, borderRadius: 2 },
 });

@@ -17,7 +17,7 @@ type Props = {
 };
 
 export function InfoNote({ icon = 'information-circle-outline', tone = 'neutral', title, children, onDismiss }: Props) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, size, spacing } = useTheme();
   const looks = {
     neutral: { bg: colors.surfaceMuted, fg: colors.textSecondary, icon: colors.textSecondary },
     green: { bg: colors.greenSoft, fg: colors.greenText, icon: colors.greenText },
@@ -27,8 +27,12 @@ export function InfoNote({ icon = 'information-circle-outline', tone = 'neutral'
   const look = looks[tone];
 
   return (
-    <View style={[styles.box, { backgroundColor: look.bg, borderRadius: radius.lg, padding: spacing.md, gap: spacing.sm }]}>
-      <Ionicons name={icon} size={20} color={look.icon} style={{ marginTop: 1 }} />
+    <View
+      style={[
+        styles.box,
+        { backgroundColor: look.bg, borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.lg, gap: spacing.md },
+      ]}>
+      <Ionicons name={icon} size={size.iconMedium} color={look.icon} />
       <AppText variant="caption" style={{ color: look.fg, flex: 1 }}>
         {Boolean(title) && (
           <AppText variant="caption" style={{ color: look.fg, fontWeight: '700' }}>
@@ -39,7 +43,7 @@ export function InfoNote({ icon = 'information-circle-outline', tone = 'neutral'
       </AppText>
       {onDismiss !== undefined && (
         <Pressable accessibilityRole="button" accessibilityLabel="Dismiss" onPress={onDismiss} hitSlop={12}>
-          <Ionicons name="close" size={20} color={look.icon} />
+          <Ionicons name="close" size={size.iconMedium} color={look.icon} />
         </Pressable>
       )}
     </View>
