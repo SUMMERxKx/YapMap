@@ -18,10 +18,12 @@ export default function EventDetails() {
   const insets = useSafeAreaInsets();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const [joining, setJoining] = useState(false);
+  const myId = useStore((state) => state.myId);
 
   if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
-  const hostedByMe = event.host.id === 'me';
+  // Signed out (no myId) means you can't be the host.
+  const hostedByMe = myId !== null && event.host.id === myId;
   let hostName = `${event.host.firstName} ${event.host.lastInitial}.`;
   if (hostedByMe) {
     hostName = 'You';
