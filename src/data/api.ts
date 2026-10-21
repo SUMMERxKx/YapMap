@@ -3,7 +3,7 @@
 // server-side (proximity, blocks, rate limits). Screens and the store never import
 // supabase directly; they call these.
 
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type RealtimeChannel } from '@supabase/supabase-js';
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
@@ -96,13 +96,14 @@ export function onAuthStateChange(onChange: (signedIn: boolean) => void) {
 
 export async function signOut() {
   const { error } = await supabase.auth.signOut();
-  if (!error) return;
-  const { error: localError } = await supabase.auth.signOut({ scope: 'local' });
-  if (localError) throw new Error(friendlyAuthError(localError));
+  if (error) throw new Error(friendlyAuthError(error));
 }
 
 /** Turns a Supabase Auth error into a sentence for the screen. */
 function friendlyAuthError(error: { code?: string; message: string }) {
+  if (isAuthRetryableFetchError(error)) {
+    return "You need a connection for this. Try again when you're back online.";
+  }
   if (error.code === 'invalid_credentials') {
     return "Wrong email or password. If you've never set a password, use Forgot password.";
   }
