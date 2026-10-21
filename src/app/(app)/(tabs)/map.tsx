@@ -40,7 +40,8 @@ type FindResult =
 
 /**
  * Finds the user. Asks for "while using the app" permission only when they haven't decided yet,
- * then uses a recent position the phone already has, or else asks for a fresh fix.
+ * then uses a recent position the phone already has, or else asks for a fresh fix, and if that
+ * fails too, uses whatever position the phone last knew, however old.
  */
 async function findUser(): Promise<FindResult> {
   let permission = await Location.getForegroundPermissionsAsync();
@@ -51,22 +52,22 @@ async function findUser(): Promise<FindResult> {
     return { status: 'denied', askAgain: permission.canAskAgain };
   }
 
-  try {
-    const recent = await Location.getLastKnownPositionAsync({ maxAge: RECENT_POSITION_MS });
-    if (recent) {
-      return { status: 'found', latitude: recent.coords.latitude, longitude: recent.coords.longitude };
-    }
-    // Indoors a fresh fix can take a while; whichever finishes first wins, the fix or the timeout.
-    const currentPosition = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-    const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), FIX_TIMEOUT_MS));
-    const current = await Promise.race([currentPosition, timeout]);
-    if (current) {
-      return { status: 'found', latitude: current.coords.latitude, longitude: current.coords.longitude };
-    }
-    return { status: 'unavailable' };
-  } catch {
-    return { status: 'unavailable' };
+  const recent = await Location.getLastKnownPositionAsync({ maxAge: RECENT_POSITION_MS }).catch(() => null);
+  if (recent) {
+    return { status: 'found', latitude: recent.coords.latitude, longitude: recent.coords.longitude };
   }
+  // Indoors a fresh fix can take a while; whichever finishes first wins, the fix or the timeout.
+  const currentPosition = Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), FIX_TIMEOUT_MS));
+  const current = await Promise.race([currentPosition, timeout]).catch(() => null);
+  if (current) {
+    return { status: 'found', latitude: current.coords.latitude, longitude: current.coords.longitude };
+  }
+  const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
+  if (lastKnown) {
+    return { status: 'found', latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+  }
+  return { status: 'unavailable' };
 }
 
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
