@@ -174,9 +174,10 @@ end;
 $$;
 
 -- The other participant's card: the recipient may look at any stage (it's shown on the
--- incoming screen); the sender only once the request was accepted. Nothing at all once either
--- person has blocked the other, and the live note (which says where to find someone) only
--- while the request or chat is still going.
+-- incoming screen); the sender only if the request was accepted at some point (a cancelled
+-- request keeps responded_at when a chat ended, not when it was withdrawn unanswered).
+-- Nothing at all once either person has blocked the other, and the live note (which says
+-- where to find someone) only while the request or chat is still going.
 create or replace function public.request_person(request_id uuid)
 returns jsonb
 language plpgsql stable security definer set search_path = ''
@@ -193,7 +194,10 @@ begin
 
   if req.to_user = uid then
     card := private.person_card(req.from_user);
-  elsif req.from_user = uid and req.status in ('accepted', 'met', 'cancelled') then
+  elsif req.from_user = uid and (
+    req.status in ('accepted', 'met')
+    or (req.status = 'cancelled' and req.responded_at is not null)
+  ) then
     card := private.person_card(req.to_user);
   else
     return null;
@@ -379,7 +383,10 @@ drop function public.go_green (double precision, double precision, double precis
 -- Goes live, or updates your live session. So that a modified app can't hop around to find out
 -- who is live where, a location change (starting a session, or moving more than 150 m) can
 -- happen at most 3 times in 10 minutes, and while you're live a move can't be faster than
--- about 10 km/h (walking pace, with 150 m to spare for GPS wobble). Returns the session's times.
+-- about 10 km/h (walking pace, with 150 m to spare for GPS wobble). A move of 150 m or less is
+-- just GPS wobble: it isn't counted, and your live position and started_at stay as they were,
+-- so small steps can't add up and started_at always says when your live position was set.
+-- Only the times of location changes are kept, never the places. Returns the session's times.
 create function public.go_green(
   lat double precision,
   lng double precision,
@@ -396,6 +403,7 @@ declare
   previous public.availability;
   moved_m double precision;  -- how far from your live position; null when you're not live
   allowed_m double precision;
+  set_at timestamptz := now();  -- when the stored live position was set
   new_state text := 'open';
   saved public.availability;
 begin
@@ -419,9 +427,13 @@ begin
     moved_m := extensions.st_distance(previous.location, here);
   end if;
 
-  if moved_m is null or moved_m > 150 then
+  if moved_m is not null and moved_m <= 150 then
+    -- GPS wobble: stay where you were
+    here := previous.location;
+    set_at := previous.started_at;
+  else
     if moved_m is not null then
-      -- 10 km/h is 10000 m per 3600 s, counted from your last position
+      -- 10 km/h is 10000 m per 3600 s, counted from when your live position was set
       allowed_m := 150 + 10000.0 / 3600 * extract(epoch from now() - previous.started_at);
       if moved_m > allowed_m then raise exception 'moving too fast'; end if;
     end if;
@@ -443,7 +455,7 @@ begin
   end if;
 
   insert into public.availability (user_id, location, accuracy_m, note, state, started_at, expires_at)
-  values (uid, here, accuracy, coalesce(note, ''), new_state, now(), now() + make_interval(mins => minutes))
+  values (uid, here, accuracy, coalesce(note, ''), new_state, set_at, now() + make_interval(mins => minutes))
   on conflict (user_id) do update set
     location = excluded.location,
     accuracy_m = excluded.accuracy_m,
