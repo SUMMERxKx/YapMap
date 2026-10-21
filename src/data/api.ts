@@ -225,7 +225,8 @@ function subscribeAsMe(channel: RealtimeChannel, onSubscribed?: () => void) {
 // ---------------------------------------------------------------- photos
 
 // Photos live in the private `photos` bucket under <userId>/..., and are shown through
-// short-lived signed URLs. Storage policies only let a user write their own folder.
+// short-lived signed URLs. Storage policies only let a user write their own folder, and only
+// sign someone else's photo while the user can see that person (see can_see_photo).
 // Each profile picture also has a small copy next to it (<name>-small.jpg) for avatars.
 
 const SIGNED_URL_SECONDS = 60 * 60;
