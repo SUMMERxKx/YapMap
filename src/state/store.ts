@@ -94,6 +94,12 @@ function teardownRealtime() {
   stopEventMessages = null;
 }
 
+/** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
+function listenForRequests(userId: string) {
+  if (stopIncoming) return;
+  stopIncoming = api.subscribeIncoming(userId, (request) => void onIncoming(request));
+}
+
 // ---------------------------------------------------------------- boot
 
 let initStarted = false;
@@ -131,7 +137,8 @@ async function refreshAfterAuth() {
 
   const profile = await api.fetchMyProfile();
   set({ profile });
-  if (!profile) return; // the layout sends them to profile setup
+  // The layout sends them to profile setup; saveProfile starts listening once it's saved.
+  if (!profile) return;
 
   const blocked = await api.blockedList();
   const blockedIds: string[] = [];
@@ -143,8 +150,7 @@ async function refreshAfterAuth() {
   set({ blockedIds, blockedNames });
 
   // New say-hi requests arrive over Realtime for the whole session.
-  stopIncoming?.();
-  stopIncoming = api.subscribeIncoming(user.id, (request) => void onIncoming(request));
+  listenForRequests(user.id);
 
   // If the app was killed while live or mid-chat, pick up where things stand.
   const status = await api.myStatus();
@@ -212,6 +218,9 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
     keepsVerification = true;
   }
   set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
+  // A new account can be said hi to from now on, so start listening (sign-in only does
+  // this for accounts that already had a profile).
+  listenForRequests(stored.id);
 }
 
 export async function verifySelfie(selfieUri: string) {

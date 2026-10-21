@@ -3,6 +3,7 @@
 // server-side (proximity, blocks, rate limits). Screens and the store never import
 // supabase directly; they call these.
 
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
@@ -129,6 +130,32 @@ async function requireUserId(): Promise<string> {
   const user = await getSessionUser();
   if (!user) throw new Error('Not signed in.');
   return user.id;
+}
+
+// ---------------------------------------------------------------- realtime
+
+/**
+ * Subscribe a channel as the signed-in user. Returns an unsubscribe function.
+ *
+ * Realtime only sends a channel the rows its token may read. Some sign-ins (the Forgot
+ * password code, for one) don't pass the new token to Realtime, and a channel that joins
+ * without it is refused by the database, so nothing ever arrives. Setting the token
+ * first means every channel joins as the user.
+ */
+function subscribeAsMe(channel: RealtimeChannel) {
+  let stopped = false;
+  void supabase.realtime
+    .setAuth()
+    .catch(() => {
+      // Rare (the session couldn't be read); joining anyway beats never joining.
+    })
+    .then(() => {
+      if (!stopped) channel.subscribe();
+    });
+  return () => {
+    stopped = true;
+    void supabase.removeChannel(channel);
+  };
 }
 
 // ---------------------------------------------------------------- photos
@@ -373,7 +400,7 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
     const finish = (outcome: 'accepted' | 'not-this-time') => {
       if (settled) return;
       settled = true;
-      supabase.removeChannel(channel);
+      stopListening();
       clearInterval(poll);
       clearTimeout(timeout);
       resolve(outcome);
@@ -396,8 +423,8 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'chat_requests', filter: `id=eq.${requestId}` },
         (payload) => onStatus((payload.new as { status?: string }).status),
-      )
-      .subscribe();
+      );
+    const stopListening = subscribeAsMe(channel);
 
     const poll = setInterval(async () => {
       const { data } = await supabase.from('chat_requests').select('status').eq('id', requestId).maybeSingle();
@@ -436,11 +463,8 @@ export function subscribeIncoming(userId: string, onRequest: (request: { id: str
         if (row.status !== 'pending') return;
         onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
       },
-    )
-    .subscribe();
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    );
+  return subscribeAsMe(channel);
 }
 
 // ---------------------------------------------------------------- chat
@@ -517,11 +541,8 @@ export function subscribeMessages(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'messages', filter: `${column}=eq.${id}` },
       (payload) => onMessage(toMessage(payload.new as MessageRow, myId)),
-    )
-    .subscribe();
-  return () => {
-    supabase.removeChannel(channel);
-  };
+    );
+  return subscribeAsMe(channel);
 }
 
 // ---------------------------------------------------------------- safety
