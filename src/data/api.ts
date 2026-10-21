@@ -451,12 +451,7 @@ export async function requestPerson(requestId: string): Promise<NearbyPerson | n
   return person ?? null;
 }
 
-/**
- * New requests for me. Realtime delivers them as they're sent; a slow poll also picks up
- * any still waiting that Realtime missed (sent while the phone was offline or the app in
- * the background). The same request can be reported more than once. Returns an
- * unsubscribe function.
- */
+/** New requests for me, delivered over Realtime. Returns an unsubscribe function. */
 export function subscribeIncoming(userId: string, onRequest: (request: { id: string; expiresAt: number }) => void) {
   const channel = supabase
     .channel('incoming-requests')
@@ -469,27 +464,7 @@ export function subscribeIncoming(userId: string, onRequest: (request: { id: str
         onRequest({ id: row.id, expiresAt: Date.parse(row.expires_at) });
       },
     );
-  const stopListening = subscribeAsMe(channel);
-
-  const checkWaiting = async () => {
-    const { data } = await supabase
-      .from('chat_requests')
-      .select('id, expires_at')
-      .eq('to_user', userId)
-      .eq('status', 'pending')
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (data) onRequest({ id: data.id, expiresAt: Date.parse(data.expires_at) });
-  };
-  void checkWaiting();
-  const poll = setInterval(checkWaiting, 10000);
-
-  return () => {
-    stopListening();
-    clearInterval(poll);
-  };
+  return subscribeAsMe(channel);
 }
 
 // ---------------------------------------------------------------- chat

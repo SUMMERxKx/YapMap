@@ -85,9 +85,6 @@ let stopIncoming: (() => void) | null = null;
 let stopChatMessages: (() => void) | null = null;
 let stopEventMessages: (() => void) | null = null;
 
-// Say-hi requests already shown on the incoming screen, so each one only appears once.
-const shownRequestIds = new Set<string>();
-
 function teardownRealtime() {
   stopIncoming?.();
   stopChatMessages?.();
@@ -95,7 +92,6 @@ function teardownRealtime() {
   stopIncoming = null;
   stopChatMessages = null;
   stopEventMessages = null;
-  shownRequestIds.clear();
 }
 
 /** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
@@ -153,7 +149,7 @@ async function refreshAfterAuth() {
   }
   set({ blockedIds, blockedNames });
 
-  // New say-hi requests arrive for the whole session.
+  // New say-hi requests arrive over Realtime for the whole session.
   listenForRequests(user.id);
 
   // If the app was killed while live or mid-chat, pick up where things stand.
@@ -331,15 +327,12 @@ export function clearOutgoing() {
 }
 
 async function onIncoming(request: { id: string; expiresAt: number }) {
-  // One thing at a time: while a request or chat is on screen, later ones wait. One still
-  // waiting when the screen is free is shown then (the poll reports it again); otherwise
-  // it expires on the server and its sender sees the usual "not this time".
+  // One thing at a time: while a request or chat is on screen, later ones just expire
+  // on the server and their senders see the usual "not this time".
   if (state.incoming || state.chat) return;
-  if (shownRequestIds.has(request.id)) return; // already answered, or timed out on screen
   try {
     const from = await api.requestPerson(request.id);
-    if (from && !state.incoming && !state.chat && !shownRequestIds.has(request.id)) {
-      shownRequestIds.add(request.id);
+    if (from && !state.incoming && !state.chat) {
       set({ incoming: { id: request.id, from, expiresAt: request.expiresAt } });
     }
   } catch {
