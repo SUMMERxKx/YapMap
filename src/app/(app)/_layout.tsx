@@ -55,14 +55,8 @@ export default function AppLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.textPrimary,
-          headerShadowVisible: false,
-          // Every screen draws its own back button. If a native header is ever turned on, its
-          // back button is a plain chevron, never the previous route's name (such as "(tabs)").
-          headerBackButtonDisplayMode: 'minimal',
         }}>
-        <Stack.Screen name="(tabs)" options={{ title: 'Yap' }} />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="go-available"
           options={{
@@ -113,10 +107,10 @@ export default function AppLayout() {
             on Go live and Nearby reopens it. */}
         <Stack.Screen name="chat" />
         <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="edit-profile" options={{ title: 'Edit profile' }} />
-        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
-        <Stack.Screen name="blocked" options={{ title: 'Blocked people' }} />
-        <Stack.Screen name="password" options={{ title: 'Change password' }} />
+        <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="blocked" />
+        <Stack.Screen name="password" />
       </Stack>
       <NearbyToast />
     </View>
