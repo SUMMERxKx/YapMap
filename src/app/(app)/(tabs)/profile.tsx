@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { ListGroup, ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { FEATURES } from '@/config/features';
+import { errorMessage } from '@/lib/error-message';
 import { VerifiedBadge } from '@/components/profile/verified-badge';
 import { deleteAccount, signOut, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -36,13 +37,21 @@ export default function Profile() {
 
   const showVerified = FEATURES.selfieVerification && profile?.verified === true;
 
+  const onDeleteAccount = async () => {
+    try {
+      await deleteAccount();
+    } catch (error) {
+      Alert.alert('Could not delete your account', errorMessage(error, 'Try again.'));
+    }
+  };
+
   const confirmDelete = () =>
     Alert.alert(
       'Delete your account?',
       'This permanently removes your profile, photo and everything linked to your account. It cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete account', style: 'destructive', onPress: () => deleteAccount() },
+        { text: 'Delete account', style: 'destructive', onPress: onDeleteAccount },
       ],
     );
 
