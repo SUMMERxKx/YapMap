@@ -3,9 +3,12 @@
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
+import { IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { ProfileForm } from '@/components/profile/profile-form';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { TopBar } from '@/components/ui/top-bar';
 import { FEATURES } from '@/config/features';
 import type { Profile } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
@@ -30,7 +33,9 @@ export default function EditProfile() {
   };
 
   return (
-    <Screen scroll edges={['bottom']}>
+    <Screen scroll>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader title="Edit profile" />
       {FEATURES.selfieVerification && (
         <InfoNote icon="shield-checkmark-outline">
           If you change your photo, you'll take a quick selfie again to keep your Verified badge.

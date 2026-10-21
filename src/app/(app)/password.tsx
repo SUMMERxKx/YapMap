@@ -1,14 +1,15 @@
-// Change password, from the Profile tab.
+// Change password, from Settings.
 
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
 
-import { AppText } from '@/components/ui/app-text';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
 import { Screen } from '@/components/ui/screen';
+import { ScreenHeader } from '@/components/ui/screen-header';
+import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
@@ -44,9 +45,9 @@ export default function ChangePassword() {
   return (
     <Screen
       scroll
-      edges={['bottom']}
       footer={<Button label="Save password" onPress={save} loading={saving} disabled={!canSave} />}>
-      <AppText color="textSecondary">Choose a new password to sign in with.</AppText>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
+      <ScreenHeader title="Change password" subtitle="Choose a new password to sign in with." />
       <PasswordField
         label="New password"
         value={password}

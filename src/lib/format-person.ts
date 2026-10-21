@@ -1,7 +1,7 @@
 // Pure helpers that turn a person's details into the wording other people see.
 
 import { GENDERS } from '@/data/constants';
-import type { Gender } from '@/data/types';
+import type { Gender, NearbyPerson, Profile } from '@/data/types';
 
 type NameParts = { firstName: string; lastInitial?: string; lastName?: string };
 
@@ -18,4 +18,24 @@ export function genderLabel(gender: Gender | null) {
   const match = GENDERS.find((option) => option.value === gender);
   if (!match) return null;
   return match.label;
+}
+
+/** Your own profile in the shape other people get it, so it can be shown as they see it. */
+export function asSeenByOthers(profile: Profile, note: string): NearbyPerson {
+  let gender: Gender | null = null;
+  if (profile.showGender) {
+    gender = profile.gender;
+  }
+  return {
+    id: profile.id,
+    firstName: profile.firstName,
+    lastInitial: profile.lastName.trim().charAt(0),
+    gender,
+    intro: profile.intro,
+    interests: profile.interests,
+    photoUri: profile.photoUri,
+    photos: profile.photos,
+    note,
+    verified: profile.verified,
+  };
 }

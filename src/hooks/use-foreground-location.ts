@@ -6,7 +6,7 @@ type Result =
   | { ok: false; reason: 'denied' };
 
 // Indoors a fix can take a while; give up after this long and let the server use the last known one.
-const FIX_TIMEOUT_MS = 8000;
+export const FIX_TIMEOUT_MS = 8000;
 
 /** Foreground ("while using the app") location only. Never background. */
 export function useForegroundLocation() {

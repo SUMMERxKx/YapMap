@@ -55,9 +55,6 @@ export default function AppLayout() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.textPrimary,
-          headerShadowVisible: false,
         }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
@@ -110,9 +107,10 @@ export default function AppLayout() {
             on Go live and Nearby reopens it. */}
         <Stack.Screen name="chat" />
         <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="edit-profile" options={{ headerShown: true, title: 'Edit profile' }} />
-        <Stack.Screen name="blocked" options={{ headerShown: true, title: 'Blocked people' }} />
-        <Stack.Screen name="password" options={{ headerShown: true, title: 'Change password' }} />
+        <Stack.Screen name="edit-profile" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="blocked" />
+        <Stack.Screen name="password" />
       </Stack>
       <NearbyToast />
     </View>
