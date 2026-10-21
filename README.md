@@ -75,8 +75,8 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Hooks** for the clock, countdowns, location and the Nearby list are in `src/hooks/`; small pure
   helpers for wording (times, names) are in `src/lib/`.
 - **Components** are grouped by purpose in `src/components/` (`ui`, `profile`, `live`, `chat`,
-  `safety`); colours, spacing and type come from `src/theme`. Feature switches and the Supabase
-  project address are in `src/config/`.
+  `safety`, `events`); colours, spacing and type come from `src/theme`. Feature switches and the
+  Supabase project address are in `src/config/`.
 - **Event icons:** `EVENT_CATEGORIES` in `src/data/constants.ts` maps the value stored on each
   event to its Ionicons icon and spoken name; `src/components/events/event-icon.tsx` draws it.
 - **App icon, splash and favicon** are all generated from `assets/brand/yap-mark.svg`. After
