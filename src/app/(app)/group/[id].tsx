@@ -26,7 +26,7 @@ export default function GroupChat() {
 
   // Load the chat history and listen for new messages while this screen is open.
   useEffect(() => {
-    if (id) void enterEventChat(id);
+    if (id) enterEventChat(id);
     return () => leaveEventChat();
   }, [id]);
 
@@ -55,7 +55,10 @@ export default function GroupChat() {
       await blockUser(message.senderId, message.senderName);
     } catch (error) {
       Alert.alert(`Couldn't block ${message.senderName}`, errorMessage(error, 'Try again.'));
+      return;
     }
+    // Blocking the host removes their event from the map, and this screen with it.
+    if (message.senderId === event.host.id) router.back();
   };
 
   const moderate = (message: Message) =>

@@ -116,12 +116,26 @@ function teardownRealtime() {
 /** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
 function listenForRequests(userId: string) {
   if (stopIncoming) return;
+  let joinedBefore = false;
   stopIncoming = api.subscribeIncoming(
     userId,
     (request) => void onIncoming(request),
-    // Joined (again): look for anything sent while the channel was away.
-    () => void catchUp(),
+    () => {
+      if (joinedBefore) {
+        // Re-joined after a dropped connection: catch up on everything missed meanwhile.
+        void catchUp();
+      } else {
+        // First join: look for a request sent before we were listening.
+        void checkForMissedRequest();
+      }
+      joinedBefore = true;
+    },
   );
+}
+
+/** Whether the network looks reachable. Unknown counts as online. */
+function isOnline(network: { isConnected?: boolean; isInternetReachable?: boolean | null }) {
+  return network.isConnected !== false && network.isInternetReachable !== false;
 }
 
 // ---------------------------------------------------------------- boot
@@ -140,6 +154,7 @@ export async function init() {
       api.forgetSignedUrls();
       handledRequestIds.clear();
       closedChatIds.clear();
+      extrasLoaded = false;
       set({ ...initialState, booted: true, appActive: state.appActive });
       return;
     }
@@ -158,7 +173,7 @@ export async function init() {
   // Back online: the same catch-up.
   let online = true;
   Network.addNetworkStateListener((network) => {
-    const nowOnline = network.isConnected !== false && network.isInternetReachable !== false;
+    const nowOnline = isOnline(network);
     if (nowOnline && !online) void catchUp();
     online = nowOnline;
   });
@@ -199,16 +214,25 @@ async function refreshAfterAuth() {
   // The layout sends them to profile setup; saveProfile starts listening once it's saved.
   if (!profile) return;
 
-  // New say-hi requests arrive over Realtime for the whole session.
-  listenForRequests(user.id);
-
   // The rest can wait for the next catch-up if the network drops now.
   try {
-    await loadBlockedList();
-    await restoreLiveAndChat();
+    await loadExtras();
   } catch {
     // Offline: catchUp() fills these in when the app is back online.
   }
+
+  // New say-hi requests arrive over Realtime for the whole session.
+  listenForRequests(user.id);
+}
+
+// Whether the block list and the live and chat state have loaded since sign-in.
+let extrasLoaded = false;
+
+/** Loads the block list, then picks up a live session or chat. Throws when offline. */
+async function loadExtras() {
+  await loadBlockedList();
+  await restoreLiveAndChat();
+  extrasLoaded = true;
 }
 
 async function loadBlockedList() {
@@ -226,7 +250,8 @@ async function loadBlockedList() {
 async function restoreLiveAndChat() {
   const status = await api.myStatus();
   const live = status.live;
-  if (live) {
+  // A "get off" still waiting to reach the server: stay off here.
+  if (live && !state.offlinePending) {
     set({
       availability: {
         minutes: nearestDuration(live.expiresAt - live.startedAt),
@@ -289,10 +314,20 @@ async function catchUpOnce() {
   }
   if (!state.profile) return; // signed out, or still setting up
 
+  const chatIdBefore = state.chat?.id ?? null;
   await retryGoOffline();
-  await checkLiveAndChat();
+  if (extrasLoaded) {
+    await checkLiveAndChat();
+  } else {
+    try {
+      await loadExtras();
+    } catch {
+      return; // still offline; the next catch-up tries again
+    }
+  }
   await checkForMissedRequest();
-  await startChat(); // messages sent while away
+  // Messages sent while away. A chat opened just now loads them when its channel joins.
+  if (chatIdBefore !== null && state.chat?.id === chatIdBefore) await syncChatMessages();
 }
 
 /** Re-checks with the server that I'm still live and that the open chat is still on. */
@@ -412,6 +447,12 @@ export function markVerified() {
 }
 
 export async function signOut() {
+  // Offline, the sign-out itself would fail after the chat and live session had already
+  // ended here, leaving the other person in a chat nobody reads. So check first.
+  const network = await Network.getNetworkStateAsync();
+  if (!isOnline(network)) {
+    throw new Error("You need a connection to sign out. Try again when you're back online.");
+  }
   // Leave cleanly first, so nobody keeps seeing you on their nearby list or waits on a
   // chat nobody is reading. Both carry on if the network call fails.
   if (state.chat) await endChat('cancelled');
@@ -679,8 +720,8 @@ async function openChat(chatId: string, other?: NearbyPerson) {
   }
 }
 
-/** Re-syncs the open chat's history with the server; called when the chat screen opens. */
-export async function startChat() {
+/** Re-syncs the open chat's history with the server. */
+async function syncChatMessages() {
   const chat = state.chat;
   if (!chat) return;
   try {
@@ -694,7 +735,7 @@ export async function startChat() {
 /** After the chat channel (re)joins: load what was missed, including the chat ending. */
 async function resyncChat(chatId: string) {
   if (state.chat?.id !== chatId) return;
-  await startChat();
+  await syncChatMessages();
   await checkChatStillOn(chatId);
 }
 
@@ -870,23 +911,21 @@ export async function leaveEvent(id: string) {
 // Counts group chat visits, so history that arrives after the screen closed is dropped.
 let eventChatVisits = 0;
 
-/** Called when a group chat screen opens: listen for new messages, then load the history. */
-export async function enterEventChat(eventId: string) {
+/** Called when a group chat screen opens: listen for new messages and load the history. */
+export function enterEventChat(eventId: string) {
   const myId = state.myId;
   if (!myId) return;
   eventChatVisits += 1;
   const visit = eventChatVisits;
 
-  // Subscribing before any await means leaving the screen early always unsubscribes it.
   stopEventMessages?.();
   stopEventMessages = api.subscribeEventMessages(
     eventId,
     myId,
     (message) => updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [message]) })),
-    // Joined, or re-joined after a dropped connection: fetch anything missed.
+    // Joined (the history loads then), or re-joined after a dropped connection.
     () => void loadEventHistory(eventId, visit),
   );
-  await loadEventHistory(eventId, visit);
 }
 
 async function loadEventHistory(eventId: string, visit: number) {

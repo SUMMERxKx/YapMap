@@ -11,7 +11,7 @@ import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { displayName } from '@/lib/format-person';
-import { endChat, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
+import { endChat, markSafetyTipSeen, sendMessage, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 const SAFETY_TIP_TIMES = 3;
@@ -22,10 +22,6 @@ export default function Chat() {
   const chat = useStore((state) => state.chat);
   const tipViews = useStore((state) => state.safetyTipViews);
   const [showTip, setShowTip] = useState(() => tipViews < SAFETY_TIP_TIMES); // decided once per chat
-
-  useEffect(() => {
-    void startChat();
-  }, []);
 
   // The chat ended (by either side, or a block): close this screen.
   useEffect(() => {

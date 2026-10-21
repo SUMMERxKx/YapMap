@@ -82,7 +82,9 @@ export async function resetPassword(email: string, code: string, password: strin
 
 /** The signed-in user, or null. */
 export async function getSessionUser() {
-  const { data } = await supabase.auth.getSession();
+  const { data, error } = await supabase.auth.getSession();
+  // Offline with an expired token: still signed in, just not reachable right now.
+  if (error && isAuthRetryableFetchError(error)) throw new Error(friendlyAuthError(error));
   return data.session?.user ?? null;
 }
 
