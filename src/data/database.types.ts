@@ -346,6 +346,7 @@ export type Database = {
     Functions: {
       block_user: { Args: { target: string }; Returns: undefined };
       blocked_list: { Args: never; Returns: Json[] };
+      cancel_request: { Args: { request_id: string }; Returns: undefined };
       create_event: {
         Args: {
           description: string;
@@ -362,10 +363,10 @@ export type Database = {
       events_near: { Args: { lat: number; lng: number; radius_m?: number }; Returns: Json[] };
       go_green: {
         Args: { accuracy: number; lat: number; lng: number; minutes: number; note?: string };
-        Returns: undefined;
+        Returns: Json;
       };
       go_offline: { Args: never; Returns: undefined };
-      join_event: { Args: { event_id: string }; Returns: undefined };
+      join_event: { Args: { event_id: string; lat: number; lng: number }; Returns: undefined };
       leave_event: { Args: { event_id: string }; Returns: undefined };
       my_status: { Args: never; Returns: Json };
       nearby: { Args: never; Returns: Json[] };
@@ -375,8 +376,8 @@ export type Database = {
       };
       request_person: { Args: { request_id: string }; Returns: Json };
       respond: { Args: { accept: boolean; request_id: string }; Returns: undefined };
-      send_chat_message: { Args: { body: string; request_id: string }; Returns: undefined };
-      send_event_message: { Args: { body: string; event_id: string }; Returns: undefined };
+      send_chat_message: { Args: { body: string; request_id: string }; Returns: Json };
+      send_event_message: { Args: { body: string; event_id: string }; Returns: Json };
       send_request: { Args: { target: string }; Returns: Json };
       update_note: { Args: { note: string }; Returns: undefined };
     };
