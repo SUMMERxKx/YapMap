@@ -18,6 +18,7 @@ export default function GroupChat() {
   const { colors, spacing } = useTheme();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const blockedIds = useStore((state) => state.blockedIds);
+  const myId = useStore((state) => state.myId);
 
   // Load the chat history and listen for new messages while this screen is open.
   useEffect(() => {
@@ -57,7 +58,8 @@ export default function GroupChat() {
       { text: 'Cancel', style: 'cancel' },
     ]);
 
-  const hostedByMe = event.host.id === 'me';
+  // Signed out (no myId) means you can't be the host.
+  const hostedByMe = myId !== null && event.host.id === myId;
   // Hide messages from anyone you've blocked.
   const visibleMessages = event.messages.filter((message) => !blockedIds.includes(message.senderId));
 
