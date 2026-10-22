@@ -176,8 +176,8 @@ while the user is in a chat or already has a request waiting; the server applies
   \centering
   \input{figures/seq-request}
   \caption{A say-hi request. The sender learns the outcome from Realtime, from a slow poll, or from its
-    own timer, whichever comes first; an acceptance in the three seconds after the end time still opens the
-    chat.}
+    own timer, whichever comes first. The server refuses an acceptance after the end time; the timer's
+    three seconds of grace only wait for news of an earlier acceptance that is still on its way.}
   \label{fig:seq-request}
 \end{figure}
 
@@ -187,9 +187,12 @@ one of them always works: a Realtime channel for updates to that request row, a 
 seven seconds, and a timer that gives up three seconds after the end time. The first of these to report
 an outcome settles the wait: \code{accepted} opens the chat; any other final status, or the timer, shows
 \ui{Not this time}, which reads the same whether the recipient declined or never answered. Separately,
-the waiting screen's own countdown shows \ui{Not this time} as soon as the end time arrives. The wait is
-still open for the three seconds of grace, so an acceptance that lands in that window replaces
-\ui{Not this time} with the chat.
+the waiting screen's own countdown shows \ui{Not this time} as soon as the end time arrives. The recipient
+cannot accept after the end time: \code{respond} then refuses with \code{request expired}. The three
+seconds of grace only wait for news of an acceptance made just before the end time, whose Realtime update
+or poll result is still on its way; if it arrives in that window, the chat replaces \ui{Not this time}.
+If the sender has already tapped \ui{Back to nearby list}, the store has dropped the request, so the
+wait ignores the answer and the next catch-up opens the chat instead.
 
 On the recipient's phone, the insert reaches the app through the incoming-requests channel, which
 filters on \code{to_user}. The store fetches the sender's card with \code{request_person} and the
