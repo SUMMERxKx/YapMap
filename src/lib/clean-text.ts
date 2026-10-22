@@ -39,5 +39,5 @@ export function cleanLines(text: string) {
 
 /** Whether the text shows anything: not only spaces, line breaks or invisible characters. */
 export function hasVisibleText(text: string) {
-  return text.replace(INVISIBLE, '').trim().length > 0;
+  return text.replace(UNSAFE, '').replace(INVISIBLE, '').trim().length > 0;
 }
