@@ -85,7 +85,9 @@ function loadEventsQuietly(center: { latitude: number; longitude: number }) {
 function regionAround(center: { latitude: number; longitude: number }, km: number): Region {
   // The circle's width plus a little room at the edges.
   const delta = ((km * 2) / KM_PER_DEGREE) * 1.2;
-  return { latitude: center.latitude, longitude: center.longitude, latitudeDelta: delta, longitudeDelta: delta };
+  // A degree of longitude gets shorter away from the equator, so it takes more of them.
+  const longitudeDelta = delta / Math.cos((center.latitude * Math.PI) / 180);
+  return { latitude: center.latitude, longitude: center.longitude, latitudeDelta: delta, longitudeDelta };
 }
 
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */

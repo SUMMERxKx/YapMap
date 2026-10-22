@@ -887,10 +887,15 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 
 // Where events were last loaded around, so a new distance can reload the same spot.
 let lastEventsCenter: { latitude: number; longitude: number } | null = null;
+// Counts loads, so a slow answer never replaces a newer one.
+let eventLoads = 0;
 
 export async function loadEvents(center: { latitude: number; longitude: number }) {
   lastEventsCenter = center;
+  eventLoads += 1;
+  const thisLoad = eventLoads;
   const nearby = await api.eventsNear(center, state.eventRadiusKm * 1000);
+  if (thisLoad !== eventLoads) return;
   // Keep the loaded chat history of events we're in; refresh everything else.
   const events = nearby.map((event) => {
     const existing = state.events.find((loaded) => loaded.id === event.id);
