@@ -22,15 +22,26 @@ describes the files in \code{src/app} individually.
   \code{README.md} & Product summary, how to run, dashboard settings, code tour, checks \\
   \code{LICENSE} & Proprietary notice: all rights reserved \\
   \code{package.json}, \code{package-lock.json} & Dependencies and scripts \\
-  \code{app.json} & Expo app configuration \\
+  \code{app.json} & Expo app configuration: identifiers, icons, permissions, privacy manifest \\
+  \code{app.config.ts} & Adds \code{react-native-maps} with the Android Google Maps key from the build environment; refuses an Android EAS build without the key \\
+  \code{eas.json} & EAS Build profiles (\code{development}, \code{preview}, \code{production}) and submit settings \\
   \code{tsconfig.json}, \code{eslint.config.js} & TypeScript and ESLint configuration \\
-  \code{.nvmrc}, \code{.gitignore} & Node 22; ignored files, including generated native folders \\
+  \code{.nvmrc}, \code{.gitignore} & Node 22; ignored files, including generated native folders, \code{.env} and Supabase CLI state \\
   \code{.vscode/extensions.json}, \code{settings.json} & Editor recommendations and on-save actions \\
   \code{docs/technical-report/} & This report: LaTeX sources, diagram sources and the compiled PDF \\
+  \code{docs/RELEASING.md} & Branch flow, CI checks, branch protection, versioning, EAS builds, database changes, rollback, dependency updates, optional AI review \\
+  \code{docs/STORE_SUBMISSION.md} & One-time store setup, builds and uploads, and the answers for every App Store and Google Play form \\
+  \code{docs/legal/*.md} & Privacy policy, terms of service and account-deletion page to publish; the moderation process \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Continuous integration (\code{.github})}}} \\
+  \code{workflows/ci.yml} & The three CI jobs (\cref{sec:ci}) \\
+  \code{workflows/pr-agent.yml}, \code{.pr_agent.toml} & Optional AI pull request review, off until the owner turns it on; what it reviews for \\
+  \code{dependabot.yml} & Weekly dependency update pull requests \\
+  \code{CODEOWNERS}, \code{pull_request_template.md} & The owner reviews every pull request; what a pull request description covers \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Backend}}} \\
-  \code{supabase/migrations/*.sql} & The ten migrations, each named \code{<version>_<name>.sql} (\cref{app:migrations}) \\
-  \code{supabase/tests/*.sql} & pgTAP checks run by \code{supabase test db} \\
+  \code{supabase/migrations/*.sql} & The eleven migrations, each named \code{<version>_<name>.sql} with the version the hosted project recorded (\cref{app:migrations}) \\
+  \code{supabase/tests/*.sql} & pgTAP checks run by \code{supabase test db}, locally and in CI \\
   \code{supabase/config.toml} & Local stack configuration only (\cref{tab:local-stack}) \\
   \code{supabase/README.md} & How to change the database (\cref{tab:migration-workflow}) \\
   \code{supabase/templates/*.html} & Local confirmation and recovery emails showing the code \\
@@ -42,6 +53,9 @@ describes the files in \code{src/app} individually.
   \code{assets/mascot/*.svg} & The Yap cat: \code{dizzy}, \code{happy}, \code{searching}, \code{sleepy}, \code{waiting} \\
   \code{scripts/make-icons.sh} & \code{npm run icons}: images from the mark (ImageMagick 7) \\
   \code{scripts/make-mascot.mjs} & \code{npm run mascot}: \code{mascot-art.ts} from the drawings \\
+  \code{scripts/make-licenses.mjs} & \code{npm run licenses}: \code{third-party-licenses.json} from the packages in both release bundles \\
+  \code{scripts/db-types.sh} & \code{npm run db:types} and \code{db:types:check}: \code{database.types.ts} from the local database \\
+  \code{scripts/check-migrations.sh} & \code{npm run db:check-migrations}: the Migration files check (\cref{sec:ci}) \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/data}, \code{src/state}, \code{src/config}}}} \\
   \code{data/api.ts} & Every backend call (\cref{app:api}) \\
@@ -49,11 +63,13 @@ describes the files in \code{src/app} individually.
   \code{data/types.ts} & Client data shapes \\
   \code{data/constants.ts} & Fixed lists, limits and timings \\
   \code{data/database.types.ts} & Types generated from the schema \\
+  \code{data/third-party-licenses.json} & Generated list of open-source packages and licences for the Acknowledgements screen \\
   \code{state/store.ts} & The store (\cref{app:store}) \\
   \code{state/profile-draft.tsx} & Profile setup draft context; \code{SETUP_STEPS} \\
   \code{state/saved-prefs.ts} & Per-account preferences in AsyncStorage \\
   \code{config/features.ts} & Feature flags \\
   \code{config/supabase.ts} & Project URL and publishable key \\
+  \code{config/links.ts} & Addresses of the privacy policy, terms and support email \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/hooks}}}} \\
   \code{use-clock.ts} & Shared one-second clock as an external store \\

@@ -13,7 +13,7 @@
   \vspace{10mm}
   {\small
   \begin{tabular}{@{}L{34mm}L{100mm}@{}}
-    \textsf{\textbf{Subject}} & The YapMap repository, branch \code{main} at commit \code{2b1f996} (22 October 2026) \\
+    \textsf{\textbf{Subject}} & The YapMap repository, branch \code{main} after pull request 74 and the migration renames (October 2026) \\
     \textsf{\textbf{Platforms}} & iOS and Android (Expo SDK 57, React Native 0.86) \\
     \textsf{\textbf{Backend}} & Supabase: Postgres with PostGIS, Auth, Realtime, Storage and \code{pg_cron} \\
     \textsf{\textbf{Course}} & COMP 2160 (Section 01), Mobile App Development 1, final project \\
@@ -56,6 +56,12 @@ first name and last initial but no location or distance. A photo can be loaded o
 currently see its owner. The project accepted one deliberate trade-off to keep the promise that a location
 is deleted on going offline: the server cannot rate-limit the distance between two separate live
 sessions, so it limits how often a location may change instead.
+
+Safety follows the app stores' rules for apps where people post and meet. Every user agrees to community
+guidelines at sign-up, can report and block from every screen that shows another person, and cannot post
+slurs or abusive words, which the database refuses. The owner reviews reports at least daily and can
+suspend an account. Continuous integration checks the app, the migration files and a database rebuilt
+from every migration on each pull request, and store builds are made with EAS Build.
 
 This report describes the architecture (\cref{ch:architecture}), the data model (\cref{ch:data-model})
 and the server interface (\cref{ch:server-interface}); traces each major flow with sequence diagrams

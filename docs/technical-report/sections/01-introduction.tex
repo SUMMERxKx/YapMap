@@ -3,8 +3,9 @@
 
 \section{Purpose and scope}
 
-This report describes Yap as it exists on the \code{main} branch of the YapMap repository at commit
-\code{2b1f996}. It covers the architecture of the mobile client and its backend, the data model, the
+This report describes Yap as it exists on the \code{main} branch of the YapMap repository in late
+October 2026, after the continuous integration, store compliance and hardening changes (pull requests 69,
+73 and 74) and the renaming of the last two migrations to their hosted versions. It covers the architecture of the mobile client and its backend, the data model, the
 flow of data through the system, every user-facing feature, and the rules the server enforces. It is
 written for engineers who maintain, review or extend the app, and for readers who need to understand
 what the app does with personal data.
@@ -19,7 +20,7 @@ The report is organised in three parts. \Cref{ch:architecture,ch:data-model,ch:s
 describe the structure of the system: its components, its data and the interface between client and
 server. \Cref{ch:flows,ch:features} describe behaviour: the major flows step by step, then each feature
 with the screens and functions that implement it. \Cref{ch:security,ch:reliability,ch:performance,ch:configuration,ch:testing,ch:limitations}
-cover cross-cutting qualities and operations. A glossary and three reference appendices close the report.
+cover cross-cutting qualities and operations. A glossary and eleven reference appendices close the report.
 
 \section{What Yap does}
 
@@ -76,7 +77,8 @@ Five principles recur throughout the code. They explain many of the decisions de
   \item[No pressure.] Declining is as easy as accepting, and the sender cannot tell a decline from an
     expiry. The interface uses the phrase \ui{Not this time} for both.
   \item[Safety is two taps away.] Every surface that shows another person carries a menu with
-    \ui{Report} and \ui{Block}. A block takes effect on the server at once, in both directions.
+    \ui{Report} and \ui{Block}. A block takes effect on the server at once, in both directions. Slurs and
+    abusive words are refused by the database before anyone else can see them (\cref{sec:word-filter}).
 \end{description}
 
 \section{Conventions}
@@ -169,6 +171,8 @@ cannot be bypassed.
   Automatic hiding & 3 distinct reporters & \code{report_user} \\
   Report details & at most 500 characters & \code{report_user}; check constraints \\
   Reports & 1 per person reported per day (a repeat keeps the first); at most 10 people a day & \code{report_user} \\
+  Word filter & whole words from \code{private.blocked_words}, also with look-alike digits and symbols; intro, interests, live note, event title and details, messages & word-filter triggers (\code{private.refuse_blocked_words}) \\
+  Report review & at least once every 24 hours & the owner, by hand (\code{docs/legal/moderation.md}) \\
   Housekeeping & every minute & \code{pg_cron} job \code{yap-expire-stale} \\
 \end{longtable}
 \endgroup

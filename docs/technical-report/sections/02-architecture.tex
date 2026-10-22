@@ -95,7 +95,8 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
   \centering
   \input{figures/routes}
   \caption{The route tree. The four children of the root stack are mutually exclusive; the guard under
-    each name states when it is allowed.}
+    each name states when it is allowed. Not drawn: the two unguarded reading pages, \code{guidelines} and
+    \code{acknowledgements}.}
   \label{fig:routes}
 \end{figure}
 
@@ -116,6 +117,10 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
     \bottomrule
   \end{tabularx}
 \end{table}
+
+Beside the guarded stacks, the root stack has two pages with no guard, \code{guidelines} (the community
+guidelines) and \code{acknowledgements} (the open-source licences), so the sign-up screen and Settings can
+both open them, signed in or out.
 
 Before the store has restored the session (\code{booted} is false), the root layout renders an empty
 view in the background colour. If the user is signed in but the profile could not be loaded

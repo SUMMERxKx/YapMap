@@ -29,6 +29,8 @@
   \item[Go offline] To end a live session early. The interface calls it \ui{get off}.
   \item[Group chat] The chat of an event, open to its members.
   \item[Guard] A Boolean in the root layout that decides which stack of screens may be shown.
+  \item[Hidden] The status of a profile that three different users have reported. A hidden profile is left
+    out of nearby lists and event lists and cannot go live, until the owner reviews it.
   \item[Helper] A function in the \code{private} schema, shared by database functions or used by policies,
     and not callable through the Data API.
   \item[Host] The user who created an event: its first member, and the only user who can delete it.
@@ -61,6 +63,9 @@
   \item[\code{SECURITY DEFINER}] A Postgres function that runs with its owner's privileges rather than the
     caller's. Yap's database functions use it to perform writes that row-level security forbids to clients
     directly, after checking the rules themselves.
+  \item[Suspended] The status the owner gives a profile with \code{private.suspend_user} after reviewing
+    reports. It ends the person's live session, requests, chats and event memberships; setting the status
+    back to \code{active} lifts it.
   \item[Signed URL] A time-limited address for a file in the private photo bucket, created only for a user
     allowed to read the file.
   \item[Small copy] The 320-pixel copy of a profile picture, stored next to it with the suffix
@@ -68,5 +73,7 @@
   \item[Store] The single module, \code{src/state/store.ts}, that holds the app's shared state and its
     actions.
   \item[Store action] An exported function of the store, through which screens change state.
+  \item[Word filter] The triggers that refuse an introduction, interest, live note, event text or message
+    containing a word from \code{private.blocked_words}, with the refusal \code{objectionable text}.
   \item[Yap cat] The app's mascot, drawn in five poses on empty, waiting and error screens.
 \end{description}

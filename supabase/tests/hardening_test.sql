@@ -1,4 +1,4 @@
--- Checks for the rules added in 20261022083815_break_it_hardening.sql: each test is something a
+-- Checks for the rules added in 20261022103744_break_it_hardening.sql: each test is something a
 -- modified app did successfully before that migration. Run against the local stack:
 --
 --   supabase start

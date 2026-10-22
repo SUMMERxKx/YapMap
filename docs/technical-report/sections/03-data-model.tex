@@ -1,8 +1,9 @@
 \chapter{Data model}
 \label{ch:data-model}
 
-The database holds eight application tables in the \code{public} schema and one log table in the
-\code{private} schema. Every table references \code{profiles}, which has one row per account and itself
+The database holds eight application tables in the \code{public} schema and three tables in the
+\code{private} schema: two logs and the word filter's list. Every table except that list references
+\code{profiles}, which has one row per account and itself
 references the Supabase Auth user. \Cref{fig:er} shows the tables, their columns and the foreign keys
 between them. Every foreign key to a user cascades on delete, so removing an Auth user removes everything
 that belongs to that user (\cref{sec:flow-delete}).
@@ -13,7 +14,8 @@ that belongs to that user (\cref{sec:flow-delete}).
   \caption{Entity-relationship diagram. Each box lists a table's columns. Lines are foreign keys,
     labelled with the referencing columns, with the cardinality at each end. The dashed box is the
     Storage table that holds photos; it is linked to \code{profiles} by folder name, not by a foreign
-    key. The dashed table is in the \code{private} schema.}
+    key. The two dashed tables are in the \code{private} schema; the third private table,
+    \code{blocked_words}, has no foreign key and is not drawn.}
   \label{fig:er}
 \end{figure}
 
@@ -32,7 +34,8 @@ file directly inside the owner's own folder (\cref{sec:photo-privacy}).
 Three columns are controlled by the server. \code{is_adult} records the 18+ confirmation and must be
 true when the row is inserted. \code{verified} is reserved for the selfie check; clients cannot write it.
 \code{status} is \code{active}, \code{hidden} or \code{suspended}; reports set it to \code{hidden}
-automatically (\cref{sec:blocking-reporting}), and only an \code{active} profile can go live, appear in
+automatically, the owner sets it to \code{suspended} with \code{private.suspend_user} after reviewing
+reports, and setting it back to \code{active} restores the profile (\cref{sec:blocking-reporting}). Only an \code{active} profile can go live, appear in
 lists, create or join events, or receive a request.
 
 Other users never read this table. What they may see of a profile is built by the helper
@@ -133,8 +136,9 @@ block themselves. Although each row has a direction, the server applies a block 
 (\cref{sec:blocking-reporting}). \code{reports} records a report: who reported whom, an optional request
 the report relates to, one of six reasons (\code{inappropriate-photo}, \code{harassment}, \code{unsafe},
 \code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. The columns
-\code{reviewed_at} and \code{action} exist for a later human review; nothing in the repository writes
-them.
+\code{reviewed_at} and \code{action} record the owner's review: the owner sets them in the SQL editor
+while working through open reports, and \code{private.suspend_user} sets them on every open report of
+the person it suspends (\cref{sec:moderation}).
 
 \subsection{Location changes}
 
@@ -148,6 +152,13 @@ minutes to limit how often a location may change, and the minute job deletes row
 \code{private.event_posts} records the time each event was created, and nothing else. \code{create_event}
 counts the rows from the last 24 hours for its five-a-day limit, so deleting an event does not give its
 place back; the minute job deletes rows older than a day.
+
+\subsection{Blocked words}
+
+\code{private.blocked_words} is the word filter's list: one lowercase word of letters and digits per row,
+about twenty unambiguous slurs and words of abuse aimed at a person. Only the filter's functions read it.
+It is data rather than code, so the owner changes it in the SQL editor without a migration
+(\cref{sec:word-filter}).
 
 \subsection{Photos in Storage}
 

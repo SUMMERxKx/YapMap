@@ -288,6 +288,8 @@ caller, or reads no tables at all.
     \code{valid_interests(interests)} & True for 3 to 5 different one-line interests of 1 to 30 characters in a plain list; used by a check constraint \\
     \code{my_photo_count()} & How many files the caller has in the \code{photos} bucket; used by the storage insert policy, which cannot read \code{storage.objects} itself \\
     \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
+    \code{has_blocked_word(input)} & True if the text contains a word from \code{private.blocked_words} (\cref{sec:word-filter}) \\
+    \code{refuse_blocked_words()} & The word-filter trigger function: refuses the row when a named column has a listed word \\
     \code{expire_stale()} & The minute job (\cref{sec:housekeeping}) \\
     \bottomrule
   \end{tabularx}
@@ -312,6 +314,70 @@ select exists (
 The radius starts at 100 metres and grows with the accuracy the first user's phone reported, up to 150
 metres, so a poor indoor fix does not hide people who are in the same room. Distances are computed on the
 geography type, in metres on the Earth's surface.
+
+\section{Word filter}
+\label{sec:word-filter}
+
+The app stores require a filter for objectionable content in an app where people post text and meet.
+Yap's filter is a short list of words in \code{private.blocked_words}, checked by triggers before a row is
+saved (\cref{tab:word-filter}). A row that contains a listed word is refused with \code{objectionable
+text}, which the app shows as \ui{That has words Yap doesn't allow (see the community guidelines). Change
+them and try again.} Because the check runs on the tables, it covers the profile, which the client writes
+directly, as well as the database functions that save a note, an event or a message.
+
+\begin{table}[ht]
+  \centering
+  \caption{Text checked by the word filter.}
+  \label{tab:word-filter}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{34mm}L{44mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Trigger}} & \textsf{\textbf{Columns}} & \textsf{\textbf{Written by}} \\
+    \midrule
+    \code{profiles_word_filter} & \code{intro}, \code{interests} & The client's own profile saves \\
+    \code{availability_word_filter} & \code{note} & \code{go_green}, \code{update_note} \\
+    \code{events_word_filter} & \code{title}, \code{description} & \code{create_event} \\
+    \code{messages_word_filter} & \code{body} & \code{send_chat_message}, \code{send_event_message} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\code{private.has_blocked_word} lowercases the text, splits it into words at every character that is not a
+letter or digit, and compares each word with the list exactly. It repeats the comparison once with common
+look-alike characters swapped back (\code{0} to \code{o}, \code{1} to \code{i}, \code{3} to \code{e},
+\code{4} to \code{a}, \code{5} to \code{s}, \code{7} to \code{t}, \code{@} to \code{a}, \texttt{\$} to
+\code{s}), so \code{h4te} is checked as \code{hate}. Only whole words match, so a longer word that merely
+contains a listed one is never refused. Interests, a text array, are checked as their JSON text, which
+splits the same way.
+
+Names are not checked, because a real name can match a listed word, and report details are not checked,
+so people can quote what was said to them. The list is deliberately narrow: it leaves out general
+swearing, sexual words, words people use to describe harm or ask for help, and words that are also names
+or ordinary words. It is a first line only; reports and blocks handle everything else. Rows saved before
+the filter existed are not checked again; only new text and edits are.
+
+\section{Moderation function}
+\label{sec:moderation}
+
+\code{private.suspend_user(target, note)} acts on a report after the owner has reviewed it. It is run from
+the Supabase SQL editor and cannot be called from the app: execution is revoked from every API role. It
+refuses an unknown profile (\code{no such profile}), then:
+
+\begin{enumerate}
+  \item sets the profile's status to \code{suspended}, so the person cannot go live, say hi, or create
+    or join events, and nobody sees their profile, photos or events;
+  \item ends every chat they are in, returning the other person to \code{open} if still live, and
+    cancels their waiting requests;
+  \item deletes their live session and their event memberships, so they cannot post in group chats
+    either;
+  \item marks every open report about them as reviewed, with \code{note} (default \code{suspended}) as
+    the action.
+\end{enumerate}
+
+Setting the status back to \code{active} lifts the suspension. \code{docs/legal/moderation.md} describes
+the owner's daily review: the queries that list open reports and what the reported person posted, and
+the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through
+removing one message or event, to suspending or deleting the account.
 
 \section{Scheduled housekeeping}
 \label{sec:housekeeping}

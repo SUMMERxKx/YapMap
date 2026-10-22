@@ -51,7 +51,7 @@
     "ios": "expo start --go --ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "expo customize tsconfig.json && tsc --noEmit",
     "icons": "sh scripts/make-icons.sh",
     "mascot": "node scripts/make-mascot.mjs",
     "db:types": "sh scripts/db-types.sh",

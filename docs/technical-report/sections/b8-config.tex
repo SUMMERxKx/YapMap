@@ -2,7 +2,8 @@
 \label{app:config}
 
 The configuration an engineer or tool needs to run, build or reason about the app. No secret appears here
-or anywhere in the repository; the publishable key is public by design and is kept in its source file.
+or anywhere in the repository; the publishable key is public by design and is kept in its source file,
+and the Android Google Maps key, which is not secret either, is an EAS environment variable.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{50mm}L{\dimexpr\linewidth-50mm-2\tabcolsep\relax}@{}}
@@ -32,14 +33,32 @@ or anywhere in the repository; the publishable key is public by design and is ke
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{App (\code{app.json})}}} \\
   Name, slug, version & \code{Yap}, \code{yap}, \code{1.0.0} \\
+  iOS bundle ID, Android package & \code{ca.samarxkx.yapmap}, both \\
+  Runtime version & \code{policy: appVersion} \\
+  Devices & iPhone only (\code{supportsTablet: false}) \\
   Orientation, scheme & \code{portrait}; \code{yap} \\
   Interface style & \code{automatic} \\
   iOS icon & \code{./assets/expo.icon} \\
   Android adaptive icon & background colour \texttt{\#15803D}; foreground, background and monochrome images in \code{assets/images}; predictive back gesture off \\
   Splash & \code{splash-icon.png} on \texttt{\#FAF8F5}, width 76; dark: \code{splash-icon-dark.png} on \texttt{\#181715} \\
   Web & \code{output: static}; favicon \code{assets/images/favicon.png}; not supported (\cref{ch:limitations}) \\
-  Plugins & \code{expo-router}, \code{expo-splash-screen}, \code{expo-location}, \code{expo-image-picker}, \code{@react-native-community/datetimepicker} \\
+  Plugins & \code{expo-router}, \code{expo-splash-screen}, \code{expo-location}, \code{expo-image-picker}, \code{@react-native-community/datetimepicker}; \code{react-native-maps} with \code{androidGoogleMapsApiKey}, added by \code{app.config.ts} \\
+  Permissions & location when in use; camera; photo library; no microphone, background location or motion \\
+  Blocked Android permissions & \code{ACCESS_BACKGROUND_LOCATION}, \code{FOREGROUND_SERVICE_LOCATION}, \code{RECORD_AUDIO}, \code{READ_MEDIA_IMAGES}, \code{READ_MEDIA_VIDEO}, \code{READ_MEDIA_AUDIO}, \code{SYSTEM_ALERT_WINDOW} \\
+  iOS privacy manifest & \code{NSPrivacyTracking} false; eight collected data types, linked, not tracking, app functionality; required-reason APIs: user defaults, file timestamps, disk space, system boot time \\
+  Encryption & \code{ios.config.usesNonExemptEncryption}: false \\
   Experiments & \code{typedRoutes}, \code{reactCompiler} \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Build (\code{app.config.ts}, \code{eas.json})}}} \\
+  Google Maps key & \code{GOOGLE_MAPS_ANDROID_API_KEY}, an EAS environment variable; an Android EAS build without it stops \\
+  EAS CLI & \code{>= 16.0.0}; \code{appVersionSource: remote} \\
+  Build profiles & \code{development} (development client, internal, iOS Simulator), \code{preview} (internal, Android \code{.apk}), \code{production} (\code{autoIncrement}) (\cref{tab:eas-profiles}) \\
+  Expo project ID & not set yet; \code{eas init} adds it \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Links (\code{src/config/links.ts})}}} \\
+  Privacy policy, terms & \code{https://samarxkx.dev/yap/privacy}, \code{https://samarxkx.dev/yap/terms} \\
+  Support & \code{support@samarxkx.dev} \\
+  Account deletion page & \code{https://samarxkx.dev/yap/delete-account} (store listings only, from \code{docs/STORE_SUBMISSION.md}) \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Feature flags (\code{src/config/features.ts})}}} \\
   \code{selfieVerification} & false \\
@@ -52,7 +71,7 @@ or anywhere in the repository; the publishable key is public by design and is ke
   ESLint & 9, \code{eslint-config-expo} flat config plus \code{eslint-plugin-security}; \code{react/no-unescaped-entities} and \code{security/detect-object-injection} off; ignores \code{dist/*}, \code{.expo/*} \\
   Supabase client & \code{@supabase/supabase-js} \textasciicircum2.117.2 \\
   Generated types & \code{src/data/database.types.ts}, written by \code{npm run db:types} (Supabase CLI 2.121.0, formatted with Prettier) \\
-  CI & GitHub Actions, \code{.github/workflows/ci.yml}; Dependabot, \code{.github/dependabot.yml} \\
+  CI & GitHub Actions, \code{.github/workflows/ci.yml}: jobs \code{App (types, lint, doctor, export)}, \code{Migration files}, \code{Database (reset, lint, tests, types)}; Dependabot, \code{.github/dependabot.yml} \\
   Package licence & \code{UNLICENSED}, \code{private: true}; proprietary (\code{LICENSE}) \\
   Editor & VS Code recommends \code{expo.vscode-expo-tools}; fix-all, organise imports and sort members on save \\
 \end{longtable}

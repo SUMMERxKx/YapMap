@@ -24,7 +24,7 @@ implemented.
   One request and one chat at a time & By design. A request that arrives while another request or a chat is on screen is never shown and expires; its sender cannot tell it from a decline. \\
   Verification and social sign-in off & Both are built behind flags (\cref{sec:feature-flags}). Verification has no face comparison, and neither Apple nor Google is configured in Supabase Auth. \\
   Events cannot be edited & A host can delete an event but not change it. Events leave the map three hours after they start. \\
-  Placeholder links & Community rules, privacy policy, terms and support point to placeholder addresses. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
+  Legal pages not yet published & The privacy policy and terms links open the addresses in \code{src/config/links.ts}, under \code{https://samarxkx.dev/yap}. The pages are drafts in \code{docs/legal/} that the owner must publish there before the first store release; at the time of writing those addresses are not live. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
   Bounded lists & At most 50 people nearby, 50 events on the map and the newest 200 messages per chat. \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Platform}}} \\
@@ -37,13 +37,14 @@ implemented.
   Signed URLs outlive visibility & A photo URL signed while its owner was visible works until it expires, up to an hour later. \\
   Shared event chats & A block hides the blocked user's group messages from the blocker, but not the blocker's messages from the blocked user. \\
   Self-declared age & The 18+ confirmation is not verified. \\
-  No moderation tooling & Three reports hide a profile, but nothing lets a person review reports, restore a profile or suspend one. \\
+  Manual moderation & Three reports hide a profile at once. The rest is done by hand in the Supabase SQL editor: reviewing reports, restoring a hidden profile (setting its status back to \code{active}), removing content and suspending with \code{private.suspend_user}, as \code{docs/legal/moderation.md} describes. There is no moderator screen, and the daily review depends on the owner doing it. \\
+  Narrow word filter & The filter refuses only whole words from a short list of slurs and abuse, also with look-alike digits. Other spellings, abuse without listed words and offensive photos get through; reports and blocks are the main defence. Names and report details are not filtered. \\
   Session storage & The session is kept in AsyncStorage, which is not encrypted, because it is too large for the platform's secure store. \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Operations}}} \\
   No retention policy & Requests, messages and past events are kept until an account is deleted. How long to keep chats is an open product decision. \\
   One environment & No staging project: development uses the hosted project, and a local stack serves only development of the database and behaviour proofs. \\
-  No automated tests or CI & See \cref{ch:testing}. \\
+  No client tests & CI checks types, lint, project health, both release bundles, the migration files, a rebuild of the database from every migration, the SQL lint, the pgTAP tests and the generated types (\cref{sec:ci}), but the client has no unit or user-interface tests (\cref{ch:testing}). Branch protection that requires these checks is described in \code{docs/RELEASING.md} but not yet switched on. \\
 \end{longtable}
 \endgroup
 
