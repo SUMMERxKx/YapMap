@@ -31,8 +31,12 @@ Block and report are always two taps away.
 ```bash
 nvm use            # Node 22
 npm install
-npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
+npm start          # scan the QR code with Expo Go on an iPhone or Android phone
 ```
+
+`npm start` runs `expo start --go`. Plain `npx expo start` would open in development-build mode
+(the project includes `expo-dev-client` for EAS development builds), which Expo Go can't load;
+press `s` in the terminal to switch, or use `npm start`.
 
 Testing against the real backend:
 - Create an account with a real email address and a password (8+ characters). An 8-digit
@@ -76,8 +80,8 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Hooks** for the clock, countdowns, location and the Nearby list are in `src/hooks/`; small pure
   helpers for wording (times, names) are in `src/lib/`.
 - **Components** are grouped by purpose in `src/components/` (`ui`, `profile`, `live`, `chat`,
-  `safety`, `events`, `account`, `mascot`); colours, spacing and type come from `src/theme`. Feature switches and the
-  Supabase project address are in `src/config/`.
+  `safety`, `events`, `account`, `mascot`); colours, spacing and type come from `src/theme`. Feature switches, the
+  Supabase project address and the legal and support links are in `src/config/`.
 - **Event icons:** `EVENT_CATEGORIES` in `src/data/constants.ts` maps the value stored on each
   event to its Ionicons icon and spoken name; `src/components/events/event-icon.tsx` draws it.
 - **App icon, splash and favicon** are all generated from `assets/brand/yap-mark.svg`. After
@@ -89,6 +93,22 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Press feedback, loading placeholders:** tappable surfaces use `usePressFeedback`
   (`src/components/ui/press-feedback.ts`) so they all shrink and darken the same way, and
   loading lists show `Skeleton` blocks (`src/components/ui/skeleton.tsx`) instead of a spinner.
+
+## Releasing
+
+- **Store builds** are made with EAS Build (`eas.json`: `development`, `preview` and `production`
+  profiles). [`docs/STORE_SUBMISSION.md`](docs/STORE_SUBMISSION.md) has the commands, the one-time
+  setup (Apple and Google accounts, the Android Google Maps key, publishing the legal pages) and
+  the answers for every store form.
+- **Identifiers:** `ca.samarxkx.yapmap` for the iOS bundle and the Android package (`app.json`).
+- **Legal:** the privacy policy, terms, account-deletion page and the moderation process are in
+  [`docs/legal/`](docs/legal/). The app links to their published addresses in `src/config/links.ts`;
+  Community guidelines and Acknowledgements are screens inside the app (`src/app/guidelines.tsx`,
+  `src/app/acknowledgements.tsx`).
+- **Open-source licences:** after adding, removing or updating a dependency, run `npm run licenses`
+  and commit `src/data/third-party-licenses.json` (the Acknowledgements list).
+- **Moderation:** objectionable words are refused by the database (`private.blocked_words`), and
+  reports are reviewed daily as described in [`docs/legal/moderation.md`](docs/legal/moderation.md).
 
 ## Checks
 

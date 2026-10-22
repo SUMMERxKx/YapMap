@@ -1,0 +1,29 @@
+> **Publish this page** at https://samarxkx.dev/yap/delete-account (the address in
+> `src/config/links.ts`). Google Play asks for a web page that explains how to delete an
+> account without the app, and links to it from the store's Data safety section.
+
+# Delete your Yap account
+
+## In the app (fastest)
+
+1. Open Yap and go to the **Profile** tab.
+2. Tap the **gear** (Settings).
+3. Tap **Delete account** and confirm.
+
+Your account is deleted straight away.
+
+## Without the app
+
+Email **support@samarxkx.dev** from the email address you use for Yap, with the subject
+"Delete my account". We'll confirm the request came from you and delete the account within 30
+days, then reply to let you know.
+
+## What gets deleted
+
+Everything linked to your account: your email address and password, your profile and all your
+photos, your live session, every say-hi request and chat you were part of and their messages,
+the events you host and their group chats, your event memberships and group messages, the
+people you blocked, and reports made by you or about you.
+
+Copies in our hosting provider's backups are overwritten within a short time (see the
+[Privacy Policy](https://samarxkx.dev/yap/privacy)). Nothing is kept after that.
