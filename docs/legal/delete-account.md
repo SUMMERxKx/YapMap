@@ -8,7 +8,8 @@
 
 1. Open Yap and go to the **Profile** tab.
 2. Tap the **gear** (Settings).
-3. Tap **Delete account** and confirm the deletion.
+3. Tap **Delete account**. The screen lists what is deleted.
+4. Type your first name, as it is on your profile, to confirm, then tap **Delete my account**.
 
 Your account is deleted straight away.
 

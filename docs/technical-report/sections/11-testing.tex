@@ -57,11 +57,12 @@ these checks, and how versions, builds, database changes and rollbacks work.
 \section{SQL tests}
 
 \code{supabase/tests/hardening_test.sql} is a pgTAP file that \code{supabase test db} runs against the
-local stack, inside a transaction it rolls back. Each of its 18 checks covers something a modified app
-could do before the October 2026 hardening migration: names, intros, interests and messages that show
-nothing or carry direction overrides or stacked accents, a second say-hi creating a second request,
-repeated reports, deleting events to get around the daily limit, uploads into a sub-folder or past 24
-files, and \code{my_status} without the server clock. \code{supabase/tests/parallel_limits_test.sql} sends
+local stack, inside a transaction it rolls back. Its 19 checks cover what a modified app could do
+before the October 2026 hardening migration: names, intros, interests and messages that show nothing
+or carry direction overrides or stacked accents, a second say-hi creating a second request, repeated
+reports, deleting events to get around the daily limit, uploads into a sub-folder or past 24 files, and
+\code{my_status} without the server clock. One more checks that \code{service_role}, which the
+dashboard uses, can still edit a profile now that its check constraints call private helpers. \code{supabase/tests/parallel_limits_test.sql} sends
 calls at the same moment from separate connections (through \code{dblink}): ten events, twelve people
 reported and five reports of one person. Its three checks pass only if the daily limits hold, five
 events, ten reports and one report. Before \code{create_event} and \code{report_user} took a per-person
@@ -109,8 +110,8 @@ and storage abuse. On the previous migrations 28 abusive attempts got through (2
 twelve copies of one report and a report pointing at a stranger's request), and a second say-hi answered
 with an error. With the hardening migration all 28 are refused or made harmless, a second say-hi returns
 the first request, and the 29 attempts the earlier rules refused are still refused. The SQL tests above
-came out of this pass: on the previous migrations they fail at the first check and stop at the seventh;
-with the migration all 18 pass. The generated database types came out unchanged, because no public
+came out of this pass: on the previous migrations the first file fails its first five checks and stops
+at the eighth, and the second fails all three; with the migration all 22 pass. The generated database types came out unchanged, because no public
 function changed its arguments or return type.
 
 \section{Manual testing}

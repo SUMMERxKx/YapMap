@@ -12,7 +12,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(18);
+select plan(19);
 
 -- Ada and Bo, live at the same café; ten more people for Ada to report.
 insert into auth.users (id, email)
@@ -61,6 +61,15 @@ select lives_ok(
      where id = pg_temp.id_of(1) $$,
   'accents, emoji, Arabic and line breaks in an intro are fine'
 );
+
+-- The dashboard and admin scripts write as service_role, and the checks above call private helpers.
+set local role service_role;
+select lives_ok(
+  $$ update public.profiles set first_name = 'Edited by an admin'
+     where id = '00000000-0000-0000-0000-000000000003' $$,
+  'service_role can still edit a profile'
+);
+reset role;
 
 -- Say hi -------------------------------------------------------------------------------------
 

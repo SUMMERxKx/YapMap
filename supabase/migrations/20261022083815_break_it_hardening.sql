@@ -116,6 +116,12 @@ grant execute on function
   private.valid_interests (text[])
 to authenticated, service_role;
 
+-- valid_interests calls the other two helpers by name, which takes USAGE on the private schema.
+-- Signed-in users already have it (20261005070044_policy_helper_grants.sql); service_role (the
+-- dashboard and admin scripts) didn't, so its direct writes to profiles would fail with
+-- "permission denied for schema private". USAGE only lets it reach what it is granted.
+grant usage on schema private to service_role;
+
 -- The lengths were already limited; these add what the text may contain.
 alter table public.profiles
   add constraint profiles_first_name_text
