@@ -36,8 +36,7 @@ function NotLive() {
       </View>
       <View style={[styles.flex, { paddingHorizontal: layout.screenPadding }]}>
         <EmptyState
-          icon="people-outline"
-          tone="green"
+          mascot="dizzy"
           title="Go live to see who's around"
           body="You only see people who can see you too. Turn green and everyone nearby who's up for a chat shows up here.">
           <Button label="Go live" onPress={() => router.navigate('/')} />
@@ -59,14 +58,19 @@ function NearbyList() {
     emptyContent = (
       <View style={{ gap: spacing.md }}>
         <PersonCardSkeleton />
-        <PersonCardSkeleton />
-        <PersonCardSkeleton />
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ gap: spacing.md }}>
+          <PersonCardSkeleton />
+          <PersonCardSkeleton />
+        </View>
       </View>
     );
   } else {
     emptyContent = (
       <EmptyState
-        icon="cafe-outline"
+        mascot="dizzy"
         size="small"
         title="Nobody else is green here yet"
         body="Stay live and we'll let you know if someone says hi."

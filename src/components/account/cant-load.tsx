@@ -28,7 +28,7 @@ export function CantLoad() {
     <Screen
       footer={<Button label="Try again" onPress={() => void retry()} loading={retrying} />}>
       <EmptyState
-        icon="cloud-offline-outline"
+        mascot="sleepy"
         title="Can't reach Yap"
         body="We couldn't load your profile. Check your connection and try again. We'll also keep trying."
       />

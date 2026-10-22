@@ -1,12 +1,14 @@
 // A labelled checkbox card (used for the 18+ confirmation and "also block").
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   checked: boolean;
@@ -18,6 +20,7 @@ type Props = {
 
 export function Checkbox({ checked, onChange, label, children, tone = 'default' }: Props) {
   const { colors, radius, spacing } = useTheme();
+  const press = usePressFeedback(colors.surface, colors.surfaceMuted);
   let accent = colors.green;
   let checkColor = colors.onGreen;
   let labelColor: 'textPrimary' | 'destructive' = 'textPrimary';
@@ -37,11 +40,16 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
   }
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="checkbox"
       accessibilityState={{ checked }}
       accessibilityLabel={label}
-      onPress={() => onChange(!checked)}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onChange(!checked);
+      }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={[
         styles.row,
         {
@@ -50,8 +58,8 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
           borderRadius: radius.md,
           borderWidth: 1,
           borderColor: cardBorderColor,
-          backgroundColor: colors.surface,
         },
+        press.style,
       ]}>
       <View style={[styles.box, { borderRadius: radius.xs, borderColor: boxBorderColor, backgroundColor: boxColor }]}>
         {checked && <Ionicons name="checkmark" size={18} color={checkColor} />}
@@ -62,7 +70,7 @@ export function Checkbox({ checked, onChange, label, children, tone = 'default' 
         </AppText>
         {children}
       </View>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

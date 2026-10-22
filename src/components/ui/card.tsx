@@ -1,10 +1,12 @@
-// The rounded, outlined surface used for profile cards, list items and info boxes.
-// Pass onPress to make the whole card tappable (it darkens while pressed).
+// The rounded surface used for profile cards, list items and info boxes.
+// Pass onPress to make the whole card tappable (it sinks a little and darkens while pressed).
 
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme';
+
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   children: ReactNode;
@@ -27,46 +29,47 @@ export function Card({
   raised,
   style,
 }: Props) {
-  const { colors, elevation, radius, spacing } = useTheme();
+  const { scheme, colors, elevation, motion, radius, spacing } = useTheme();
+  const press = usePressFeedback(colors[surface], colors.surfaceMuted, motion.cardPressScale);
 
   let paddingSize: number = spacing.lg;
   if (padding === 'compact') {
     paddingSize = spacing.md;
   }
 
+  // A raised card is lifted by its shadow alone in light mode; dark mode has no visible
+  // shadows, so it keeps the hairline edge there.
   let shadow = null;
+  let borderColor = colors.border;
   if (raised) {
     shadow = elevation.card;
+    if (scheme === 'light') {
+      borderColor = 'transparent';
+    }
   }
 
-  const boxStyle = (backgroundColor: string) => [
+  const boxStyle = [
     styles.card,
     shadow,
-    { backgroundColor, borderColor: colors.border, borderRadius: radius.lg, padding: paddingSize },
+    { borderColor, borderRadius: radius.lg, padding: paddingSize },
     style,
   ];
 
   if (!onPress) {
-    return <View style={boxStyle(colors[surface])}>{children}</View>;
+    return <View style={[boxStyle, { backgroundColor: colors[surface] }]}>{children}</View>;
   }
 
-  const pressableStyle = ({ pressed }: { pressed: boolean }) => {
-    let backgroundColor = colors[surface];
-    if (pressed) {
-      backgroundColor = colors.surfaceMuted;
-    }
-    return boxStyle(backgroundColor);
-  };
-
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
       onPress={onPress}
-      style={pressableStyle}>
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[boxStyle, press.style]}>
       {children}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

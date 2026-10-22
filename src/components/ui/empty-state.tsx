@@ -1,5 +1,5 @@
-// A centred icon, title and explanation for empty lists, results and "nothing here" moments,
-// with an optional action under it.
+// A centred picture, title and explanation for empty lists, results and "nothing here" moments,
+// with an optional action under it. The picture is the Yap cat (`mascot`) or an icon in a circle.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ComponentProps, ReactNode } from 'react';
@@ -8,17 +8,19 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { Mascot, type MascotPose } from '@/components/mascot/mascot';
 
 type Props = {
-  icon: ComponentProps<typeof Ionicons>['name'];
-  tone?: 'neutral' | 'green';
+  mascot?: MascotPose; // the cat, for the app's big moments; otherwise pass an icon
+  icon?: ComponentProps<typeof Ionicons>['name'];
+  tone?: 'neutral' | 'green'; // the icon circle's colour
   title: string;
   body?: string;
   size?: 'regular' | 'small'; // small sits inside a list, regular fills a screen
   children?: ReactNode; // e.g. a button
 };
 
-export function EmptyState({ icon, tone = 'neutral', title, body, size = 'regular', children }: Props) {
+export function EmptyState({ mascot, icon, tone = 'neutral', title, body, size = 'regular', children }: Props) {
   const { colors, layout, spacing, size: sizes } = useTheme();
 
   let circleColor = colors.surfaceMuted;
@@ -31,19 +33,31 @@ export function EmptyState({ icon, tone = 'neutral', title, body, size = 'regula
   // A regular empty state fills the screen and centres itself; a small one takes only its own height.
   let titleVariant: 'title' | 'heading' = 'title';
   let flex: number | undefined = 1;
+  let mascotSize = 176;
   if (size === 'small') {
     titleVariant = 'heading';
     flex = undefined;
+    mascotSize = 136;
   }
 
-  return (
-    <View style={[styles.wrap, { flex, gap: spacing.md, paddingVertical: spacing.huge }]}>
+  // The cat already says "nothing here" on its own, so the title beside it carries the meaning.
+  let picture = null;
+  if (mascot) {
+    picture = <Mascot pose={mascot} size={mascotSize} />;
+  } else if (icon) {
+    picture = (
       <View
         style={[styles.circle, { backgroundColor: circleColor, marginBottom: spacing.xs }]}
         accessibilityElementsHidden
         importantForAccessibility="no">
         <Ionicons name={icon} size={sizes.iconHero} color={iconColor} />
       </View>
+    );
+  }
+
+  return (
+    <View style={[styles.wrap, { flex, gap: spacing.md, paddingVertical: spacing.huge }]}>
+      {picture}
       <AppText variant={titleVariant} align="center" accessibilityRole="header">
         {title}
       </AppText>

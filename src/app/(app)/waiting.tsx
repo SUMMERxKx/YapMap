@@ -9,6 +9,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InfoNote } from '@/components/ui/info-note';
+import { Mascot } from '@/components/mascot/mascot';
 import { Screen } from '@/components/ui/screen';
 import { useCountdown } from '@/hooks/use-countdown';
 import { formatClock } from '@/lib/format-time';
@@ -78,7 +79,13 @@ export default function Waiting() {
         REQUEST SENT
       </AppText>
       <View style={[styles.center, { gap: spacing.md }]}>
-        <Avatar name={name} photoUri={outgoing.to.photoUri} size={size.avatarHero} ring />
+        {/* The cat waits with you, sitting on the corner of their photo. */}
+        <View>
+          <Avatar name={name} photoUri={outgoing.to.photoUri} size={size.avatarHero} ring />
+          <View style={styles.sticker}>
+            <Mascot pose="waiting" size={WAITING_CAT_SIZE} />
+          </View>
+        </View>
         <AppText variant="title" align="center" accessibilityRole="header" style={{ marginTop: spacing.sm }}>
           Waiting for {name}…
         </AppText>
@@ -110,7 +117,10 @@ export default function Waiting() {
   );
 }
 
+const WAITING_CAT_SIZE = 96;
+
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  sticker: { position: 'absolute', right: -WAITING_CAT_SIZE * 0.55, bottom: -WAITING_CAT_SIZE * 0.2 },
   timer: { flexDirection: 'row', alignItems: 'center' },
 });

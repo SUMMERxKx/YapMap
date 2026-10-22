@@ -1,9 +1,13 @@
+// Pill-shaped chips: tappable ones for picking (interests, durations), read-only ones for showing.
+
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 type ChipProps = {
   label: string;
@@ -13,34 +17,46 @@ type ChipProps = {
   role?: 'checkbox' | 'radio';
 };
 
-export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: ChipProps) {
-  const { colors, layout, radius, spacing } = useTheme();
-
-  if (!onPress) {
-    return (
-      <View
-        style={[
-          styles.chip,
-          styles.readOnly,
-          { paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },
-        ]}>
-        <AppText variant="caption" color="textSecondary" style={{ fontWeight: '600' }}>
-          {label}
-        </AppText>
-      </View>
-    );
+// Two components underneath, because only the tappable one needs the press animation hooks.
+export function Chip(props: ChipProps) {
+  if (!props.onPress) {
+    return <ReadOnlyChip label={props.label} />;
   }
+  return <ChoiceChip {...props} onPress={props.onPress} />;
+}
 
+function ReadOnlyChip({ label }: { label: string }) {
+  const { colors, radius, spacing } = useTheme();
+  return (
+    <View
+      style={[
+        styles.chip,
+        styles.readOnly,
+        { paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.surfaceMuted },
+      ]}>
+      <AppText variant="caption" color="textSecondary" style={{ fontWeight: '600' }}>
+        {label}
+      </AppText>
+    </View>
+  );
+}
+
+function ChoiceChip({ label, selected, onPress, disabled, role = 'checkbox' }: ChipProps & { onPress: () => void }) {
+  const { colors, layout, radius, spacing } = useTheme();
   const isSelected = Boolean(selected);
 
+  // Unselected chips are light outlined pills; a chosen one fills green with a tick.
   let backgroundColor = colors.surface;
+  let pressedColor = colors.surfaceMuted;
   let borderColor = colors.inputBorder;
   let textColor = colors.textPrimary;
   if (isSelected) {
     backgroundColor = colors.green;
+    pressedColor = colors.greenPressed;
     borderColor = colors.green;
     textColor = colors.onGreen;
   }
+  const press = usePressFeedback(backgroundColor, pressedColor);
 
   let opacity = 1;
   if (disabled) {
@@ -55,29 +71,36 @@ export function Chip({ label, selected, onPress, disabled, role = 'checkbox' }: 
     accessibilityState = { checked: isSelected, disabled };
   }
 
+  const handlePress = () => {
+    Haptics.selectionAsync();
+    onPress();
+  };
+
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole={role}
       accessibilityState={accessibilityState}
       accessibilityLabel={label}
       disabled={disabled}
-      onPress={onPress}
+      onPress={handlePress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={[
         styles.chip,
         {
           minHeight: layout.touchTarget,
           paddingHorizontal: spacing.lg,
           borderRadius: radius.pill,
-          backgroundColor,
           borderColor,
           opacity,
         },
+        press.style,
       ]}>
       {isSelected && <Ionicons name="checkmark" size={16} color={colors.onGreen} />}
       <AppText variant="caption" style={{ color: textColor, fontWeight: '600' }}>
         {label}
       </AppText>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -104,7 +127,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderWidth: 1,
+    borderWidth: 1.5,
   },
   readOnly: { minHeight: 28, borderWidth: 0 },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },

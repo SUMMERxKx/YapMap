@@ -7,7 +7,13 @@ import { useTheme } from '@/theme';
 export default function AuthLayout() {
   const { colors } = useTheme();
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        // Android gets the same smooth slide-in from the right as iPhone (iOS keeps its own).
+        animation: 'ios_from_right',
+        contentStyle: { backgroundColor: colors.background },
+      }}>
       <Stack.Screen name="welcome" />
       <Stack.Screen name="sign-in" />
       <Stack.Screen name="sign-up" />

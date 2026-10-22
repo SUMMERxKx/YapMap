@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppText } from '@/components/ui/app-text';
 import { EventIcon } from '@/components/events/event-icon';
 import { Button, IconButton } from '@/components/ui/button';
+import { Mascot } from '@/components/mascot/mascot';
 import { EVENT_RADIUS_KM } from '@/data/constants';
 import { FIX_TIMEOUT_MS } from '@/hooks/use-foreground-location';
 import { eventCategory } from '@/lib/event-category';
@@ -94,6 +95,7 @@ function regionAround(center: { latitude: number; longitude: number }, km: numbe
 export default function EventsMap() {
   const { colors, layout, radius, spacing, elevation } = useTheme();
   const events = useStore((state) => state.events);
+  const loadedKm = useStore((state) => state.eventsRadiusKm);
   const radiusKm = useStore((state) => state.eventRadiusKm);
   const navigation = useNavigation<BottomTabNavigationProp<{ map: undefined }>>();
   const map = useRef<MapView>(null);
@@ -220,6 +222,36 @@ export default function EventsMap() {
     shownKm = draggedKm;
   }
 
+  // Nothing in range: the cat looks around, and says so. Hidden while the slider moves.
+  let noEventsNote = null;
+  if (loadedKm === radiusKm && events.length === 0 && draggedKm === null) {
+    noEventsNote = (
+      <View
+        accessible
+        accessibilityLabel={`No events within ${loadedKm} km yet. Widen the distance, or start one yourself.`}
+        style={[
+          styles.note,
+          elevation.floating,
+          {
+            backgroundColor: colors.surface,
+            borderRadius: radius.lg,
+            paddingVertical: spacing.sm,
+            paddingLeft: spacing.sm,
+            paddingRight: spacing.lg,
+            gap: spacing.sm,
+          },
+        ]}>
+        <Mascot pose="searching" size={64} />
+        <View style={[styles.flex, { gap: spacing.xxs }]}>
+          <AppText variant="bodyStrong">{`No events within ${loadedKm} km yet`}</AppText>
+          <AppText variant="caption" color="textSecondary">
+            Widen the distance, or start one yourself.
+          </AppText>
+        </View>
+      </View>
+    );
+  }
+
   const createAt = (latitude: number, longitude: number) =>
     router.push({ pathname: '/event/new', params: { lat: String(latitude), lng: String(longitude) } });
 
@@ -324,6 +356,7 @@ export default function EventsMap() {
       <View
         pointerEvents="box-none"
         style={[styles.bottom, { paddingHorizontal: layout.screenPadding, paddingBottom: spacing.lg, gap: spacing.md }]}>
+        {noEventsNote}
         {location.status === 'found' && (
           <View style={[styles.recentre, elevation.floating, { borderRadius: layout.touchTarget / 2 }]}>
             <IconButton icon="locate" label="Centre the map on me" onPress={centreOnUser} />
@@ -350,6 +383,7 @@ const styles = StyleSheet.create({
   radiusValue: { fontVariant: ['tabular-nums'] },
   slider: { height: 40 },
   recentre: { alignSelf: 'flex-end' },
+  note: { flexDirection: 'row', alignItems: 'center' },
   // The pin's corners follow the badge's corners, the badge inset by the pin's padding.
   pin: {
     flexDirection: 'row',

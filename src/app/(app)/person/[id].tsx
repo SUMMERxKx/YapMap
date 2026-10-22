@@ -1,23 +1,21 @@
 // A nearby person's profile sheet, with Say hi and the safety menu.
 
 import { router, useLocalSearchParams } from 'expo-router';
-import { Alert, View } from 'react-native';
+import { Alert } from 'react-native';
 
 import { Button, IconButton } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { InfoNote } from '@/components/ui/info-note';
-import { PersonDetails } from '@/components/profile/person-details';
+import { PersonDetails, PersonDetailsSkeleton } from '@/components/profile/person-details';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
 import { errorMessage } from '@/lib/error-message';
 import { displayName } from '@/lib/format-person';
 import { sayHi, useStore } from '@/state/store';
-import { useTheme } from '@/theme';
 
 export default function PersonSheet() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { colors } = useTheme();
   const outgoing = useStore((state) => state.outgoing);
   const chat = useStore((state) => state.chat);
   const incomingFrom = useStore((state) => state.incoming?.from);
@@ -33,15 +31,20 @@ export default function PersonSheet() {
   const close = <IconButton icon="close" label="Close" onPress={() => router.back()} />;
 
   if (!person) {
-    // Still loading the first nearby list: keep the sheet blank for a moment.
+    // Still loading the first nearby list: placeholders in the shape of the profile.
     if (live && nearby === null) {
-      return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
+      return (
+        <Screen surface="surface" edges={['bottom']}>
+          <TopBar leading={close} />
+          <PersonDetailsSkeleton />
+        </Screen>
+      );
     }
     return (
       <Screen surface="surface" edges={['bottom']}>
         <TopBar leading={close} />
         <EmptyState
-          icon="leaf-outline"
+          mascot="searching"
           title="They're not live any more"
           body="They went offline or moved away. There are more people to meet."
         />

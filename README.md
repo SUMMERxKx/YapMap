@@ -75,12 +75,19 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Hooks** for the clock, countdowns, location and the Nearby list are in `src/hooks/`; small pure
   helpers for wording (times, names) are in `src/lib/`.
 - **Components** are grouped by purpose in `src/components/` (`ui`, `profile`, `live`, `chat`,
-  `safety`, `events`, `account`); colours, spacing and type come from `src/theme`. Feature switches and the
+  `safety`, `events`, `account`, `mascot`); colours, spacing and type come from `src/theme`. Feature switches and the
   Supabase project address are in `src/config/`.
 - **Event icons:** `EVENT_CATEGORIES` in `src/data/constants.ts` maps the value stored on each
   event to its Ionicons icon and spoken name; `src/components/events/event-icon.tsx` draws it.
 - **App icon, splash and favicon** are all generated from `assets/brand/yap-mark.svg`. After
   changing the SVG, run `npm run icons` (needs ImageMagick) and commit the new images.
+- **The Yap cat** (the mascot on empty, waiting and error screens) is drawn in
+  `assets/mascot/*.svg`, one file per pose. After changing a drawing, run `npm run mascot` to
+  regenerate `src/components/mascot/mascot-art.ts` and commit both; `<Mascot pose="dizzy" />`
+  draws it. Pass `mascot="..."` to `EmptyState` to use it there.
+- **Press feedback, loading placeholders:** tappable surfaces use `usePressFeedback`
+  (`src/components/ui/press-feedback.ts`) so they all shrink and darken the same way, and
+  loading lists show `Skeleton` blocks (`src/components/ui/skeleton.tsx`) instead of a spinner.
 
 ## Checks
 

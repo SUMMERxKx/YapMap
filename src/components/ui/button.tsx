@@ -3,11 +3,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type { ComponentProps } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 // `link` is a text-only action (e.g. "Forgot password?") that lines up with the text around it.
 type Variant = 'primary' | 'secondary' | 'ghost' | 'link' | 'inverse' | 'destructive' | 'destructiveSoft';
@@ -64,6 +66,7 @@ export function Button({
     },
   };
   const look = looks[variant];
+  const press = usePressFeedback(look.bg, look.pressed);
 
   const isLoading = Boolean(loading);
   const inactive = Boolean(disabled) || isLoading;
@@ -78,6 +81,15 @@ export function Button({
   if (inactive && !isLoading) {
     opacity = 0.5;
   }
+  // A link has no background to darken, so it dims while pressed instead.
+  let pressedOpacity = opacity;
+  if (variant === 'link') {
+    pressedOpacity = 0.6;
+  }
+  const pressed = press.pressed;
+  const fade = useAnimatedStyle(() => ({
+    opacity: opacity + (pressedOpacity - opacity) * pressed.value,
+  }));
 
   // Regular buttons are full height; compact ones fit in a header row; links have no padding
   // so their text lines up with the text around them.
@@ -100,32 +112,19 @@ export function Button({
     onPress();
   };
 
-  const buttonStyle = ({ pressed }: { pressed: boolean }) => {
-    let backgroundColor = look.bg;
-    let scale = 1;
-    let pressedOpacity = opacity;
-    if (pressed) {
-      backgroundColor = look.pressed;
-      scale = 0.98;
-    }
-    if (pressed && variant === 'link') {
-      pressedOpacity = 0.6; // a link has no background to darken, so it dims instead
-    }
-    return [
-      styles.base,
-      {
-        minHeight,
-        paddingHorizontal,
-        borderRadius: radius.pill,
-        backgroundColor,
-        borderColor: look.border,
-        borderWidth,
-        opacity: pressedOpacity,
-        transform: [{ scale }],
-      },
-      style,
-    ];
-  };
+  const buttonStyle = [
+    styles.base,
+    {
+      minHeight,
+      paddingHorizontal,
+      borderRadius: radius.pill,
+      borderColor: look.border,
+      borderWidth,
+    },
+    press.style,
+    fade,
+    style,
+  ];
 
   let content;
   if (isLoading) {
@@ -142,17 +141,18 @@ export function Button({
   }
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: isLoading }}
       disabled={inactive}
       onPress={handlePress}
-      android_ripple={{ color: look.pressed }}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={buttonStyle}>
       {content}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -164,32 +164,23 @@ type IconButtonProps = {
 
 export function IconButton({ icon, label, onPress }: IconButtonProps) {
   const { colors, layout, size } = useTheme();
-
-  const iconButtonStyle = ({ pressed }: { pressed: boolean }) => {
-    let backgroundColor = colors.surfaceMuted;
-    if (pressed) {
-      backgroundColor = colors.border;
-    }
-    return [
-      styles.icon,
-      {
-        width: layout.touchTarget,
-        height: layout.touchTarget,
-        borderRadius: layout.touchTarget / 2,
-        backgroundColor,
-      },
-    ];
-  };
+  const press = usePressFeedback(colors.surfaceMuted, colors.border);
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       hitSlop={4}
-      style={iconButtonStyle}>
+      style={[
+        styles.icon,
+        { width: layout.touchTarget, height: layout.touchTarget, borderRadius: layout.touchTarget / 2 },
+        press.style,
+      ]}>
       <Ionicons name={icon} size={size.iconLarge} color={colors.textPrimary} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
