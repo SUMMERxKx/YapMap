@@ -73,7 +73,7 @@ jobs:
           sh scripts/check-migrations.sh "$BASE"
 
   database:
-    name: Database (reset, lint, types)
+    name: Database (reset, lint, tests, types)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -100,6 +100,10 @@ jobs:
 
       - name: Lint the database functions
         run: supabase db lint --schema public,private --level warning --fail-on error
+
+      # The pgTAP checks in supabase/tests (server rules a modified app could otherwise get around).
+      - name: Database tests
+        run: supabase test db
 
       - name: Generated types match the migrations
         run: npm run db:types:check

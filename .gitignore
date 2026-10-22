@@ -31,6 +31,7 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
 
 # typescript
@@ -42,5 +43,9 @@ example
 /ios
 /android
 
-# Supabase CLI cache
+# Supabase CLI cache and local state
 supabase/.temp/
+supabase/.branches/
+
+# Names the Supabase account for this checkout on the owner's Mac (not shared)
+.supabase-account
