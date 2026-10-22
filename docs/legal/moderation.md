@@ -11,7 +11,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | --- | --- |
 | Terms with zero tolerance for objectionable content, agreed before use | Sign-up screen ("By creating an account, you agree to..."), `docs/legal/terms-of-service.md` section 2 |
 | Community guidelines | Settings → Community guidelines, and the sign-up screen (`src/app/guidelines.tsx`) |
-| Filter for objectionable words | Server side, on names, intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022082408_content_moderation.sql`) |
+| Filter for objectionable words | Server side, on intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022082408_content_moderation.sql`) |
 | Report a person | The ··· menu on a profile, an incoming say-hi, a chat and an event; long-press a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
 | Automatic hiding | A profile reported by 3 different people is hidden from everyone until reviewed (`report_user`) |
@@ -19,10 +19,17 @@ content, a way to report it, a way to block abusive users, and a developer who a
 
 ## The word filter
 
-`private.blocked_words` holds about 50 words: slurs, sexual terms and the strongest abuse. Text
-containing one as a whole word (also with look-alike digits, like `h4te`) is refused with the
-message "That has words Yap doesn't allow". Report details are not filtered, so people can
-quote what was said to them. It is a first line only; reports catch the rest.
+`private.blocked_words` holds about 35 words: unambiguous slurs, explicit sexual terms and the
+strongest abuse. Text containing one as a whole word (also with look-alike digits, like `h4te`)
+is refused with the message "That has words Yap doesn't allow". It checks the intro, interests,
+live note, event text and messages. Names are not checked, and report details are not
+filtered, so people can quote what was said to them.
+
+The list is intentionally narrow. It leaves out words people use to describe harm or ask for
+help (such as "rape"), and words that are also names or ordinary words in another language
+(such as "kike", a Spanish nickname for Enrique), because refusing those blocks the people the
+filter is meant to protect. Keep it that way when adding words. Reports and blocking are the
+main moderation tool; the filter is only a first line.
 
 Change the list in the Supabase SQL editor (no migration or app update needed):
 

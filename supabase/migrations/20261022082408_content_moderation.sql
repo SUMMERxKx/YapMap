@@ -3,10 +3,10 @@
 -- private.suspend_user for acting on reports (see the end of this file).
 --
 -- Text that other people see is refused when it contains a word from private.blocked_words:
--- names, the profile intro and interests, the live note, event titles and descriptions, and
--- chat and group messages. The refusal is 'objectionable text', which the app shows as a
--- sentence (SERVER_REFUSALS in src/data/api.ts). Report details are not filtered, so people
--- can quote what was said to them.
+-- the profile intro and interests, the live note, event titles and descriptions, and chat and
+-- group messages. The refusal is 'objectionable text', which the app shows as a sentence
+-- (SERVER_REFUSALS in src/data/api.ts). Names are not filtered, since a real name can match a
+-- listed word, and report details are not filtered, so people can quote what was said to them.
 --
 -- How a word is matched: the text is lowercased and split into words at anything that isn't
 -- a letter or digit, and each word is compared with the list exactly. The same is done once
@@ -14,8 +14,10 @@
 -- 5 -> s, 7 -> t, @ -> a, $ -> s), so "h4te" is checked as "hate". Whole words only, so a
 -- longer word that merely contains a listed one is never refused.
 --
--- It is deliberately small, and it is a first line, not the moderation itself: reports and
--- blocks (docs/legal/moderation.md) handle everything a word list can't. The list is a table,
+-- It is deliberately narrow: only unambiguous slurs and explicit abuse, never words people use
+-- to describe harm or ask for help, or that are also names or ordinary words in another
+-- language. It is a first line, not the moderation itself: reports and blocks
+-- (docs/legal/moderation.md) handle everything a word list can't. The list is a table,
 -- so the owner can change it without a migration:
 --
 --   insert into private.blocked_words (word) values ('newword');
@@ -36,14 +38,12 @@ revoke all on private.blocked_words from public, anon, authenticated;
 
 insert into private.blocked_words (word) values
   -- slurs
-  ('chink'), ('chinks'), ('fag'), ('fags'),
-  ('faggot'), ('faggots'), ('gook'), ('gooks'), ('kike'), ('kikes'), ('nigga'), ('niggas'),
-  ('nigger'), ('niggers'), ('paki'), ('pakis'), ('raghead'), ('ragheads'), ('retard'),
-  ('retards'), ('spic'), ('spics'), ('tranny'), ('trannies'), ('wetback'), ('wetbacks'),
+  ('faggot'), ('faggots'), ('gook'), ('gooks'), ('nigga'), ('niggas'), ('nigger'),
+  ('niggers'), ('raghead'), ('ragheads'), ('spic'), ('spics'), ('tranny'), ('trannies'),
+  ('wetback'), ('wetbacks'),
   -- sexual
-  ('blowjob'), ('blowjobs'), ('cumshot'), ('handjob'), ('nudes'), ('porn'),
-  ('porno'), ('pussy'), ('rape'), ('raped'), ('rapist'), ('slut'), ('sluts'), ('whore'),
-  ('whores'),
+  ('blowjob'), ('blowjobs'), ('cumshot'), ('handjob'), ('porn'), ('porno'), ('slut'),
+  ('sluts'), ('whore'), ('whores'),
   -- the strongest swearing and abuse
   ('cunt'), ('cunts'), ('fuck'), ('fucked'), ('fucker'), ('fuckers'), ('fucking'),
   ('fucks'), ('motherfucker'), ('kys');
@@ -90,8 +90,8 @@ revoke execute on function private.refuse_blocked_words () from public, anon, au
 -- Profile text is written by the app directly (row-level security limits it to your own row),
 -- so the check runs on the table rather than in a function.
 create trigger profiles_word_filter
-  before insert or update of first_name, last_name, intro, interests on public.profiles
-  for each row execute function private.refuse_blocked_words('first_name', 'last_name', 'intro', 'interests');
+  before insert or update of intro, interests on public.profiles
+  for each row execute function private.refuse_blocked_words('intro', 'interests');
 
 create trigger availability_word_filter
   before insert or update of note on public.availability

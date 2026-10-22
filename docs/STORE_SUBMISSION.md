@@ -17,14 +17,14 @@ something new, update this file, `docs/legal/privacy-policy.md` and
    upload they can never change.
 3. **Publish the legal pages** (Markdown in `docs/legal/`; any static page works):
 
-   | Page | Address (from `src/config/links.ts`) |
+   | Page | Address |
    | --- | --- |
    | `privacy-policy.md` | https://samarxkx.dev/yap/privacy |
    | `terms-of-service.md` | https://samarxkx.dev/yap/terms |
    | `delete-account.md` | https://samarxkx.dev/yap/delete-account |
 
    Review the drafts first (each starts with a note on what to check) and remove that note from
-   the published page. If the addresses change, change `src/config/links.ts` too.
+   the published page. If the privacy or terms address changes, change `src/config/links.ts` too.
 4. **Support email.** The app, the policies and the store listings use `support@samarxkx.dev`
    (`SUPPORT_EMAIL` in `src/config/links.ts`). Make sure that mailbox receives mail; reports of
    abuse that arrive there must be handled within 24 hours (`docs/legal/moderation.md`).
@@ -216,8 +216,8 @@ same place.
 
 ## 7. Account deletion
 
-- **Apple** (guideline 5.1.1(v)): Profile → Settings → **Delete account** deletes the account
-  and its data inside the app.
+- **Apple** (guideline 5.1.1(v)): Profile → Settings → **Delete account**, then confirm the
+  deletion; this deletes the account and its data inside the app.
 - **Google**: the same in-app deletion, plus the web page https://samarxkx.dev/yap/delete-account
   for people who no longer have the app (Data safety asks for it).
 

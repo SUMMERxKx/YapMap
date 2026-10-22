@@ -1,5 +1,5 @@
-> **Publish this page** at https://samarxkx.dev/yap/delete-account (the address in
-> `src/config/links.ts`). Google Play asks for a web page that explains how to delete an
+> **Publish this page** at https://samarxkx.dev/yap/delete-account (the address given in
+> `docs/STORE_SUBMISSION.md`). Google Play asks for a web page that explains how to delete an
 > account without the app, and links to it from the store's Data safety section.
 
 # Delete your Yap account
@@ -8,7 +8,7 @@
 
 1. Open Yap and go to the **Profile** tab.
 2. Tap the **gear** (Settings).
-3. Tap **Delete account** and confirm.
+3. Tap **Delete account** and confirm the deletion.
 
 Your account is deleted straight away.
 

@@ -73,8 +73,8 @@ and to check you are within 5 km when you join one; it is not stored.
 - **Reports you make** (who, the reason, any details you add) and reports made about you. We
   read reports to keep Yap safe (see our Community Guidelines). A profile reported by three
   different people is hidden until we have reviewed it.
-- **Text checks.** Names, intros, notes, event text and messages are checked against a short
-  list of banned words when you save or send them. Text that fails is refused, not stored.
+- **Text checks.** Intros, interests, notes, event text and messages are checked against a
+  short list of banned words when you save or send them. Text that fails is refused, not stored.
 
 ### Technical information
 
@@ -133,7 +133,8 @@ someone's safety.
 
 ## Deleting your account
 
-In the app: **Profile → Settings (gear) → Delete account.** This deletes, straight away:
+In the app: **Profile → Settings (gear) → Delete account**, then confirm the deletion. This
+deletes, straight away:
 your account and email address, your profile and all your photos, your live session, every
 say-hi request and chat you were part of and their messages, the events you host and their
 group chats, your event memberships and group messages, your blocks, and the reports you made

@@ -102,9 +102,9 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
   the answers for every store form.
 - **Identifiers:** `ca.samarxkx.yapmap` for the iOS bundle and the Android package (`app.json`).
 - **Legal:** the privacy policy, terms, account-deletion page and the moderation process are in
-  [`docs/legal/`](docs/legal/). The app links to their published addresses in `src/config/links.ts`;
-  Community guidelines and Acknowledgements are screens inside the app (`src/app/guidelines.tsx`,
-  `src/app/acknowledgements.tsx`).
+  [`docs/legal/`](docs/legal/). The app links to the published privacy policy and terms at the
+  addresses in `src/config/links.ts`; Community guidelines and Acknowledgements are screens
+  inside the app (`src/app/guidelines.tsx`, `src/app/acknowledgements.tsx`).
 - **Open-source licences:** after adding, removing or updating a dependency, run `npm run licenses`
   and commit `src/data/third-party-licenses.json` (the Acknowledgements list).
 - **Moderation:** objectionable words are refused by the database (`private.blocked_words`), and

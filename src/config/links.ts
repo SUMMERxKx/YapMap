@@ -10,7 +10,5 @@ export const SUPPORT_EMAIL = 'support@samarxkx.dev';
 export const LINKS = {
   privacy: `${WEBSITE}/privacy`,
   terms: `${WEBSITE}/terms`,
-  // Google Play asks for a page that explains how to delete an account without the app.
-  deleteAccount: `${WEBSITE}/delete-account`,
   support: `mailto:${SUPPORT_EMAIL}`,
 } as const;
