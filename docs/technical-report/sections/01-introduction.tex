@@ -95,7 +95,8 @@ The report uses the following conventions.
     is an exported function in \code{src/data/api.ts}.
   \item Distances are in metres unless stated otherwise. The client represents instants as milliseconds
     since the Unix epoch; the database stores \code{timestamptz} values and converts them to
-    milliseconds in the JSON it returns.
+    milliseconds in the JSON objects its functions build. Message rows, which are returned as stored,
+    carry \texttt{created\_at} as an ISO~8601 string (\cref{app:db-functions}).
   \item Terms with a specific meaning in Yap, such as \term{live}, \term{open}, \term{chatting},
     \term{person card} and \term{catch-up}, are defined where they first appear and collected in the
     glossary (\cref{ch:glossary}).

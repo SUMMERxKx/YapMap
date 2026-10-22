@@ -17,5 +17,5 @@
   \draw[transition] ($(pending.south)+(0.4,0)$) -- node[translabel, right=3pt, fill=none] {T4\enskip expired} (expired.north);
   \draw[transition] ($(pending.east)+(0,-0.22)$) -- (6.0,-0.22) |- (cancelled.west);
   \node[translabel, fill=none, align=left, anchor=west] at (6.1,-1.75) {T5\enskip withdrawn\\\hphantom{T5\enskip}or blocked};
-  \draw[transition] (accepted.south) -- node[translabel, right=3pt, fill=none, align=left] {T6\enskip ended, not met;\\\hphantom{T6\enskip}blocked; or stale} (cancelled.north);
+  \draw[transition] (accepted.south) -- node[translabel, right=3pt, fill=none, align=left] {T6\enskip ended, not met;\\\hphantom{T6\enskip}withdrawn; blocked;\\\hphantom{T6\enskip}or stale} (cancelled.north);
 \end{tikzpicture}

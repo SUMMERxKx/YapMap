@@ -25,7 +25,11 @@ bypass it:
   \item State, such as whether a user is live, chatting or waiting on a request, is read from the
     database, never taken from arguments.
   \item Proximity is computed from stored positions, never from a distance the client supplies.
-  \item Every write passes through a function that checks blocks, rate limits and input limits.
+  \item Every write passes through a database function, except three the policies confine to the user's
+    own data: the profile's client-writable columns, deleting one's own \code{blocks} rows (unblocking),
+    and photo files in one's own Storage folder. Each function checks what its action needs; blocks and
+    rate limits apply where \cref{tab:functions} lists them, so \code{update_note}, \code{leave_event}
+    and \code{end_chat}, for example, check neither.
 \end{itemize}
 
 The server must accept two inputs it cannot verify: the position the phone reports, and the GPS accuracy,

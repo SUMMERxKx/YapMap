@@ -219,8 +219,10 @@ A \term{person card} is the only form in which one user's profile reaches anothe
 gender (only if the owner chose to show it and did not choose \code{prefer-not}), introduction,
 interests, the storage paths of the profile picture and other photos, the live note, and the
 \code{verified} flag. It contains no last name, no location and no distance. Every function that returns
-people (\code{nearby}, \code{request_person}, \code{my_status}) returns person cards, so this helper is the
-single definition of what a profile reveals.
+a full profile (\code{nearby}, \code{request_person}, \code{my_status}) returns person cards, so this helper
+is the single definition of what a profile reveals. Two places return less: \code{blocked_list} returns
+only ID, first name and last initial, and an event card's host adds only the profile picture's path to
+those.
 
 \subsection{Event categories}
 

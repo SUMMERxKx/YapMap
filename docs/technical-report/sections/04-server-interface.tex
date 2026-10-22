@@ -33,9 +33,12 @@ them.
   \item A function refuses a request by raising an exception with a short, fixed message, for example
     \code{not nearby} or \code{too many requests}. The client translates each message into a sentence
     (\cref{app:refusals}).
-  \item Functions that return people return person cards (\cref{sec:person-card}); functions that return
-    events return event cards. Both are JSON objects with camel-case keys that match the client's types.
-    Instants are returned as milliseconds since the Unix epoch.
+  \item Functions that return a full profile return person cards (\cref{sec:person-card});
+    \code{blocked_list} and an event card's host return a reduced object with no introduction, interests
+    or note. Functions that return events return event cards. Both are JSON objects with camel-case keys
+    that match the client's types, and the instants in them are milliseconds since the Unix epoch. The
+    two message functions are the exception: they return the stored \code{messages} row, whose
+    \texttt{created\_at} is an ISO~8601 string.
 \end{itemize}
 
 \section{Database functions}

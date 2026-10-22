@@ -4,7 +4,9 @@
 Every exported function of \code{src/data/api.ts} and the backend calls it makes. \emph{rpc} is a database
 function call through \code{supabase.rpc}; \emph{select} and \emph{delete} are Data API table operations;
 \emph{storage} is the \code{photos} bucket. Every database or storage error is translated by
-\code{friendlyRpcError} and every Auth error by \code{friendlyAuthError} (\cref{app:refusals}).
+\code{friendlyRpcError}, and every Auth error by \code{friendlyAuthError} (\cref{app:refusals}) with one
+exception: when the emailed code is rejected, in \code{verifySignUpCode} or in the \code{verifyOtp} step
+of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{56mm}L{52mm}L{\dimexpr\linewidth-108mm-4\tabcolsep\relax}@{}}
@@ -82,6 +84,8 @@ function call through \code{supabase.rpc}; \emph{select} and \emph{delete} are D
 \endgroup
 
 {\raggedright Internal helpers: \code{subscribeAsMe} (sets the Realtime token, then subscribes), \code{signPaths} (the
-signed-URL cache), \code{uploadJpeg}, \code{ensureUploaded}, \code{removeUnusedPhotos},
+signed-URL cache), \code{urlForPath} and \code{urlsForPaths} (look up signed URLs by path), \code{hostPhotoUrl}
+(the host's small photo, else the full one),
+\code{fetchMessages} (the newest 200 messages of a chat or event), \code{uploadJpeg}, \code{ensureUploaded}, \code{removeUnusedPhotos},
 \code{listMyPhotoPaths}, \code{thumbPathFor}, \code{pathFromSignedUrl}, \code{toPeople}, \code{toEvents},
 \code{toMessage}, \code{requireUserId}, \code{friendlyAuthError} and \code{friendlyRpcError}.\par}

@@ -1,7 +1,8 @@
 \chapter{Constants and limits}
 \label{app:constants}
 
-Every named constant in the client and every literal limit in the database functions. \Cref{tab:parameters}
+Every named constant in the client, and every literal limit in the database functions, the table checks
+and the \code{photos} bucket. \Cref{tab:parameters}
 summarises the ones that shape behaviour; this appendix is the full list.
 
 \begingroup\tablefont
@@ -35,6 +36,10 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \code{VERIFICATION_POSES} & 4 poses & Selfie check \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{\code{src/data/api.ts}}}} \\
+  \code{INVALID_CODE} & \ui{Invalid or expired code. Please request a new one.} & Any failed code check \\
+  \code{ACCOUNT_EXISTS} & \ui{There is already an account with this email. Sign in, or use Forgot password.} & \code{signUp} for an email that has an account \\
+  \code{SERVER_REFUSALS} & 26 messages & Refusal sentences (\cref{app:refusals}) \\
+  \code{NO_LOCATION} & \ui{We couldn't get your location. Try again in a moment.} & \code{goGreen} without a position \\
   \code{SIGNED_URL_SECONDS} & 3600 & Lifetime of a signed photo URL \\
   \code{SIGNED_URL_MIN_LEFT_MS} & 600\,000 (10 minutes) & Reuse a URL until this much remains \\
   \code{UNSIGNED_RETRY_MS} & 60\,000 & Ask again for a photo that could not be signed \\
@@ -47,6 +52,8 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Answer grace & 3000\,ms after the end time & \code{waitForAnswer} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Elsewhere in \code{src}}}} \\
+  \code{FEATURES} & \code{selfieVerification} false; \code{socialSignIn} false & \code{config/features.ts}: built but switched-off features \\
+  \code{SUPABASE_URL}, \code{SUPABASE_PUBLISHABLE_KEY} & project URL; publishable key & \code{config/supabase.ts} \\
   \code{FIX_TIMEOUT_MS} & 8000 & \code{hooks/use-foreground-location.ts}; also used by the map \\
   \code{RECENT_POSITION_MS} & 300\,000 (5 minutes) & \code{hooks/use-foreground-location.ts}: fallback position age \\
   \code{RECENT_POSITION_MS} & 120\,000 (2 minutes) & \code{app/(app)/(tabs)/map.tsx}: position reused without a new fix \\
@@ -60,7 +67,19 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \code{THUMB_MAX_SIZE} & 64 & \code{components/profile/avatar.tsx}: largest avatar that uses the small copy, points \\
   \code{SHORT_SCREEN_HEIGHT} & 700 & \code{app/(app)/tutorial.tsx}: smaller art below this height \\
   \code{SETUP_STEPS} & 6 & \code{state/profile-draft.tsx} \\
+  \code{DEFAULT_PREFS} & \code{safetyTipViews} 0; \code{eventRadiusKm} 10 & \code{state/saved-prefs.ts}: preferences before anything is saved \\
   Preferences key & \code{yap.prefs.<user-id>} & \code{state/saved-prefs.ts} \\
+  \code{DEFAULT_DURATION} & 60 & \code{components/live/duration-chips.tsx}: preselected live duration, minutes \\
+  \code{PICKER} & images only; editing on; aspect 1:1; quality 0.8 & \code{app/profile-setup/photo.tsx}: photo picker options \\
+  \code{MINUTE_MS}, \code{DAY_MS} & 60\,000; 86\,400\,000 & \code{lib/format-time.ts}: relative times \\
+  \code{LINKS} & placeholder rules, privacy, terms and support addresses & \code{app/(app)/settings.tsx} \\
+  \code{PAGES} & 5 pages & \code{app/(app)/tutorial.tsx}: tutorial content \\
+  \code{WAITING_CAT_SIZE} & 96 & \code{app/(app)/waiting.tsx}: mascot size, points \\
+  \code{COLUMNS} & 3 & \code{components/profile/photo-grid.tsx}: photo grid columns \\
+  \code{TINTS} & 6 colours & \code{components/profile/avatar.tsx}: initials backgrounds \\
+  \code{RINGS} & 1, 0.82, 0.64, 0.46, 0.3 & \code{components/ui/glass-backdrop.tsx}: glow ring scales \\
+  \code{MOTION} & per pose: rotation, lift, duration & \code{components/mascot/mascot.tsx}: mascot animation \\
+  \code{MASCOT_ART} & 5 SVG poses & \code{components/mascot/mascot-art.ts}, generated from \code{assets/mascot} \\
   Keep-awake tag & \code{yap-live} & \code{app/(app)/_layout.tsx} \\
 \end{longtable}
 \endgroup
@@ -79,6 +98,12 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \endhead
   \bottomrule
   \endfoot
+  First and last name & 1 to 30 characters & \code{profiles} check \\
+  Introduction & 1 to 300 characters & \code{profiles} check \\
+  Interests & 3 to 5 & \code{profiles} check \\
+  Event emoji & at most 8 characters & \code{events} check \\
+  Event title & 1 to 60 characters & \code{events} check \\
+  Event description & at most 200 characters & \code{events} check \\
   Nearby radius & $\min(150, 100 + \mathrm{accuracy})$\,m & \code{nearby}, \code{near_each_other} \\
   Nearby and event results & 50 rows & \code{nearby}, \code{events_near} \\
   Live durations & 30, 60, 120 minutes & \code{go_green} \\
@@ -99,6 +124,7 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Reporters before hiding & 3 distinct & \code{report_user} \\
   Location-change log & 10 minutes & \code{expire_stale} \\
   Photo object size & 5\,242\,880 bytes & bucket \\
+  Photo types & \code{image/jpeg}, \code{image/png}, \code{image/webp} & bucket \\
   Further photos & 6 & \code{profiles_photo_paths_max} \\
 \end{longtable}
 \endgroup

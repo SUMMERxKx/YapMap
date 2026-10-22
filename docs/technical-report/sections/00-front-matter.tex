@@ -43,8 +43,9 @@ The client is a single Expo and React Native code base written in TypeScript. Ex
 screens; one store in \code{src/state/store.ts} holds all shared state and owns every Realtime
 subscription; and one module, \code{src/data/api.ts}, makes every call to the backend. The backend is a
 Supabase project with no application server. Postgres row-level security denies direct access by default,
-and every write goes through a \code{SECURITY DEFINER} database function that derives the caller from the
-session and checks identity, state, proximity, blocks and rate limits. PostGIS answers the proximity
+and every write other than the user's own profile columns, an unblock and the user's own photo files
+goes through a \code{SECURITY DEFINER} database function that derives the caller from the session and
+checks what that action needs: identity, state, proximity, blocks or rate limits. PostGIS answers the proximity
 questions, Realtime delivers requests and messages, a private Storage bucket holds photos behind
 short-lived signed URLs, and a \code{pg_cron} job ends expired sessions, requests and stale chats every
 minute.

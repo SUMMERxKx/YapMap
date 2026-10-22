@@ -18,7 +18,8 @@
   \item[Data API] The Supabase REST interface to the \code{public} schema, used for function calls and
     direct table reads.
   \item[Database function] A Postgres function in the \code{public} schema that the client calls. Every
-    write the client makes, apart from its own profile and unblocking, is a database function.
+    write the client makes, apart from its own profile, unblocking and its own photo files in Storage, is
+    a database function.
   \item[Event] A public plan placed at a chosen spot on the map by its host, with a category, title,
     description, start time and group chat.
   \item[Event card] The JSON form of an event returned by the server, including the host's name and photo

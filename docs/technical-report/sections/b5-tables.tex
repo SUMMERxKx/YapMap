@@ -5,7 +5,10 @@ Every table with its columns, types, defaults, constraints, row-level security p
 defined by the migrations. All columns are \code{NOT NULL} unless marked \emph{nullable}. Every foreign key
 to \code{profiles} or \code{auth.users} cascades on delete. Row-level security is enabled on every table
 listed. The role \code{anon} has no privileges on any of them, and \code{authenticated} has no
-\code{INSERT}, \code{UPDATE} or \code{DELETE} privilege except where stated.
+\code{INSERT}, \code{UPDATE} or \code{DELETE} privilege except where stated. One such exception is
+\code{profiles}: its \code{INSERT} and \code{UPDATE} are limited to listed columns, but its default
+\code{DELETE} privilege is not revoked, so what stops a client deleting a profile is row-level security,
+which has no delete policy on that table.
 
 \newcommand{\tablehead}[1]{%
   \multicolumn{2}{@{}l}{\textsf{\textbf{#1}}}\\[1pt]}
@@ -38,7 +41,7 @@ listed. The role \code{anon} has no privileges on any of them, and \code{authent
   \code{status} & \code{text}, default \code{active}; one of \code{active}, \code{hidden}, \code{suspended} \\
   \code{created_at} & \code{timestamptz}, default \code{now()} \\
   \emph{Named constraints} & \code{profiles_photo_path_own_folder}, \code{profiles_photo_paths_own_folder}, \code{profiles_photo_paths_max} \\
-  \emph{Policies} & \code{profiles_select_own} (select where \code{id = auth.uid()}); \code{profiles_insert_own} (insert with \code{id = auth.uid()} and \code{is_adult}); \code{profiles_update_own} (update own row) \\
+  \emph{Policies} & \code{profiles_select_own} (select where \code{id = auth.uid()}); \code{profiles_insert_own} (insert with \code{id = auth.uid()} and \code{is_adult}); \code{profiles_update_own} (update own row); no delete policy, so row-level security refuses every delete despite the default \code{DELETE} grant \\
   \emph{Grants} & insert on \code{id}, the name, gender, intro, interest and photo columns and \code{is_adult}; update on the same columns except \code{id} and \code{is_adult} \\[3pt]
   \tablehead{public.availability: one row per live user}
   \code{user_id} & \code{uuid}, primary key, references \code{profiles} \\

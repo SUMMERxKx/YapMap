@@ -22,11 +22,11 @@
   \msg{store}{storage}{8.6}{sign profile pictures (cached)}
   \msg[reply]{store}{ui}{9.15}{nearby list; prompt for new people}
 
-  \fragment{ui}{storage}{9.8}{12.8}{go offline (tap the red button), or the end time is reached}
+  \fragment{ui}{storage}{9.8}{13.3}{go offline (tap the red button), or the end time is reached}
   \msg{ui}{store}{10.65}{\code{goOffline}}
   \selfmsg{store}{10.9}{clear the live state at once}
   \msg{store}{db}{11.85}{\code{go_offline}: withdraw waiting request, delete session}
-  \seqnote{store}{db}{12.15}{on failure: marked pending, retried by the next catch-up}
+  \seqnote{store}{db}{12.15}{on failure after a tap: marked pending, retried by the next catch-up;\\at the end time: no retry, the minute job removes the session}
 
-  \lifelines{13.05}{ui, loc, store, db, storage}
+  \lifelines{13.55}{ui, loc, store, db, storage}
 \end{tikzpicture}

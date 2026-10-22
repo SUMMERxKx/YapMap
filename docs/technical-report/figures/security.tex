@@ -27,7 +27,7 @@
   \draw[flow] (rpc) -- node[gate, above=2pt] {\texttt{EXECUTE}:\\signed in} (fns);
   \draw[flow] (fns.east |- 0,0.2) -- node[gate, above=2pt] {as owner} (tables.west |- 0,0.2);
   \draw[flow] (rest) -- (tables.west |- rest);
-  \node[gate, anchor=south west, text width=40mm, align=flush left] at (6.75,-1.55) {policies: own profile; requests and messages the user takes part in; own blocks (delete)};
+  \node[gate, anchor=south west, text width=40mm, align=flush left] at (6.75,-1.55) {policies: own profile; requests and messages the user takes part in; own blocks (select, delete)};
   \draw[flow] (storage) -- (objects);
   \node[gate, anchor=south west, text width=44mm, align=flush left] at (6.75,-3.35) {write: own folder only; read: own folder, or \texttt{private.can\_see\_photo}};
   \draw[flow] (15.45,0 |- tables.south) -- (15.45,-5.2) -- node[gate, above=2pt] {changes to requests and messages, only rows the subscriber may select} (rt.east);

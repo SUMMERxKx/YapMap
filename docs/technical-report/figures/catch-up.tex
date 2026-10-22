@@ -15,17 +15,28 @@
   \node[outcome, right=12mm of running] (again) {run once more\\when it ends};
   \node[decision, aspect=2.6, below=of running] (failed) {profile\\failed to load?};
   \node[outcome, right=12mm of failed] (reload) {retry the full\\load, then stop};
-  \node[st, below=of failed] (offline) {retry a pending ``go offline''};
-  \node[st, below=of offline] (status) {\texttt{my\_status}: drop a live session the server has ended; check the open chat is still \texttt{accepted}; open a chat the server has but this phone does not};
-  \node[st, below=of status] (incoming) {look for a waiting request addressed to the user, unless one is on screen or a chat is open};
+  \node[decision, aspect=2.6, below=of failed] (profile) {profile\\loaded?};
+  \node[outcome, right=12mm of profile] (stop) {stop: signed out\\or still setting up};
+  \node[st, below=of profile] (offline) {retry a pending ``go offline''};
+  \node[decision, aspect=2.6, below=of offline] (extras) {block list and\\status loaded?};
+  \node[st, text width=34mm, right=12mm of extras] (load) {load the block list and restore from \texttt{my\_status}; stop if still offline};
+  \node[st, below=of extras] (status) {\texttt{my\_status}: drop a live session the server has ended; open a chat the server has but this phone does not};
+  \node[st, below=of status] (chatcheck) {request status of the open chat: mark it ended unless still \texttt{accepted}};
+  \node[st, below=of chatcheck] (incoming) {look for a waiting request addressed to the user, unless one is on screen or a chat is open};
   \node[st, below=of incoming] (sync) {reload the open chat's newest 200 messages};
 
   \foreach \t in {t1, t2, t3, t4} {\draw[flow] (\t.south) -- (running);}
   \draw[flow] (running) -- node[yes, above] {yes} (again);
   \draw[flow] (running) -- node[yes, right] {no} (failed);
   \draw[flow] (failed) -- node[yes, above] {yes} (reload);
-  \draw[flow] (failed) -- node[yes, right] {no} (offline);
-  \draw[flow] (offline) -- (status);
-  \draw[flow] (status) -- (incoming);
+  \draw[flow] (failed) -- node[yes, right] {no} (profile);
+  \draw[flow] (profile) -- node[yes, above] {no} (stop);
+  \draw[flow] (profile) -- node[yes, right] {yes} (offline);
+  \draw[flow] (offline) -- (extras);
+  \draw[flow] (extras) -- node[yes, right] {yes} (status);
+  \draw[flow] (extras) -- node[yes, above] {no} (load);
+  \draw[flow] (status) -- (chatcheck);
+  \draw[flow] (load.south) |- (chatcheck.east);
+  \draw[flow] (chatcheck) -- (incoming);
   \draw[flow] (incoming) -- (sync);
 \end{tikzpicture}

@@ -10,8 +10,9 @@ them. \Cref{fig:architecture} gives the overall picture.
 \begin{figure}[ht]
   \centering
   \input{figures/architecture}
-  \caption{System architecture. Arrows inside the client show the direction of calls between layers.
-    The client reaches four Supabase services; each service reaches Postgres, where the rules are
+  \caption{System architecture. Arrows inside the client show the direction of calls between layers;
+    the dashed arrow is the direct calls from a few screens and one hook to the API layer, which bypass the
+    store. The client reaches four Supabase services; each service reaches Postgres, where the rules are
     enforced.}
   \label{fig:architecture}
 \end{figure}

@@ -20,9 +20,9 @@ definitions; the descriptions in this report always refer to the latest one.
   \endhead
   \bottomrule
   \endfoot
-  \code{schema} & PostGIS and the \code{private} schema; the eight application tables with their checks and indexes; row-level security on every table; the select policies and the two membership helpers they use; least-privilege grants, including the profile column grants \\
+  \code{schema} & PostGIS and the \code{private} schema; the eight application tables with their checks and indexes; row-level security on every table; the select policies and the two membership helpers they use, the profile insert and update policies, and the own-blocks delete policy; least-privilege grants, including the profile column grants \\
   \code{functions} & The shared helpers (blocks, person and event cards, proximity); every public function of the first release; \code{expire_stale} and its \code{pg_cron} schedule; execution revoked from \code{public} and \code{anon} \\
-  \code{storage_realtime} & The private \code{photos} bucket (5\,MiB; JPEG, PNG, WebP) with its own-folder write policies; full replica identity and the Realtime publication for \code{chat_requests} and \code{messages} \\
+  \code{storage_realtime} & The private \code{photos} bucket (5\,MiB; JPEG, PNG, WebP) with its own-folder write policies and \code{photos_read_signed_in} (any signed-in user may read, until \code{server_rules} replaces it); full replica identity and the Realtime publication for \code{chat_requests} and \code{messages} \\
   \code{policy_helper_grants} & Lets signed-in users execute the two membership helpers, which the \code{messages} policy runs as the caller \\
   \code{lock_platform_helper} & Revokes the platform's \code{public.rls_auto_enable()} from every API role, where that function exists (on the hosted platform only) \\
   \code{status_and_names} & Adds \code{messages.sender_name} and fills it in both send functions; adds \code{my_status} for restoring state after a restart and \code{blocked_list} for the Blocked people screen \\

@@ -67,9 +67,13 @@ Each step repairs one kind of drift between the phone and the server:
 
 \begin{itemize}
   \item A pending request to go offline is sent again (\cref{sec:offline}).
+  \item If the profile has not loaded, because the user is signed out or still setting up, the catch-up
+    stops here. If the block list and status never loaded, they are loaded now instead of the next step.
   \item \code{my_status} reveals a live session the server has ended while the app was asleep; the app
-    then shows \ui{Your time's up}. It also reveals a chat the other user ended, deleted with their
-    account, or that was accepted just before the connection dropped.
+    then shows \ui{Your time's up}. It also reveals a chat that was accepted just before the connection
+    dropped.
+  \item A query of the open chat's request status (\code{api.requestStatus}) reveals a chat the other
+    user ended or deleted with their account: anything other than \code{accepted} marks it ended.
   \item A query for the newest waiting request addressed to the user finds a request that arrived while
     the app was in the background.
   \item The open chat's history is reloaded and merged by message ID.

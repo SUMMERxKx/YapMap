@@ -8,7 +8,11 @@ and does; \cref{app:refusals} lists the refusals.
 \paragraph{Common properties} All of these functions set an empty \code{search_path}, and all of them are
 \code{SECURITY DEFINER} except \code{private.in_own_folder}. For every function in \code{public}, the
 roles \code{public} and \code{anon} have no \code{EXECUTE} privilege and the role \code{authenticated}
-has it. Instants in returned JSON are milliseconds since the Unix epoch.
+has it. The instants built into returned JSON (\texttt{startedAt}, \texttt{expiresAt} and
+\texttt{startsAt} from \code{go_green}, \code{send_request}, \code{my_status} and the event card) are
+milliseconds since the Unix epoch. The message rows returned by \code{send_chat_message} and
+\code{send_event_message} are the table rows as JSON, so their \texttt{created\_at} is an ISO~8601
+string, which the client parses with \code{Date.parse}.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{58mm}L{24mm}L{\dimexpr\linewidth-82mm-4\tabcolsep\relax}@{}}
@@ -91,5 +95,5 @@ platform function \code{public.rls_auto_enable()} has \code{EXECUTE} revoked fro
     a member).
   \item[Message row] \texttt{id}, \texttt{request\_id}, \texttt{event\_id}, \texttt{sender},
     \texttt{sender\_name} (first name, space, last initial, full stop), \texttt{body},
-    \texttt{created\_at}.
+    \texttt{created\_at} (an ISO~8601 string, not milliseconds).
 \end{description}
