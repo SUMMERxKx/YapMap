@@ -55,8 +55,8 @@ sees nothing of the last one.
 \section{Row-level security and grants}
 \label{sec:rls}
 
-Row-level security is enabled on every application table and on the two private logs,
-\code{private.location_changes} and \code{private.event_posts}. The
+Row-level security is enabled on every application table and on the three private tables,
+\code{private.location_changes}, \code{private.event_posts} and \code{private.blocked_words}. The
 anonymous role has no access to any of the app's tables and cannot call any of its functions. \Cref{tab:rls} lists what a
 signed-in user may do directly; everything else happens inside a database function.
 
@@ -76,7 +76,7 @@ signed-in user may do directly; everything else happens inside a database functi
     \code{events}, \code{event_members} & --- & --- & --- \\
     \code{blocks} & blocks the user made & --- & blocks the user made \\
     \code{reports} & --- & --- & --- \\
-    \code{location_changes} & --- & --- & --- \\
+    \code{location_changes}, \code{event_posts}, \code{blocked_words} & --- & --- & --- \\
     \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & directly in own folder, at most 24 files & own folder \\
     \bottomrule
   \end{tabularx}
@@ -95,7 +95,7 @@ can do nothing outside its intended trigger.
 
 \section{What the functions enforce}
 
-\Cref{tab:functions} lists every check. They fall into six groups:
+\Cref{tab:functions} lists every check. They fall into seven groups:
 
 \begin{description}
   \item[Identity.] Every function acts as \code{auth.uid()}; a user cannot request, block or report
@@ -110,6 +110,9 @@ can do nothing outside its intended trigger.
   \item[Blocks.] Any block between two users, in either direction, stops every interaction between
     them (\cref{sec:blocking-reporting}).
   \item[Limits.] Lengths, durations, start times and rates (\cref{tab:rate-limits}).
+  \item[Content.] Typed text must show something and carry no control characters, direction overrides or
+    piles of accents (check constraints), and text other people see may not contain a word from the word
+    filter's list (\cref{sec:word-filter}).
 \end{description}
 
 \section{Location privacy}
@@ -249,8 +252,13 @@ Unblocking deletes the row, and the person can appear again at the next refresh.
 
 A report records the reason and details. When three different users have reported the same profile, the
 profile becomes \code{hidden}: it disappears from nearby lists, cannot receive requests, and its owner can
-no longer go live or create or join events, until a person reviews it. The repository contains no review
-tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} status are reserved for one.
+no longer go live or create or join events, until the owner reviews it. The owner reviews open reports at
+least once every 24 hours, as the app stores require, from the Supabase SQL editor with the queries in
+\code{docs/legal/moderation.md}, and records each outcome in \code{reviewed_at} and \code{action}. A
+profile that broke the guidelines is suspended with \code{private.suspend_user}, which also ends
+everything the person is part of (\cref{sec:moderation}); a hidden profile found harmless is set back to
+\code{active}. There is no moderator screen in the app. The community guidelines, which every user agrees
+to at sign-up, say what is not allowed and that reports are reviewed within 24 hours.
 
 \section{Rate limits and abuse controls}
 
@@ -284,4 +292,6 @@ tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} 
 The app contains two configuration values, the project URL and the publishable key, both in
 \code{src/config/supabase.ts}. Both are public by design: the key grants only what row-level security and
 the database functions allow. No secret key, service-role key or SMTP credential is in the repository or
-the app; they exist only in the Supabase dashboard.
+the app; they exist only in the Supabase dashboard. The Android build adds a third value, the Google Maps
+key, which ships inside the Android app and is restricted in Google Cloud to the app's package and signing
+certificate; it is kept out of the repository as an EAS environment variable.

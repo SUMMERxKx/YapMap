@@ -7,8 +7,9 @@
     {\textbf{\footnotesize Developer machine}\\[3pt]
      repository: \texttt{src}, \texttt{supabase/migrations}, \texttt{scripts}\\
      Node 22, \texttt{npm install}\\
-     \texttt{npx expo start}: development server\\
-     \texttt{npm run icons}, \texttt{npm run mascot}};
+     \texttt{npm start}: development server\\
+     \texttt{npm run icons}, \texttt{npm run mascot}\\
+     \texttt{eas build}, \texttt{eas submit}: store builds};
   \node[env, clientbox, text width=46mm] (phones) at (12.3,0)
     {\textbf{\footnotesize Phones}\\[3pt]
      Expo Go on iPhone and Android\\
@@ -31,7 +32,8 @@
   \node[env, text width=42mm] (gh) at (2.4,-4.4)
     {\textbf{\footnotesize GitHub repository}\\[3pt]
      pull requests through the review pipeline\\
-     no continuous-integration workflows};
+     GitHub Actions CI on every pull request\\
+     Dependabot update pull requests};
 
   \draw[flow] (dev.east |- phones.west) -- node[lab, above=2pt] {app bundle over the local network} (phones.west);
   \draw[flow, <->] (phones.south) -- node[lab, right=2pt] {HTTPS and WebSocket} (hosted.north);

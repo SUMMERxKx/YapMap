@@ -22,11 +22,13 @@ does not appear in the URL. \Cref{sec:navigation} explains the guards.
   \multicolumn{3}{@{}l}{\textsf{\textbf{Root}}} \\
   \code{_layout.tsx} & --- & Theme, \code{init()}, the four guarded stacks, \ui{Can't reach Yap}, the offline banner \\
   \code{verify-face.tsx} & --- & Selfie check with a random pose; reached only when \code{FEATURES.selfieVerification} is on \\
+  \code{guidelines.tsx} & --- & Community guidelines: the rules, what happens when someone breaks them, the word filter; opened from sign-up and Settings, signed in or out \\
+  \code{acknowledgements.tsx} & --- & Yap's copyright and every open-source package the app ships, each with its licence text (\code{src/data/third-party-licenses.json}) \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Signed out: \code{(auth)}}}} \\
   \code{(auth)/_layout.tsx} & --- & Stack; slide from the right on both platforms \\
   \code{(auth)/welcome.tsx} & --- & Product line; \ui{Create account}, \ui{Sign in}; social buttons behind a flag \\
-  \code{(auth)/sign-up.tsx} & --- & Email, password, confirmation; \code{signUp} \\
+  \code{(auth)/sign-up.tsx} & --- & Email, password, confirmation; links to the terms, guidelines and privacy policy; \code{signUp} \\
   \code{(auth)/verify.tsx} & \code{email}, \code{purpose} (\code{signup} or \code{reset}) & Eight-digit code entry; confirms sign-up, or carries the reset code forward; resend after 60\,s \\
   \code{(auth)/sign-in.tsx} & --- & Email and password; unconfirmed accounts go to \code{verify} \\
   \code{(auth)/forgot-password.tsx} & \code{email} (optional) & Sends the reset code \\
@@ -59,7 +61,7 @@ does not appear in the URL. \Cref{sec:navigation} explains the guards.
   \code{(app)/group/[id].tsx} & \code{id} & An event's group chat; \ui{Leave} for guests; long press to report or block \\
   \code{(app)/report/[id].tsx} & \code{id}, \code{name} & Modal: report reason, details, \ui{Also block} \\
   \code{(app)/edit-profile.tsx} & --- & Single-page profile form \\
-  \code{(app)/settings.tsx} & --- & Account, help, safety and legal rows; sign out; delete account (opens the next screen); version \\
+  \code{(app)/settings.tsx} & --- & Account, help, and safety and legal rows (guidelines, privacy policy, terms, acknowledgements, support); sign out; delete account (opens the next screen); version \\
   \code{(app)/delete-account.tsx} & --- & What is deleted; type your first name to enable \ui{Delete my account} \\
   \code{(app)/blocked.tsx} & --- & Blocked users with \ui{Unblock} \\
   \code{(app)/password.tsx} & --- & Change password \\

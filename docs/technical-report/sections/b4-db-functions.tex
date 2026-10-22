@@ -6,7 +6,7 @@ the latest migration that defines it. \Cref{tab:functions} describes what each p
 and does; \cref{app:refusals} lists the refusals.
 
 \paragraph{Common properties} All of these functions set an empty \code{search_path}, and all of them are
-\code{SECURITY DEFINER} except \code{private.in_own_folder}. For every function in \code{public}, the
+\code{SECURITY DEFINER} except the four helpers marked \emph{not definer} below. For every function in \code{public}, the
 roles \code{public} and \code{anon} have no \code{EXECUTE} privilege and the role \code{authenticated}
 has it. The instants built into returned JSON (\texttt{startedAt}, \texttt{expiresAt} and
 \texttt{startsAt} from \code{go_green}, \code{send_request}, \code{my_status} and the event card) are
@@ -54,7 +54,7 @@ string, which the client parses with \code{Date.parse}.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{58mm}L{24mm}L{\dimexpr\linewidth-82mm-4\tabcolsep\relax}@{}}
-  \caption{Private helpers: signature, return type and who may execute them.}
+  \caption{Private helpers and the moderation function: signature, return type and who may execute them.}
   \label{tab:helper-signatures}\\
   \toprule
   \textsf{\textbf{Signature}} & \textsf{\textbf{Returns}} & \textsf{\textbf{Properties; execute}} \\
@@ -79,6 +79,9 @@ string, which the client parses with \code{Date.parse}.
   \code{private.valid_interests(interests text[])} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by a check constraint) \\
   \code{private.my_photo_count()} & \code{bigint} & sql, stable, definer; \code{authenticated} (used by a storage policy) \\
   \code{private.expire_stale()} & \code{void} & sql, definer; no API role; run by \code{pg_cron} \\
+  \code{private.has_blocked_word(input text)} & \code{boolean} & sql, stable, definer; no API role (used by the word filter) \\
+  \code{private.refuse_blocked_words()} & \code{trigger} & plpgsql, definer; no API role; the four word-filter triggers pass it the column names \\
+  \code{private.suspend_user(target uuid, note text default 'suspended')} & \code{void} & plpgsql, definer; no API role; run by the owner in the SQL editor \\
 \end{longtable}
 \endgroup
 

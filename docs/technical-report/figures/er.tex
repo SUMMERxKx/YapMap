@@ -17,6 +17,8 @@
     photo\_paths\\ is\_adult\\ verified\\ status\\ created\_at};
   \node[entity=30mm, anchor=north] (members) at (7.95,-8.6) {\textbf{event\_members}\nodepart{two}
     event\_id\pkfk\\ user\_id\pkfk\\ joined\_at};
+  \node[privateentity=30mm, anchor=north] (posts) at (7.95,-10.9) {\textbf{event\_posts}\nodepart{two}
+    user\_id\fk\\ posted\_at};
 
   % ---------------------------------------------------------------- column A
   \node[entity=30mm, anchor=north, dashed] (objects) at (1.75,0) {\textbf{storage.objects}\nodepart{two}
@@ -62,6 +64,9 @@
   \node[k, below=1pt] at ($(profiles.west |- 0,-7.3)+(-0.18,0)$) {1};
   \node[k, below=1pt] at ($(blocks.east |- 0,-9.3)+(0.18,0)$) {n};
   \node[k, below=1pt] at ($(reports.east |- 0,-11.6)+(0.18,0)$) {n};
+  % profiles - event_posts, branching from the same trunk
+  \draw[relation] (5.1,-11.35) -- node[kl, above=1pt] {user\_id} (posts.west |- 0,-11.35);
+  \node[k, below=1pt] at ($(posts.west |- 0,-11.35)+(-0.18,0)$) {n};
   % profiles - chat_requests
   \draw[relation] (profiles.east |- 0,-3.1) -- node[kl, above=1pt] {from\_user, to\_user} (requests.west |- 0,-3.1);
   \node[k, below=1pt] at ($(profiles.east |- 0,-3.1)+(0.18,0)$) {1};

@@ -53,7 +53,7 @@ running \code{supabase config push}.
 \section{Database migrations}
 \label{sec:migrations}
 
-The schema is defined by nine SQL migrations in \code{supabase/migrations}, listed by name in
+The schema is defined by eleven SQL migrations in \code{supabase/migrations}, listed by name in
 \cref{app:migrations}. Each later migration replaces functions with \code{CREATE OR REPLACE}, which keeps
 their grants, or drops and recreates a function whose arguments or return type change and then grants it
 again in the same way as the original.
@@ -62,7 +62,9 @@ Each file's version prefix matches the version the hosted project recorded for i
 the hosted migration history are identical. \code{supabase/README.md} describes the workflow
 (\cref{tab:migration-workflow}). Earlier migrations were applied with the Supabase MCP tool
 \code{apply_migration}, which records each one under the time it ran; a file applied that way is renamed
-to the recorded version so the two histories stay identical. An app change and the migration it depends on
+to the recorded version so the two histories stay identical; the last two, \code{content_moderation} and
+\code{break_it_hardening}, were renamed this way after they were applied, and the CI check on migration
+files accepts such a rename only when the file's contents are unchanged. An app change and the migration it depends on
 ship together: after the \code{server_rules} migration, for example, \code{join_event} takes the phone's
 position, so an older app build can no longer join events.
 
@@ -94,10 +96,12 @@ The README describes the development loop:
 \begin{lstlisting}[language=bash, caption={Running the app for development.}, label={lst:run}]
 nvm use            # Node 22, from .nvmrc
 npm install
-npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
+npm start          # expo start --go: scan the QR code with Expo Go on an iPhone or Android phone
 \end{lstlisting}
 
-The app runs in Expo Go against the hosted project. Exercising the core loop needs two phones signed in
+The app runs in Expo Go against the hosted project. \code{npm start} runs \code{expo start --go}: plain
+\code{npx expo start} would serve a development build, because the project includes
+\code{expo-dev-client} for EAS development builds, and Expo Go cannot load that. Exercising the core loop needs two phones signed in
 with different email addresses, within about 100 metres of each other, both live. The native
 \code{ios} and \code{android} folders are generated and not committed.
 
@@ -127,7 +131,13 @@ local stack and applies every migration; \code{supabase/config.toml} configures 
 
 \section{App configuration}
 
-\code{app.json} configures the build (\cref{tab:app-json}).
+\code{app.json} configures the build (\cref{tab:app-json}). \code{app.config.ts} reads it and adds
+the one setting that comes from the build environment: the \code{react-native-maps} plugin with the
+Android Google Maps key, \code{GOOGLE_MAPS_ANDROID_API_KEY}. Android shows Google Maps, and a build
+without the key crashes when the \ui{Map} tab opens, so \code{app.config.ts} stops an Android EAS build
+early when the key is missing. The key is not a secret (it ships inside the app and is restricted to
+the app's package and signing certificate in Google Cloud), but it is kept out of git as an EAS
+environment variable. iOS uses Apple Maps and needs no key.
 
 \begin{table}[ht]
   \centering
@@ -139,17 +149,60 @@ local stack and applies every migration; \code{supabase/config.toml} configures 
     \textsf{\textbf{Key}} & \textsf{\textbf{Value}} \\
     \midrule
     Name, slug, version & \code{Yap}, \code{yap}, \code{1.0.0}; portrait only; URL scheme \code{yap} \\
+    Identifiers & \code{ca.samarxkx.yapmap} for the iOS bundle and the Android package; iPhone only (\code{supportsTablet} false) \\
+    Runtime version & Follows the app version (\code{policy: appVersion}), ready for over-the-air updates later \\
     Appearance & \code{automatic}: light or dark from the phone's setting \\
     iOS icon & The \code{assets/expo.icon} bundle, which draws the brand mark over a green fill \\
     Android icon & Adaptive icon with foreground, background and monochrome layers; background \texttt{\#15803D} \\
     Splash screen & Brand mark on \texttt{\#FAF8F5} (light) or \texttt{\#181715} (dark) \\
-    Location permission & When in use only, with the text ``Yap uses your location only while you are available, to show you people who are up for a chat in the same place. Nobody sees where you are.'' \\
-    Photo and camera permissions & For choosing a profile photo, and for taking one and a verification selfie \\
-    Plugins & Expo Router, splash screen, location, image picker, date and time picker \\
+    Location permission & When in use only, with the text ``Yap uses your location while the app is open: when you go live, to find people who are live in the same place, and on the map, to show events near you. Other people never see where you are.'' Background location, motion and the Android foreground service are switched off \\
+    Photo and camera permissions & ``Yap uses your photo library so you can choose the photos on your profile.'' and ``Yap uses the camera so you can take a profile photo.''; no microphone \\
+    Blocked Android permissions & Background location, location foreground service, microphone, the media-library permissions (photos come through the system picker) and drawing over other apps \\
+    iOS privacy manifest & No tracking; the data collected, all linked to the account and used only for app functionality (email, name, user ID, precise location, photos, messages, other user content, other data); the reasons for the system APIs React Native and Expo use \\
+    Export compliance & \code{usesNonExemptEncryption} false: only the standard HTTPS built into iOS \\
+    Plugins & Expo Router, splash screen, location, image picker, date and time picker; \code{react-native-maps}, added by \code{app.config.ts} \\
     Experiments & Typed routes; React Compiler \\
     \bottomrule
   \end{tabularx}
 \end{table}
+
+\section{Builds and store release}
+\label{sec:release}
+
+Store builds are made in Expo's cloud with EAS Build, from the profiles in \code{eas.json}
+(\cref{tab:eas-profiles}). The version people see is \code{version} in \code{app.json}. The build
+numbers, \code{buildNumber} on iOS and \code{versionCode} on Android, are kept by EAS rather than in the
+repository, because \code{eas.json} sets the app version source to \code{remote}; every production build
+raises them by itself. \code{eas submit} uploads a finished build to App Store Connect or Google Play.
+The project is not yet linked to an Expo account: the owner runs \code{eas login} and then \code{eas init}
+once, which adds the project ID to \code{app.json}.
+
+\begin{table}[ht]
+  \centering
+  \caption{EAS Build profiles in \code{eas.json}.}
+  \label{tab:eas-profiles}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{26mm}L{44mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Profile}} & \textsf{\textbf{Settings}} & \textsf{\textbf{For}} \\
+    \midrule
+    \code{development} & development client; internal; iOS Simulator & Running the app from a development server on a real build \\
+    \code{preview} & internal; Android \code{.apk} & Testing a release build on the owner's own phones \\
+    \code{production} & build number raised automatically & The App Store and Google Play \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Two documents carry the rest of the release process. \code{docs/RELEASING.md} covers the everyday flow:
+branches and pull requests, the CI checks and the branch protection that should require them,
+versioning, EAS builds, applying database changes, rolling back, dependency updates and the optional AI
+review. \code{docs/STORE_SUBMISSION.md} covers the first store release: the developer accounts, the
+Google Maps key, publishing the legal pages, and the answers for every App Store and Google Play form
+(listing, App Privacy and Data safety, age rating, review access with two test accounts, and account
+deletion). The legal pages themselves are drafts in \code{docs/legal/}: the privacy policy, the terms of
+service, a web page for deleting an account without the app, and the moderation process. The owner
+publishes the first three at the addresses in \code{src/config/links.ts} before the first upload; the
+app opens the privacy policy and terms from the sign-up screen and Settings.
 
 \section{Feature flags}
 
@@ -159,8 +212,8 @@ buttons; neither feature has a working backend yet.
 
 \section{Asset pipelines and scripts}
 
-Two scripts regenerate assets from source drawings, so the drawings are the single source of truth
-(\cref{tab:scripts}).
+Three scripts regenerate files from their sources, so the sources are the single source of truth
+(\cref{tab:scripts}); \code{db:types} is described in \cref{sec:migrations}.
 
 \begin{description}
   \item[Icons.] \code{npm run icons} runs \code{scripts/make-icons.sh}, which uses ImageMagick 7 to draw
@@ -172,6 +225,12 @@ Two scripts regenerate assets from source drawings, so the drawings are the sing
     \code{assets/mascot}, removes titles and comments, and writes them as strings into
     \code{src/components/mascot/mascot-art.ts}. Each file name becomes a pose, drawn with
     \code{react-native-svg} without any extra bundler setup.
+  \item[Licences.] \code{npm run licenses} runs \code{scripts/make-licenses.mjs}, which exports both release
+    bundles with source maps, reads which packages they contain, adds the packages with native code that the
+    app depends on without importing them, and writes each package's name, version, licence and licence
+    text to \code{src/data/third-party-licenses.json}. The Acknowledgements screen shows that list, so it
+    is run and committed after every dependency change; \code{--check} only reports whether the file is out
+    of date.
 \end{description}
 
 \begin{table}[ht]
@@ -183,12 +242,17 @@ Two scripts regenerate assets from source drawings, so the drawings are the sing
     \toprule
     \textsf{\textbf{Script}} & \textsf{\textbf{Command}} & \textsf{\textbf{Purpose}} \\
     \midrule
-    \code{start} & \code{expo start} & Development server \\
-    \code{ios}, \code{android} & \code{expo start --ios}, \code{--android} & Development server opening a simulator or device \\
+    \code{start} & \code{expo start --go} & Development server for Expo Go \\
+    \code{ios}, \code{android} & \code{expo start --go --ios}, \code{--android} & The same, opening a simulator or device \\
     \code{web} & \code{expo start --web} & From the Expo template; the web target is not supported (\cref{ch:limitations}) \\
     \code{lint} & \code{expo lint} & ESLint with the Expo configuration \\
+    \code{typecheck} & \code{expo customize tsconfig.json}, then \code{tsc --noEmit} & Generate the typed routes, then type-check (\cref{ch:testing}) \\
     \code{icons} & \code{sh scripts/make-icons.sh} & Regenerate icons, splash images and favicon \\
     \code{mascot} & \code{node scripts/make-mascot.mjs} & Regenerate the mascot drawings module \\
+    \code{db:types} & \code{sh scripts/db-types.sh} & Regenerate \code{src/data/database.types.ts} from the local database \\
+    \code{db:types:check} & \code{sh scripts/db-types.sh --check} & Fail if that file does not match the migrations \\
+    \code{db:check-migrations} & \code{sh scripts/check-migrations.sh origin/main} & The CI check on migration files, run locally \\
+    \code{licenses} & \code{node scripts/make-licenses.mjs} & Regenerate the Acknowledgements list \\
     \bottomrule
   \end{tabularx}
 \end{table}

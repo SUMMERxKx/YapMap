@@ -20,8 +20,11 @@ how the signed-in screens connect, and \cref{app:routes} lists every route.
 
 The welcome screen shows the name \ui{Yap}, the line \ui{The app that gets you off the app}, and two
 buttons: \ui{Create account} and \ui{Sign in}. A note states that continuing means agreeing to the
-community rules and privacy policy. \ui{Create account} asks for an email address, a password and its
-confirmation, then opens the code screen (\cref{sec:flow-account}). The code screen shows eight boxes,
+Community Guidelines and Privacy Policy. \ui{Create account} asks for an email address, a password and its
+confirmation. Above its button, a line says that creating an account means agreeing to the Terms of
+Service and the Community Guidelines and confirming the Privacy Policy has been read; each name is a link
+(the terms and privacy policy open in the browser, the guidelines in the app). The button then opens the
+code screen (\cref{sec:flow-account}). The code screen shows eight boxes,
 fills them as digits are typed or pasted, submits on the eighth digit, and offers \ui{Resend code} after
 a 60-second countdown.
 
@@ -218,30 +221,45 @@ any request or chat on screen. \ui{Report} offers six reasons, an optional comme
 and \ui{Also block}, which is ticked by default. The form says that every report is reviewed and that the
 reported person will not know who reported them. \ui{Settings}, \ui{Blocked people} lists blocked
 users by first name and last initial, with \ui{Unblock}. The server semantics are in
-\cref{sec:blocking-reporting}.
+\cref{sec:blocking-reporting}. Separately, the server refuses an introduction, interest, live note, event
+or message that contains a slur or abusive word from its list, and the app explains why
+(\cref{sec:word-filter}); the owner reviews reports and can suspend an account (\cref{sec:moderation}).
 
 \implemented
   {\code{SafetyMenu}, \code{(app)/report/[id]}, \code{(app)/blocked}, long press in \code{(app)/group/[id]}}
   {\code{blockUser}, \code{unblockUser}, \code{reportUser}; \code{api.block}, \code{api.unblock}, \code{api.blockedList}, \code{api.report}}
-  {\code{block_user}, \code{blocked_list}, \code{report_user}; delete policy on \code{blocks}; block checks in every function that involves two users}
+  {\code{block_user}, \code{blocked_list}, \code{report_user}; delete policy on \code{blocks}; block checks in every function that involves two users; the word-filter triggers}
 
 \section{Settings, signing out and deleting the account}
 
 \ui{Settings} groups its rows like the phone's own settings. \textsf{Account} holds \ui{Change password},
 \ui{Blocked people} (with the count) and \ui{Notification settings}, which opens the app's page in the
-phone's settings. \textsf{Help} holds \ui{View tutorial}. \textsf{Safety and legal} links to the community
-rules, privacy policy, terms of service and support address; these are placeholder addresses until the
-real pages are published. Below are \ui{Sign out}, \ui{Delete account} and the app version.
+phone's settings. \textsf{Help} holds \ui{View tutorial}. \textsf{Safety and legal} holds
+\ui{Community guidelines} and \ui{Acknowledgements}, which open screens in the app, and \ui{Privacy
+policy}, \ui{Terms of service} and \ui{Contact support}, which open the addresses in
+\code{src/config/links.ts} (\code{https://samarxkx.dev/yap/privacy}, \code{/terms} and an email to
+\code{support@samarxkx.dev}). The owner publishes the pages from \code{docs/legal/} at those addresses
+before the first store release (\cref{sec:release}). Below are \ui{Sign out}, \ui{Delete account} and
+the app version.
+
+\ui{Community guidelines} lists the rules everyone agrees to (adults only, be respectful, keep it clean, be
+yourself, nothing illegal or dangerous, meet safely) and what happens when someone breaks them: reports
+are reviewed within 24 hours, content that breaks the rules is removed, people who break them are
+suspended or removed, a profile reported by three people is hidden straight away, and slurs and abusive
+words are refused when posted. \ui{Acknowledgements} shows Yap's copyright and every open-source package
+the app ships, each with its licence text, from the list \code{npm run licenses} generates.
 
 Signing out requires a connection; offline, it explains why and does nothing, because ending the chat and
 the live session must reach the server or the other person would be left waiting. Online, it ends any chat,
 goes offline, then signs out, and the Auth listener resets the app. \ui{Delete account} opens its own
 screen, which lists what is deleted and keeps \ui{Delete my account} disabled until the user types their
-first name; deleting then follows \cref{sec:flow-delete}.
+first name as it is on their profile, ignoring capitals and spaces around it; deleting then follows
+\cref{sec:flow-delete}. This in-app deletion is what Apple requires (guideline 5.1.1(v)); for Google Play,
+the published \code{delete-account} page also tells people without the app how to ask for deletion.
 
 \implemented
-  {\code{(app)/settings}, \code{(app)/password}, \code{(app)/blocked}}
-  {\code{signOut}, \code{deleteAccount}; \code{api.deleteAccount}}
+  {\code{(app)/settings}, \code{(app)/password}, \code{(app)/blocked}, \code{(app)/delete-account}, \code{guidelines}, \code{acknowledgements}}
+  {\code{signOut}, \code{deleteAccount}; \code{api.deleteAccount}; \code{LINKS}; \code{third-party-licenses.json}}
   {\code{delete_account}; Storage delete policy on the user's own folder}
 
 \section{Tutorial}

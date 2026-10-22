@@ -47,6 +47,7 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \code{invalid details} & \code{create_event}, \code{report_user} & Some of the details can't be saved. Remove any unusual characters and try again. \\
   \code{invalid reason} & \code{report_user} & Pick a reason for the report. \\
   \code{too many reports} & \code{report_user} & You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you. \\
+  \code{objectionable text} & the word-filter triggers, so profile saves, \code{go_green}, \code{update_note}, \code{create_event} and both send functions & That has words Yap doesn't allow (see the community guidelines). Change them and try again. \\
   check constraint 23514 & direct profile writes and the functions that save typed text & A sentence for the rule's name (for example \code{messages_body_text}: Messages need some text, without special characters.), or a general one for any other rule \\
   \code{no such event} & \code{join_event}, \code{delete_event} & This event has ended. (A join instead shows \ui{This event was deleted}; a delete counts it as done.) \\
   \code{not the host} & \code{delete_event} & Only the host can delete this event. \\

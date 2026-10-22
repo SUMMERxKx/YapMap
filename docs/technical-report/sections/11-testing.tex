@@ -15,12 +15,15 @@ each and states plainly what is not covered. \Cref{fig:validation} shows the pat
 
 \section{Static checks}
 
-The README lists three checks, and the larger changes add a fourth:
+The README lists three checks, and continuous integration adds a fourth:
 
 \begin{description}
-  \item[Type check.] \code{npx tsc --noEmit} type-checks the whole client in TypeScript's strict mode,
+  \item[Type check.] \code{npm run typecheck} type-checks the whole client in TypeScript's strict mode,
     including the typed routes and the database types generated from the schema, so a call with the wrong
-    function arguments or a link to a missing route fails to compile.
+    function arguments or a link to a missing route fails to compile. The route types are generated, not
+    committed, so the script first writes them to \code{.expo/types} with the command
+    \code{expo customize tsconfig.json} and only then runs \code{tsc --noEmit}. Without that step a fresh
+    checkout, such as the one in CI, would accept any route string.
   \item[Lint.] \code{npm run lint} runs ESLint with Expo's configuration and the rules of the ESLint
     security plugin, which flag risky patterns such as \code{eval}. A web rule about apostrophes in markup is turned off because it
     does not apply to React Native text, and the security rule that flags every \code{object[key]} is
@@ -32,6 +35,7 @@ The README lists three checks, and the larger changes add a fourth:
 \end{description}
 
 \section{Continuous integration}
+\label{sec:ci}
 
 GitHub Actions (\code{.github/workflows/ci.yml}) runs on every pull request and every push to
 \code{main}, and a newer push to the same branch cancels the older run. Three jobs report separately:
@@ -41,35 +45,40 @@ GitHub Actions (\code{.github/workflows/ci.yml}) runs on every pull request and 
     and both release bundles, plus an \code{npm audit} report of the production dependencies that never
     fails the run.
   \item[Migration files.] Every migration is named \code{<14-digit version>\_<name>.sql}; a new one must be
-    later than every migration on the target branch; and an existing migration that is edited, renamed or
-    deleted fails the check (\code{scripts/check-migrations.sh}).
-  \item[Database.] Starts Supabase in Docker with a pinned CLI version, applies every migration to an empty
-    database with \code{supabase db reset}, lints the functions in \code{public} and \code{private} with
-    \code{supabase db lint}, and fails when \code{src/data/database.types.ts} differs from the types
-    generated from the migrations (\code{npm run db:types:check}).
+    later than every migration on the target branch; and an existing migration that is edited or deleted
+    fails the check (\code{scripts/check-migrations.sh}). A rename that leaves the file byte for byte the
+    same passes, so a file can take the version the hosted project recorded (\cref{app:migrations}).
+  \item[Database (reset, lint, tests, types).] Starts Supabase in Docker with a pinned CLI version, applies
+    every migration to an empty database with \code{supabase db reset}, lints the functions in
+    \code{public} and \code{private} with \code{supabase db lint}, runs the SQL tests in
+    \code{supabase/tests} with \code{supabase test db}, and fails when \code{src/data/database.types.ts}
+    differs from the types generated from the migrations (\code{npm run db:types:check}).
 \end{description}
 
 Dependabot opens weekly update pull requests for npm packages and GitHub Actions; packages whose version
 the Expo SDK decides only move in an SDK upgrade. An optional AI review (PR-Agent, with a Gemini API key)
-stays off until the owner turns it on. \code{docs/RELEASING.md} lists the branch protection to require
-these checks, and how versions, builds, database changes and rollbacks work.
+stays off until the owner turns it on. \code{docs/RELEASING.md} describes the whole flow around these
+checks: branches and squash-merged pull requests, the branch protection that should require the three
+jobs (not yet switched on), versioning, EAS builds and store submission, applying database changes,
+rolling back, dependency updates and the optional review (\cref{sec:release}).
 
 \section{SQL tests}
 
-\code{supabase/tests/hardening_test.sql} is a pgTAP file that \code{supabase test db} runs against the
-local stack, inside a transaction it rolls back. Its 19 checks cover what a modified app could do
+The pgTAP file \code{supabase/tests/hardening_test.sql} runs against the local stack with
+\code{supabase test db}, inside a transaction it rolls back. Its 19 checks cover what a modified app could do
 before the October 2026 hardening migration: names, intros, interests and messages that show nothing
 or carry direction overrides or stacked accents, a second say-hi creating a second request, repeated
 reports, deleting events to get around the daily limit, uploads into a sub-folder or past 24 files, and
-\code{my_status} without the server clock. One more checks that \code{service_role}, which the
-dashboard uses, can still edit a profile now that its check constraints call private helpers. \code{supabase/tests/parallel_limits_test.sql} sends
-calls at the same moment from separate connections (through \code{dblink}): ten events, twelve people
+\code{my_status} without the server clock. One more checks that the role the dashboard uses,
+\code{service_role}, can still edit a profile now that its check constraints call private helpers.
+
+The second file, \code{supabase/tests/parallel_limits_test.sql}, sends calls at the same moment from separate connections (through \code{dblink}): ten events, twelve people
 reported and five reports of one person. Its three checks pass only if the daily limits hold, five
 events, ten reports and one report. Before \code{create_event} and \code{report_user} took a per-person
 lock, all three failed (ten events, twelve reports, five reports). The people it signs up through those
-connections are saved for real, so it deletes them at its start and end. Continuous integration does not
-run these files yet; run them after changing those rules. The 24-file photo limit has no such check: it
-is best-effort against uploads sent at once.
+connections are saved for real, so it deletes them at its start and end. Continuous integration runs
+both files on every pull request, in the Database job. The 24-file photo limit has no such check: it is
+best-effort against uploads sent at once.
 
 \section{Pre-merge review pipeline}
 
@@ -127,6 +136,7 @@ dashboard settings it needs.
     easiest to test.
   \item There are no automated user-interface tests on a device or simulator.
   \item The behaviour-proof scripts were written for their pull requests and are not part of the
-    repository, so they cannot be rerun as a regression suite; only \code{supabase/tests} can, and
-    continuous integration does not run it yet.
+    repository, so they cannot be rerun as a regression suite; only \code{supabase/tests} is, and
+    continuous integration runs it on every change.
+  \item The word filter and \code{private.suspend_user} have no SQL test in \code{supabase/tests}.
 \end{itemize}
