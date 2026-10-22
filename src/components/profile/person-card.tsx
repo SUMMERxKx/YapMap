@@ -11,6 +11,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { InterestList } from '@/components/ui/chip';
+import { Skeleton, SkeletonBlock } from '@/components/ui/skeleton';
 
 type Props = { person: NearbyPerson; onPress: () => void };
 
@@ -50,20 +51,27 @@ export function PersonCard({ person, onPress }: Props) {
   );
 }
 
+/** A grey stand-in the shape of a PersonCard, shown while the Nearby list first loads. */
 export function PersonCardSkeleton() {
-  const { colors, radius, spacing, size } = useTheme();
+  const { radius, spacing, size } = useTheme();
   const avatar = size.avatarLarge;
   return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-      <Card style={{ ...styles.row, gap: spacing.md }}>
-        <View style={{ width: avatar, height: avatar, borderRadius: avatar * 0.28, backgroundColor: colors.surfaceMuted }} />
+    <Card raised style={{ ...styles.row, gap: spacing.md }}>
+      <Skeleton style={{ ...styles.row, flex: 1, gap: spacing.md }}>
+        <SkeletonBlock width={avatar} height={avatar} radius={avatar * 0.28} />
         <View style={{ flex: 1, gap: spacing.sm, paddingTop: spacing.xs }}>
-          <View style={{ width: '40%', height: 14, borderRadius: radius.xs, backgroundColor: colors.surfaceMuted }} />
-          <View style={{ width: '85%', height: 12, borderRadius: radius.xs, backgroundColor: colors.surfaceMuted }} />
-          <View style={{ width: '65%', height: 12, borderRadius: radius.xs, backgroundColor: colors.surfaceMuted }} />
+          <SkeletonBlock width="45%" height={16} />
+          <SkeletonBlock width="90%" height={12} />
+          <SkeletonBlock width="70%" height={12} />
+          {/* Widths in % so the chip shapes always fit, even on the narrowest phones. */}
+          <View style={[styles.row, { gap: spacing.xs + spacing.xxs, marginTop: spacing.xs }]}>
+            <SkeletonBlock width="30%" height={28} radius={radius.pill} />
+            <SkeletonBlock width="24%" height={28} radius={radius.pill} />
+            <SkeletonBlock width="34%" height={28} radius={radius.pill} />
+          </View>
         </View>
-      </Card>
-    </View>
+      </Skeleton>
+    </Card>
   );
 }
 

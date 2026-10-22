@@ -12,7 +12,7 @@ export default function ProfileSetupLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          animation: 'ios_from_right', // the iPhone slide on Android too; iOS keeps its own
           contentStyle: { backgroundColor: colors.background },
         }}>
         <Stack.Screen name="index" />

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
+import { Mascot } from '@/components/mascot/mascot';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { displayName } from '@/lib/format-person';
 import { endChat, markSafetyTipSeen, sendMessage, useStore } from '@/state/store';
@@ -73,6 +74,21 @@ export default function Chat() {
     );
   }
 
+  // A brand-new chat: a happy cat above the first message, because you're about to meet.
+  let header;
+  if (chat.messages.length === 0 && !ended) {
+    header = (
+      <View style={{ gap: spacing.lg }}>
+        <View style={styles.cat}>
+          <Mascot pose="happy" size={128} />
+        </View>
+        {safetyTip}
+      </View>
+    );
+  } else {
+    header = safetyTip;
+  }
+
   return (
     <SafeAreaView edges={['top']} style={[styles.flex, { backgroundColor: colors.background }]}>
       {/* Going back keeps the chat alive; the bar on Go live and Nearby reopens it. */}
@@ -107,7 +123,7 @@ export default function Chat() {
         placeholder={`Message ${other.firstName}`}
         disabled={ended}
         disabledText={`${other.firstName} ended the chat`}
-        header={safetyTip}
+        header={header}
       />
     </SafeAreaView>
   );
@@ -116,4 +132,5 @@ export default function Chat() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   who: { flexDirection: 'row', alignItems: 'center' },
+  cat: { alignItems: 'center' },
 });

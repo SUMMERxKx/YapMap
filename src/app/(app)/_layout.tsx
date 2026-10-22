@@ -10,7 +10,7 @@ import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function AppLayout() {
-  const { colors } = useTheme();
+  const { colors, radius } = useTheme();
   const incomingId = useStore((state) => state.incoming?.id);
   const chatId = useStore((state) => state.chat?.id);
   const expiresAt = useStore((state) => state.availability?.expiresAt);
@@ -58,6 +58,8 @@ export default function AppLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
+          // Android gets the same smooth slide-in from the right as iPhone (iOS keeps its own).
+          animation: 'ios_from_right',
           contentStyle: { backgroundColor: colors.background },
         }}>
         <Stack.Screen name="(tabs)" />
@@ -67,7 +69,7 @@ export default function AppLayout() {
             presentation: 'formSheet',
             sheetAllowedDetents: [0.85],
             sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
+            sheetCornerRadius: radius.xl,
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
@@ -77,7 +79,7 @@ export default function AppLayout() {
             presentation: 'formSheet',
             sheetAllowedDetents: [0.85],
             sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
+            sheetCornerRadius: radius.xl,
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
@@ -90,7 +92,7 @@ export default function AppLayout() {
             presentation: 'formSheet',
             sheetAllowedDetents: [0.75],
             sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
+            sheetCornerRadius: radius.xl,
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
@@ -98,14 +100,17 @@ export default function AppLayout() {
         {/* A normal screen (not a full-screen modal), so its safe areas match every other
             screen and Skip sits below the notch or status bar on any phone. */}
         <Stack.Screen name="tutorial" options={{ animation: 'fade', gestureEnabled: false }} />
-        <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        <Stack.Screen name="waiting" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+        <Stack.Screen
+          name="incoming"
+          options={{ presentation: 'fullScreenModal', animation: 'slide_from_bottom', gestureEnabled: false }}
+        />
         {/* A normal pushed screen: the back gesture works, and the status bar inset is
             handled like everywhere else (the old full-screen modal hid the header behind
             the notch on some iPhones). Leaving doesn't end the chat; the ActiveChatBar
             on Go live and Nearby reopens it. */}
         <Stack.Screen name="chat" />
-        <Stack.Screen name="report/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="report/[id]" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
         <Stack.Screen name="edit-profile" />
         <Stack.Screen name="settings" />
         <Stack.Screen name="blocked" />

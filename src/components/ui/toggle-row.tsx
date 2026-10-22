@@ -1,8 +1,9 @@
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   label: string;
@@ -15,6 +16,7 @@ type Props = {
 /** A labelled on/off switch. The whole row is tappable. */
 export function ToggleRow({ label, description, value, onChange, disabled }: Props) {
   const { colors, radius, spacing } = useTheme();
+  const press = usePressFeedback(colors.surface, colors.surfaceMuted);
 
   let opacity = 1;
   if (disabled) {
@@ -22,13 +24,15 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
   }
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="switch"
       accessibilityState={{ checked: value, disabled }}
       accessibilityLabel={label}
       accessibilityHint={description}
       disabled={disabled}
       onPress={() => onChange(!value)}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={[
         styles.row,
         {
@@ -36,10 +40,10 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.lg,
           borderRadius: radius.md,
-          backgroundColor: colors.surface,
           borderColor: colors.border,
           opacity,
         },
+        press.style,
       ]}>
       <View style={{ flex: 1, gap: spacing.xxs }}>
         <AppText variant="bodyStrong">{label}</AppText>
@@ -59,7 +63,7 @@ export function ToggleRow({ label, description, value, onChange, disabled }: Pro
         importantForAccessibility="no-hide-descendants"
         accessibilityElementsHidden
       />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

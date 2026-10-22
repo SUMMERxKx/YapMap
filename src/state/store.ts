@@ -51,6 +51,7 @@ type State = {
   eventRadiusKm: number; // how far around you the map looks for events
   nearbyAlert: NearbyAlert | null;
   events: MapEvent[];
+  eventsLoaded: boolean; // the map has heard back about events at least once
 };
 
 const initialState: State = {
@@ -75,6 +76,7 @@ const initialState: State = {
   eventRadiusKm: EVENT_RADIUS_KM.default,
   nearbyAlert: null,
   events: [],
+  eventsLoaded: false,
 };
 
 let state = initialState;
@@ -902,7 +904,7 @@ export async function loadEvents(center: { latitude: number; longitude: number }
     if (!existing) return event;
     return { ...event, messages: existing.messages };
   });
-  set({ events });
+  set({ events, eventsLoaded: true });
 }
 
 /** Changes how far around you the map looks for events, remembers it, and reloads the pins. */

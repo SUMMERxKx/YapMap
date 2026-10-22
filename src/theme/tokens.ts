@@ -74,12 +74,13 @@ export const layout = {
   maxTextWidth: 340, // centred paragraphs stay readable on wide screens
 } as const;
 
+// Softer, rounder corners on the big surfaces (cards, sheets), tighter ones on small controls.
 export const radius = {
   xs: 6, // message bubble tails, checkboxes
-  sm: 8,
-  md: 12, // inputs, option rows, duration chips
-  lg: 16, // cards
-  xl: 24, // sheets
+  sm: 8, // skeleton bars
+  md: 14, // inputs, option rows, duration chips
+  lg: 20, // cards
+  xl: 28, // sheets
   pill: 9999,
 } as const;
 
@@ -97,27 +98,31 @@ export const size = {
 } as const;
 
 // System fonts (SF Pro on iOS, Roboto on Android) so Dynamic Type and font scaling just work.
+// Big text is heavier and tighter, small text a little looser (Apple's type guidance); body
+// text gets 1.5 line spacing so paragraphs breathe.
 export const type = {
-  display: { fontSize: 32, lineHeight: 38, fontWeight: '700', letterSpacing: -0.4 },
-  title: { fontSize: 28, lineHeight: 34, fontWeight: '700', letterSpacing: -0.3 },
-  heading: { fontSize: 20, lineHeight: 26, fontWeight: '600' },
-  body: { fontSize: 16, lineHeight: 22, fontWeight: '400' },
+  display: { fontSize: 34, lineHeight: 40, fontWeight: '800', letterSpacing: -0.8 },
+  title: { fontSize: 28, lineHeight: 34, fontWeight: '800', letterSpacing: -0.6 },
+  heading: { fontSize: 20, lineHeight: 26, fontWeight: '700', letterSpacing: -0.3 },
+  body: { fontSize: 16, lineHeight: 24, fontWeight: '400' },
   bodyStrong: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
   fieldLabel: { fontSize: 14, lineHeight: 20, fontWeight: '600' },
   caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
-  label: { fontSize: 12, lineHeight: 16, fontWeight: '600', letterSpacing: 0.6 },
-  button: { fontSize: 17, lineHeight: 22, fontWeight: '600' },
+  label: { fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: 0.8 },
+  button: { fontSize: 17, lineHeight: 22, fontWeight: '700', letterSpacing: -0.2 },
 } as const;
 
 export type TypeVariant = keyof typeof type;
 
+// Two shadows: a soft, wide one for lifted cards, and a stronger one for things floating over
+// content (the YAP button and the map's buttons, which keep their look).
 export const elevation = {
   card: {
     shadowColor: '#1C1917',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 3,
   },
   floating: {
     shadowColor: '#1C1917',
@@ -126,4 +131,13 @@ export const elevation = {
     shadowOffset: { width: 0, height: 6 },
     elevation: 6,
   },
+} as const;
+
+// Press feedback: how far a tappable thing shrinks while held, and how quickly.
+export const motion = {
+  pressScale: 0.97, // buttons, chips, rows
+  cardPressScale: 0.985, // big surfaces move less
+  pressInMs: 90,
+  pressOutMs: 180,
+  skeletonPulseMs: 900,
 } as const;

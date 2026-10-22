@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { Pressable, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
 import { displayName } from '@/lib/format-person';
 import { useStore } from '@/state/store';
@@ -8,11 +8,13 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 /** Shown on Go live and Nearby while a 1:1 chat is open, so leaving the chat never loses it. */
 export function ActiveChatBar() {
   const chat = useStore((state) => state.chat);
-  const { colors, radius, size, spacing, elevation } = useTheme();
+  const { colors, motion, radius, size, spacing, elevation } = useTheme();
+  const press = usePressFeedback(colors.greenSoft, colors.greenSoft, motion.cardPressScale);
   if (!chat) return null;
 
   let text = `Yapping with ${displayName(chat.other)}`;
@@ -21,15 +23,17 @@ export function ActiveChatBar() {
   }
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`${text}. Open the chat`}
       onPress={() => router.push('/chat')}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
       style={[
         styles.bar,
         elevation.card,
+        press.style,
         {
-          backgroundColor: colors.greenSoft,
           borderRadius: radius.lg,
           paddingVertical: spacing.md,
           paddingHorizontal: spacing.lg,
@@ -49,7 +53,7 @@ export function ActiveChatBar() {
         Open
       </AppText>
       <Ionicons name="chevron-forward" size={size.iconMedium} color={colors.greenText} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

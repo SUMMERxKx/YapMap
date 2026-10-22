@@ -12,6 +12,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
 import { Card } from '@/components/ui/card';
 import { InterestList } from '@/components/ui/chip';
+import { Skeleton, SkeletonBlock } from '@/components/ui/skeleton';
 import { VerifiedBadge } from '@/components/profile/verified-badge';
 
 type Props = { person: NearbyPerson; subtitle?: string };
@@ -80,6 +81,26 @@ export function PersonDetails({ person, subtitle }: Props) {
   );
 }
 
+/** A grey stand-in the shape of PersonDetails, while the person is still loading. */
+export function PersonDetailsSkeleton() {
+  const { layout, radius, size, spacing } = useTheme();
+  return (
+    <Skeleton style={{ gap: layout.sectionGap }}>
+      <View style={{ alignItems: 'center', gap: spacing.sm }}>
+        <SkeletonBlock width={size.avatarHero} height={size.avatarHero} radius={size.avatarHero * 0.28} />
+        <SkeletonBlock width="50%" height={28} style={{ marginTop: spacing.md }} />
+        <SkeletonBlock width="30%" height={14} />
+      </View>
+      <View style={[styles.photoRow, { gap: spacing.sm }]}>
+        <SkeletonBlock width={styles.photo.width} height={styles.photo.height} radius={radius.lg} />
+        <SkeletonBlock width={styles.photo.width} height={styles.photo.height} radius={radius.lg} />
+      </View>
+      <SkeletonBlock width="100%" height={96} radius={radius.lg} />
+    </Skeleton>
+  );
+}
+
 const styles = StyleSheet.create({
   photo: { width: 150, height: 200 },
+  photoRow: { flexDirection: 'row', overflow: 'hidden' },
 });

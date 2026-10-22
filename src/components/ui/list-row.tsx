@@ -2,11 +2,12 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   label: string;
@@ -18,6 +19,8 @@ type Props = {
 
 export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: Props) {
   const { colors, layout, size, spacing } = useTheme();
+  // A row inside a group only darkens; shrinking it would pull it away from its neighbours.
+  const press = usePressFeedback(colors.surface, colors.surfaceMuted, 1);
 
   // An external row opens a web page, so it is announced as a link with an "open" icon.
   let role: 'link' | 'button' = 'button';
@@ -38,30 +41,28 @@ export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: 
     borderBottomWidth = 0;
   }
 
-  const rowStyle = ({ pressed }: { pressed: boolean }) => {
-    let backgroundColor = 'transparent';
-    if (pressed) {
-      backgroundColor = colors.surfaceMuted;
-    }
-    return [
-      styles.row,
-      {
-        minHeight: layout.controlHeight,
-        paddingHorizontal: spacing.lg,
-        gap: spacing.sm,
-        backgroundColor,
-        borderBottomWidth,
-        borderBottomColor: colors.border,
-      },
-    ];
-  };
-
   return (
-    <Pressable accessibilityRole={role} accessibilityLabel={accessibilityLabel} onPress={onPress} style={rowStyle}>
+    <AnimatedPressable
+      accessibilityRole={role}
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      onPressIn={press.onPressIn}
+      onPressOut={press.onPressOut}
+      style={[
+        styles.row,
+        {
+          minHeight: layout.controlHeight + spacing.xs,
+          paddingHorizontal: spacing.lg,
+          gap: spacing.sm,
+          borderBottomWidth,
+          borderBottomColor: colors.border,
+        },
+        press.style,
+      ]}>
       <AppText style={{ flex: 1 }}>{label}</AppText>
       {Boolean(detail) && <AppText color="textSecondary">{detail}</AppText>}
       <Ionicons name={trailingIcon} size={size.iconMedium} color={colors.textSecondary} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 

@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import * as Haptics from 'expo-haptics';
 import { Tabs } from 'expo-router/js-tabs';
 import type { ComponentProps } from 'react';
 import type { ColorValue } from 'react-native';
@@ -28,12 +29,16 @@ export default function TabsLayout() {
   const { colors, size, type } = useTheme();
   return (
     <Tabs
+      // A light tick under the finger on every tab change.
+      screenListeners={{ tabPress: () => Haptics.selectionAsync() }}
       screenOptions={{
         headerShown: false,
+        // Screens slide a little and cross-fade when switching tabs.
+        animation: 'shift',
         tabBarActiveTintColor: colors.greenText,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: type.label.fontSize, fontWeight: type.label.fontWeight },
+        tabBarLabelStyle: { fontSize: type.label.fontSize, fontWeight: '600', letterSpacing: 0.1 },
       }}>
       <Tabs.Screen
         name="index"
