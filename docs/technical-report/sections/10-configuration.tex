@@ -77,8 +77,9 @@ position, so an older app build can no longer join events.
     \midrule
     Create & \code{supabase migration new <name>} & Plain SQL; never edit a migration already applied to the hosted project \\
     Try locally & \code{supabase start}, then \code{supabase db reset} after each edit & Rebuilds the local database from every migration \\
-    Regenerate types & \code{supabase gen types typescript --local > src/data/database.types.ts} & Then \code{npx tsc --noEmit} and \code{npm run lint} \\
-    Apply to hosted & \code{supabase link --project-ref qiyipqpigacsljfdclql}, then \code{supabase db push} & Asks for the database password, which is never committed \\
+    Regenerate types & \code{npm run db:types} & Same Supabase CLI version as CI; then \code{npm run typecheck} and \code{npm run lint} \\
+    Pull request & Migration and regenerated types together & CI rebuilds the database from every migration and checks the types \\
+    Apply to hosted & After merge: \code{supabase link --project-ref qiyipqpigacsljfdclql}, then \code{supabase db push} & Asks for the database password, which is never committed \\
     \bottomrule
   \end{tabularx}
 \end{table}

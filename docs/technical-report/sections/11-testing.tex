@@ -21,13 +21,38 @@ The README lists three checks, and the larger changes add a fourth:
   \item[Type check.] \code{npx tsc --noEmit} type-checks the whole client in TypeScript's strict mode,
     including the typed routes and the database types generated from the schema, so a call with the wrong
     function arguments or a link to a missing route fails to compile.
-  \item[Lint.] \code{npx expo lint} runs ESLint with Expo's configuration. One rule, a web rule about
-    apostrophes in markup, is turned off because it does not apply to React Native text.
+  \item[Lint.] \code{npm run lint} runs ESLint with Expo's configuration and the rules of the ESLint
+    security plugin, which flag risky patterns such as \code{eval}. A web rule about apostrophes in markup is turned off because it
+    does not apply to React Native text, and the security rule that flags every \code{object[key]} is
+    turned off because TypeScript already checks those.
   \item[Project health.] \code{npx expo-doctor} checks that the installed packages match the Expo SDK.
   \item[Release bundles.] Exporting with \code{npx expo export}, once with \code{--platform ios} and once
     with \code{--platform android}, builds the production JavaScript bundles and so proves that the app
     bundles for both platforms.
 \end{description}
+
+\section{Continuous integration}
+
+GitHub Actions (\code{.github/workflows/ci.yml}) runs on every pull request and every push to
+\code{main}, and a newer push to the same branch cancels the older run. Three jobs report separately:
+
+\begin{description}
+  \item[App.] \code{npm ci}, the type check, the lint with warnings treated as failures, \code{expo-doctor}
+    and both release bundles, plus an \code{npm audit} report of the production dependencies that never
+    fails the run.
+  \item[Migration files.] Every migration is named \code{<14-digit version>\_<name>.sql}; a new one must be
+    later than every migration on the target branch; and an existing migration that is edited, renamed or
+    deleted fails the check (\code{scripts/check-migrations.sh}).
+  \item[Database.] Starts Supabase in Docker with a pinned CLI version, applies every migration to an empty
+    database with \code{supabase db reset}, lints the functions in \code{public} and \code{private} with
+    \code{supabase db lint}, and fails when \code{src/data/database.types.ts} differs from the types
+    generated from the migrations (\code{npm run db:types:check}).
+\end{description}
+
+Dependabot opens weekly update pull requests for npm packages and GitHub Actions; packages whose version
+the Expo SDK decides only move in an SDK upgrade. An optional AI review (PR-Agent, with a Gemini API key)
+stays off until the owner turns it on. \code{docs/RELEASING.md} lists the branch protection to require
+these checks, and how versions, builds, database changes and rollbacks work.
 
 \section{Pre-merge review pipeline}
 
@@ -75,6 +100,4 @@ dashboard settings it needs.
   \item There are no automated user-interface tests on a device or simulator.
   \item The behaviour-proof scripts were written for their pull requests and are not part of the
     repository, so they cannot be rerun as a regression suite.
-  \item There is no continuous integration: nothing runs the checks on a pull request automatically, and
-    pull requests show no check results.
 \end{itemize}

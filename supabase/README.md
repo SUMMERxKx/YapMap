@@ -29,15 +29,21 @@ http://127.0.0.1:54324. `supabase/config.toml` configures only this local stack.
 ## 3. Regenerate the app's types
 
 ```bash
-supabase gen types typescript --local > src/data/database.types.ts
+npm run db:types     # writes src/data/database.types.ts from the local database
 ```
 
-Then `npx tsc --noEmit` and `npm run lint`, and open a PR with the migration and the types.
+Use the same Supabase CLI version as CI (see `docs/RELEASING.md`), or the generated file can
+come out formatted differently. Then `npm run typecheck` and `npm run lint`, and open a PR with
+the migration and the types. CI rebuilds the database from every migration, lints the SQL
+functions and fails if the types file doesn't match.
 
 ## 4. Apply it to the hosted project
 
+After the PR is merged, from an up-to-date `main`:
+
 ```bash
 supabase link --project-ref qiyipqpigacsljfdclql   # once per checkout
+supabase db push --dry-run                         # lists what would be applied
 supabase db push                                   # applies migrations the hosted project doesn't have yet
 ```
 

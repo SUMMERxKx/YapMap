@@ -93,7 +93,12 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 ## Checks
 
 ```bash
-npx tsc --noEmit
-npx expo lint
+npm run typecheck
+npm run lint
 npx expo-doctor
 ```
+
+GitHub Actions runs these on every pull request, along with the iOS and Android bundle
+builds and a database job that applies every migration from scratch. `docs/RELEASING.md`
+covers CI, branch protection, versioning, EAS builds, shipping database changes and
+rollback.
