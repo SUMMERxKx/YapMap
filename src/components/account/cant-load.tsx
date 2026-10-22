@@ -26,7 +26,7 @@ export function CantLoad() {
 
   return (
     <Screen
-      footer={<Button label="Try again" onPress={() => void retry()} loading={retrying} />}>
+      footer={<Button label="Try again" onPress={retry} loading={retrying} />}>
       <EmptyState
         mascot="sleepy"
         title="Can't reach Yap"

@@ -65,8 +65,8 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{signInWithPassword(email, password)} & Sign in; returns \code{'unconfirmed'} when the account needs its code \\
   \code{finishPasswordReset(email, code, password)} & Verify the reset code, save the password, load the session \\
   \code{signInWithProvider(provider)} & Behind a flag; shows \ui{Not available yet} \\
-  \code{signOut()} & Requires a connection; ends the chat, goes offline, signs out \\
-  \code{deleteAccount()} & Removes photos, deletes the account, signs out \\
+  \code{signOut()} & Requires a connection; ends the chat, goes offline, signs out; a second call waits for the first \\
+  \code{deleteAccount()} & Requires a connection; removes photos, deletes the account, signs out, forgets the account's saved preferences; a second call waits for the first \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Profile}}} \\
   \code{saveProfile(values)} & Upload photos and save; on the first save, mark the tutorial due and start listening for requests \\
@@ -81,12 +81,12 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{showNearbyAlert(alert)}, \code{dismissNearbyAlert()} & Show or hide the nearby prompt \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Requests and chat}}} \\
-  \code{sayHi(person)} & Refuse while chatting or waiting; call \code{send_request}; watch for the answer \\
+  \code{sayHi(person)} & Refuse while chatting, waiting or already sending; call \code{send_request}; watch for the answer \\
   \code{cancelRequest()} & Hide the request, call \code{cancel_request}; restore and re-watch it on failure \\
   \code{expireOutgoing()}, \code{clearOutgoing()} & Mark the waiting request \ui{Not this time}; forget it \\
   \code{respondToIncoming(accept)} & Answer the request on screen; on accept, drop the user's own request and open the chat \\
   \code{expireIncoming()} & The request on screen ran out \\
-  \code{sendMessage(text)} & Send in the one-to-one chat; a \code{no such chat} answer marks it ended \\
+  \code{sendMessage(text)} & Clean the text and send it in the one-to-one chat; a \code{no such chat} answer marks it ended; returns whether it was sent, so the composer keeps unsent text \\
   \code{endChat(outcome)} & \code{'met'} or \code{'cancelled'}: close the chat here and call \code{end_chat} \\
   \code{markSafetyTipSeen()}, \code{markTutorialSeen()} & Count a safety-tip view (saved); clear \code{tutorialDue} \\
   \midrule
@@ -99,11 +99,11 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{loadEvents(centre)} & Load events around a point with the saved radius; a newer load wins \\
   \code{setEventRadius(km)} & Clamp to 1--50\,km, save, reload around the last centre \\
   \code{createEvent(input)} & Call \code{create_event}; put the new event first \\
-  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member, or, if the event is gone, remove it and return \code{'event-deleted'} \\
-  \code{leaveEvent(id)} & Call \code{leave_event}; remove the event if the user hosts it, else mark it left \\
+  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member once, or, if the event is gone, remove it and return \code{'event-deleted'} \\
+  \code{leaveEvent(id)} & Call \code{leave_event}; remove the event if the user hosts it, else mark it left (counted once) \\
   \code{deleteEvent(id)} & Call \code{delete_event}; remove the event from the map and lists \\
   \code{enterEventChat(id)}, \code{leaveEventChat()} & Open or close the group chat's channel; history loads on each join \\
-  \code{sendGroupMessage(id, text)} & Send in a group chat; show the saved message at once \\
+  \code{sendGroupMessage(id, text)} & Clean the text and send it in a group chat; show the saved message at once; returns whether it was sent \\
 \end{longtable}
 \endgroup
 

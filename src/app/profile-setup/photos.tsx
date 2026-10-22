@@ -56,7 +56,7 @@ export default function PhotosStep() {
       subtitle="Show a bit more of you: what you like doing, places you go, people you hang out with."
       nextLabel="Finish"
       canContinue={ready}
-      onNext={() => void finish()}
+      onNext={finish}
       loading={saving}>
       <PhotoGrid photos={draft.photos} onChange={(photos) => update({ photos })} />
       <AppText variant="caption" color="textSecondary" accessibilityLiveRegion="polite">

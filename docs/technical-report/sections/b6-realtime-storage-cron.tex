@@ -42,9 +42,9 @@ limit what each channel delivers.
     Bucket \code{photos} & private (\code{public = false}); file size limit 5\,242\,880 bytes; MIME types \code{image/jpeg}, \code{image/png}, \code{image/webp} \\
     Object names & \code{<user-id>/<slot>-<milliseconds>.jpg}; slot \code{profile} or \code{photo0} to \code{photo5}; the profile picture's copy ends in \code{-small.jpg} \\
     \code{photos_read_visible} & select, \code{authenticated}: bucket \code{photos} and (first folder is the user's ID, or \code{private.can_see_photo(name)}) \\
-    \code{photos_insert_own_folder} & insert, \code{authenticated}: bucket \code{photos} and first folder is the user's ID \\
-    \code{photos_update_own_folder} & update, \code{authenticated}: same condition \\
-    \code{photos_delete_own_folder} & delete, \code{authenticated}: same condition \\
+    \code{photos_insert_own_folder} & insert, \code{authenticated}: bucket \code{photos}, directly in the folder named by the user's ID (no sub-folders), and fewer than 24 files there already (\code{private.my_photo_count()}) \\
+    \code{photos_update_own_folder} & update, \code{authenticated}: bucket \code{photos} and first folder is the user's ID \\
+    \code{photos_delete_own_folder} & delete, \code{authenticated}: same condition as update \\
     Removed policy & \code{photos_read_signed_in}, which let any signed-in user read every photo, was dropped by the \code{server_rules} migration \\
     \bottomrule
   \end{tabularx}

@@ -15,6 +15,7 @@ import Animated, {
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
+import { useGuardedPress } from '@/components/ui/press-feedback';
 
 type Props = {
   onPress: () => void;
@@ -102,10 +103,11 @@ export function HeroButton({ onPress, live = false, timeLeft, size = 230 }: Prop
     );
   }
 
-  const handlePress = () => {
+  // A double tap doesn't get you off and straight back into the go-live sheet.
+  const guarded = useGuardedPress(() => {
     Haptics.impactAsync(hapticStyle);
     onPress();
-  };
+  });
 
   const buttonStyle = ({ pressed }: { pressed: boolean }) => {
     let scale = 1;
@@ -128,7 +130,7 @@ export function HeroButton({ onPress, live = false, timeLeft, size = 230 }: Prop
           accessibilityRole="button"
           accessibilityLabel={accessibilityLabel}
           accessibilityHint={accessibilityHint}
-          onPress={handlePress}
+          onPress={guarded.onPress}
           style={buttonStyle}>
           {content}
         </Pressable>

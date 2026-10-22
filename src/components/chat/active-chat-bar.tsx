@@ -8,13 +8,14 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
-import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
+import { AnimatedPressable, useGuardedPress, usePressFeedback } from '@/components/ui/press-feedback';
 
 /** Shown on Go live and Nearby while a 1:1 chat is open, so leaving the chat never loses it. */
 export function ActiveChatBar() {
   const chat = useStore((state) => state.chat);
   const { colors, motion, radius, size, spacing, elevation } = useTheme();
   const press = usePressFeedback(colors.greenSoft, colors.greenSoft, motion.cardPressScale);
+  const openChat = useGuardedPress(() => router.push('/chat'));
   if (!chat) return null;
 
   let text = `Yapping with ${displayName(chat.other)}`;
@@ -26,7 +27,7 @@ export function ActiveChatBar() {
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={`${text}. Open the chat`}
-      onPress={() => router.push('/chat')}
+      onPress={openChat.onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={[

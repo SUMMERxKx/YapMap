@@ -70,7 +70,7 @@ store calls the API layer; the API layer is the only code that uses the Supabase
     \code{src/hooks} & The shared one-second clock and countdowns, foreground location, nearby polling and nearby prompts, and lazy signing of a person's extra photos. \\
     \code{src/state} & The store (\code{store.ts}), the profile-setup draft (\code{profile-draft.tsx}) and per-account preferences saved on the phone (\code{saved-prefs.ts}). \\
     \code{src/data} & The API layer (\code{api.ts}), the single Supabase client (\code{supabase-client.ts}), the data shapes (\code{types.ts}), fixed lists and limits (\code{constants.ts}) and the types generated from the database schema (\code{database.types.ts}). \\
-    \code{src/lib} & Pure helpers with no React: wording for names, genders and times, event categories, password checks, error text and image cache keys. \\
+    \code{src/lib} & Pure helpers with no React: wording for names, genders and times, event categories, password checks, error text, image cache keys, tidying typed text, checking picked photos, and the server-corrected clock. \\
     \code{src/theme} & Design tokens (colours for light and dark mode, spacing, radii, sizes, type, elevation, motion) and the \code{useTheme} hook. \\
     \code{src/config} & Feature flags (\code{features.ts}) and the Supabase project address and publishable key (\code{supabase.ts}). \\
     \bottomrule

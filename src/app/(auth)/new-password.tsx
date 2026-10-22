@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TopBar } from '@/components/ui/top-bar';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
+import { useOneAtATime } from '@/hooks/use-one-at-a-time';
 import { errorMessage } from '@/lib/error-message';
 import { passwordProblem } from '@/lib/password-problem';
 import { finishPasswordReset } from '@/state/store';
@@ -24,7 +25,8 @@ export default function NewPassword() {
 
   const canSave = password.length > 0 && confirmation.length > 0;
 
-  const save = async () => {
+  // The button and the keyboard's Go key both save; the code works once, so one attempt at a time.
+  const save = useOneAtATime(async () => {
     if (!canSave) return;
     const problem = passwordProblem(password, confirmation);
     if (problem) {
@@ -40,7 +42,7 @@ export default function NewPassword() {
     } finally {
       setSaving(false);
     }
-  };
+  });
 
   return (
     <Screen

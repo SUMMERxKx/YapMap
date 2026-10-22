@@ -36,9 +36,9 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Profile and photos}}} \\
   \code{fetchMyProfile()} & select own \code{profiles} row; storage \code{createSignedUrls} & \code{Profile} or null \\
-  \code{saveProfile(values)} & storage \code{upload} for new photos and the 320\,px copy; select own row; insert or update; storage \code{list} and \code{remove} unused files; then \code{fetchMyProfile} & \code{Profile} \\
+  \code{saveProfile(values)} & select own row; storage \code{list} and \code{remove} files the saved row doesn't use; storage \code{upload} for new photos and the 320\,px copy; insert or update; \code{list} and \code{remove} unused files again; then \code{fetchMyProfile} & \code{Profile} \\
   \code{signPhotos(paths)} & storage \code{createSignedUrls} for uncached paths & display URLs \\
-  \code{forgetSignedUrls()} & none; clears the URL cache & --- \\
+  \code{forgetSession()} & none; clears the URL cache and removes every Realtime channel & --- \\
   \code{verifySelfie(selfie, photo)} & none; placeholder & always \texttt{\{matched: true\}} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Going live}}} \\
@@ -56,7 +56,7 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{pendingIncoming()} & select newest \code{chat_requests} row to the user, \code{pending}, not expired & \texttt{\{id, expiresAt\}} or null \\
   \code{requestStatus(id)} & select \code{status} of one request & status or null if gone \\
   \code{subscribeIncoming(userId, onRequest, onSubscribed)} & channel \code{incoming-requests} (inserts) & unsubscribe function \\
-  \code{myStatus()} & rpc \code{my_status}; signs the waiting request's card & \texttt{\{live, chatId, outgoing\}} \\
+  \code{myStatus()} & rpc \code{my_status}; records the server clock's offset; signs the waiting request's card & \texttt{\{live, chatId, outgoing\}} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Chats}}} \\
   \code{endChat(id, outcome)} & rpc \code{end_chat} & --- \\

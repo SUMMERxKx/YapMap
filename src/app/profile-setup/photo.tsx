@@ -3,12 +3,13 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { router } from 'expo-router';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/profile/avatar';
 import { Button } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { SetupStep } from '@/components/profile/setup-step';
+import { photoProblem } from '@/lib/picked-photo';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 import { useTheme } from '@/theme';
 
@@ -24,9 +25,20 @@ export default function PhotoStep() {
   const { draft, update } = useProfileDraft();
   const [cameraDenied, setCameraDenied] = useState(false);
 
+  /** Uses the picked photo, or says why it can't be used. */
+  const keepPicked = (result: ImagePicker.ImagePickerResult) => {
+    const picked = result.assets?.[0];
+    if (result.canceled || !picked) return;
+    const problem = photoProblem(picked);
+    if (problem) {
+      Alert.alert("Can't use that photo", problem);
+      return;
+    }
+    update({ photoUri: picked.uri });
+  };
+
   const choose = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync(PICKER);
-    if (!result.canceled) update({ photoUri: result.assets[0]?.uri ?? null });
+    keepPicked(await ImagePicker.launchImageLibraryAsync(PICKER));
   };
 
   const take = async () => {
@@ -36,8 +48,7 @@ export default function PhotoStep() {
       return;
     }
     setCameraDenied(false);
-    const result = await ImagePicker.launchCameraAsync({ ...PICKER, cameraType: ImagePicker.CameraType.front });
-    if (!result.canceled) update({ photoUri: result.assets[0]?.uri ?? null });
+    keepPicked(await ImagePicker.launchCameraAsync({ ...PICKER, cameraType: ImagePicker.CameraType.front }));
   };
 
   let chooseLabel = 'Choose from library';

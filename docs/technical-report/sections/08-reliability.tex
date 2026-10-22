@@ -129,8 +129,22 @@ recipient's own waiting request before checking for an existing chat, so an answ
 moment is seen. A cancel that arrives just after an accept ends the new chat instead of leaving one user
 in a chat the other never sees.
 
+\paragraph{Double taps} Every button, icon button, row and card ignores a second tap while the action
+the first one started is still running (the button shows its spinner meanwhile), and for half a second
+after a tap that only opens or closes a screen (\code{useGuardedPress} in
+\code{src/components/ui/press-feedback.ts}), so a double tap cannot submit twice, open a screen twice or go
+back two screens. Forms that a keyboard key or a completed code can also submit run one attempt at a time
+(\code{useOneAtATime}). The server makes the repeats that still get through harmless: saying hi again to
+the person already waited on returns the same request, a repeated report keeps the first, and joining,
+blocking and going live again change nothing.
+
 \paragraph{In the store}
 \begin{itemize}
+  \item A say-hi on its way to the server blocks a second one, and a sign-out or account deletion
+    already under way makes a second tap of the same action wait for it. The other action is refused
+    with an error rather than waiting, so a sign-out never passes for a deletion.
+  \item Sign-out resets every counter and in-flight marker below, so an answer meant for the previous
+    account lands nowhere.
   \item Counters on nearby refreshes, event loads and group chat visits discard any answer that arrives
     after a newer request has started or the screen has closed.
   \item \code{handledRequestIds} and \code{closedChatIds} stop a catch-up, which may have read the server a
@@ -145,13 +159,19 @@ in a chat the other never sees.
 \end{itemize}
 
 \section{Time}
+\label{sec:time}
 
 The server owns every deadline. \code{go_green} returns the session's start and end as the server set
 them, and \code{send_request} returns the request's end time; the countdowns on screen count towards those
-instants. The phone's end-of-session timer fires at the server's end time as measured by the phone's clock and
-then calls \code{go_offline}; the answer timer only changes the screen. A wrong clock on the phone can
-therefore end a session early or make a countdown read wrong, but it cannot extend a session or a request,
-because the server checks its own time and its minute job removes whatever has run out.
+instants. A phone's clock can be wrong, set by hand or minutes off, so the app does not compare those
+instants with the phone's clock directly. \code{my_status} also returns the server's clock, and each time
+it is called (at launch and at every catch-up) the app records how far the phone's clock is off, taking
+the server's answer as halfway through the round trip (\code{src/lib/server-clock.ts}).
+\code{serverNow()}, the phone's clock corrected by that offset, drives the shared countdown clock, the
+end-of-session timer, the wait for an answer, the query for missed requests and the earliest start of a
+new event. Before the first answer the offset is zero, which was the behaviour before. Whatever the
+phone's clock says, it cannot extend a session or a request, because the server checks its own time and
+its minute job removes whatever has run out.
 
 The countdowns themselves share one clock (\code{useClock}): a single one-second interval serves every
 countdown on screen and stops when none is shown. It reads the time outside React's render, as React

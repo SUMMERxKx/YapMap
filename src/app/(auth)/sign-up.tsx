@@ -14,6 +14,7 @@ import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import { LINKS } from '@/config/links';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
+import { useOneAtATime } from '@/hooks/use-one-at-a-time';
 import { errorMessage } from '@/lib/error-message';
 import { passwordProblem } from '@/lib/password-problem';
 import { signUp } from '@/state/store';
@@ -27,7 +28,9 @@ export default function SignUp() {
 
   const canCreate = email.includes('@') && password.length > 0 && confirmation.length > 0;
 
-  const create = async () => {
+  // The button and the keyboard's Go key both create the account; one attempt at a time, or
+  // the second would be refused as an account that already exists.
+  const create = useOneAtATime(async () => {
     if (!canCreate) return;
     const problem = passwordProblem(password, confirmation);
     if (problem) {
@@ -48,7 +51,7 @@ export default function SignUp() {
     } finally {
       setCreating(false);
     }
-  };
+  });
 
   return (
     <Screen

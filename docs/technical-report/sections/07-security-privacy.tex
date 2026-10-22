@@ -48,13 +48,15 @@ The Supabase client keeps the session in AsyncStorage, refreshes its access toke
 not look for sessions in URLs. AsyncStorage is used rather than the platform's secure store because the
 session JSON is larger than the roughly 2\,KB a secure-store entry holds. Before joining any Realtime
 channel the client passes the current token to Realtime, so every channel joins as the signed-in user and
-receives only the rows that user may read. On sign-out the app closes every channel and forgets every
-signed URL.
+receives only the rows that user may read. On sign-out the app closes every channel, forgets every
+signed URL and clears the photos cached on the phone, so the next account to sign in on the same phone
+sees nothing of the last one.
 
 \section{Row-level security and grants}
 \label{sec:rls}
 
-Row-level security is enabled on every application table and on \code{private.location_changes}. The
+Row-level security is enabled on every application table and on the two private logs,
+\code{private.location_changes} and \code{private.event_posts}. The
 anonymous role has no access to any of the app's tables and cannot call any of its functions. \Cref{tab:rls} lists what a
 signed-in user may do directly; everything else happens inside a database function.
 
@@ -75,7 +77,7 @@ signed-in user may do directly; everything else happens inside a database functi
     \code{blocks} & blocks the user made & --- & blocks the user made \\
     \code{reports} & --- & --- & --- \\
     \code{location_changes} & --- & --- & --- \\
-    \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & own folder & own folder \\
+    \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & directly in own folder, at most 24 files & own folder \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -266,7 +268,9 @@ tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} 
     Sending requests & 5 per sender in any 10 minutes & \code{send_request} \\
     Waiting requests & 1 per sender at a time & \code{send_request}; partial unique index \\
     Sending messages & 30 per sender per minute, both chat kinds & \code{send_chat_message}, \code{send_event_message} \\
-    Creating events & 5 per host in any 24 hours & \code{create_event} \\
+    Creating events & 5 per host in any 24 hours, deleted events included; exact for calls sent at once & \code{create_event} (a per-host lock); \code{private.event_posts} \\
+    Reporting & 1 report per person per day; 10 people per day; exact for calls sent at once & \code{report_user} (a per-reporter lock) \\
+    Storing photos & 24 files per user; best-effort, as uploads sent at once can go a little past it & storage insert policy \\
     Changing location & 3 changes in any 10 minutes & \code{go_green} \\
     Moving while live & 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
     Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\

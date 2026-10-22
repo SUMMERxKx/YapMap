@@ -143,6 +143,12 @@ than 150 metres while live. It stores no position. \code{go_green} counts the ro
 minutes to limit how often a location may change, and the minute job deletes rows older than that
 (\cref{sec:relocation-limits}).
 
+\subsection{Event posts}
+
+\code{private.event_posts} records the time each event was created, and nothing else. \code{create_event}
+counts the rows from the last 24 hours for its five-a-day limit, so deleting an event does not give its
+place back; the minute job deletes rows older than a day.
+
 \subsection{Photos in Storage}
 
 Photo files are objects in the Storage bucket \code{photos}, which is private, accepts JPEG, PNG and
@@ -180,6 +186,7 @@ path with the suffix \code{-small.jpg}, used for small avatars.
     \code{blocks (blocked)} & Block checks in the reverse direction \\
     \code{reports (reported)}, \code{(reporter)}, \code{(request_id)} & Counting reporters; cascades \\
     \code{private.location_changes (user_id, changed_at)} & The relocation limit in \code{go_green} \\
+    \code{private.event_posts (user_id, posted_at)} & The event limit in \code{create_event} \\
     \bottomrule
   \end{tabularx}
 \end{table}

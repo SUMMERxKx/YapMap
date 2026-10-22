@@ -14,8 +14,10 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import { EVENT_CATEGORIES, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
+import { hasVisibleText } from '@/lib/clean-text';
 import { errorMessage } from '@/lib/error-message';
 import { formatStartTime } from '@/lib/format-time';
+import { serverNow } from '@/lib/server-clock';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -29,15 +31,17 @@ export default function NewEvent() {
   const [category, setCategory] = useState<string>(EVENT_CATEGORIES[0].value);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [startsAt, setStartsAt] = useState(() => Date.now());
+  // "Now" is the server's now: a phone whose clock is behind would otherwise post an event the
+  // server says starts in the past. A time picked on the calendar is the same on every clock.
+  const [startsAt, setStartsAt] = useState(() => serverNow());
   // The picker's allowed range is captured when it opens (not during render, which must stay pure).
   const [iosPicker, setIosPicker] = useState<{ min: number; max: number } | null>(null);
   const [busy, setBusy] = useState(false);
 
   // Events can start any time from now up to a week ahead.
   const clamp = (time: number) => {
-    const earliest = Date.now();
-    const latest = Date.now() + EVENT_MAX_AHEAD_MS;
+    const earliest = serverNow();
+    const latest = serverNow() + EVENT_MAX_AHEAD_MS;
     return Math.min(Math.max(time, earliest), latest);
   };
 
@@ -46,7 +50,7 @@ export default function NewEvent() {
       // Tapping again closes the inline picker.
       setIosPicker((open) => {
         if (open) return null;
-        return { min: Date.now(), max: Date.now() + EVENT_MAX_AHEAD_MS };
+        return { min: serverNow(), max: serverNow() + EVENT_MAX_AHEAD_MS };
       });
       return;
     }
@@ -54,8 +58,8 @@ export default function NewEvent() {
     DateTimePickerAndroid.open({
       value: new Date(startsAt),
       mode: 'date',
-      minimumDate: new Date(),
-      maximumDate: new Date(Date.now() + EVENT_MAX_AHEAD_MS),
+      minimumDate: new Date(serverNow()),
+      maximumDate: new Date(serverNow() + EVENT_MAX_AHEAD_MS),
       onChange: (dateEvent, date) => {
         if (dateEvent.type !== 'set' || !date) return;
         DateTimePickerAndroid.open({
@@ -69,15 +73,17 @@ export default function NewEvent() {
     });
   };
 
+  const hasTitle = hasVisibleText(title);
+
   const post = async () => {
-    if (!title.trim()) return;
+    if (!hasTitle) return;
     setBusy(true);
     let id: string;
     try {
       id = await createEvent({
         emoji: category,
-        title: title.trim(),
-        description: description.trim(),
+        title,
+        description,
         latitude: Number(lat),
         longitude: Number(lng),
         startsAt: clamp(startsAt),
@@ -94,7 +100,7 @@ export default function NewEvent() {
   return (
     <Screen
       scroll
-      footer={<Button label="Post event" onPress={post} loading={busy} disabled={!title.trim()} haptic />}>
+      footer={<Button label="Post event" onPress={post} loading={busy} disabled={!hasTitle} haptic />}>
       <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
       <ScreenHeader title="Create an event" subtitle="It goes on the map at the spot you picked. Anyone can join." />
 

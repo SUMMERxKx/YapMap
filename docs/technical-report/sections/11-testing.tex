@@ -1,9 +1,9 @@
 \chapter{Testing and validation}
 \label{ch:testing}
 
-Yap has no automated test suite in the repository and no continuous-integration workflow. Correctness is
-established in three other ways: static checks run on every change, behaviour proofs run against a
-disposable backend for changes that alter behaviour, and manual testing on phones. This chapter describes
+Yap has no client test suite. Correctness is established by static checks and continuous integration on
+every change, a small set of SQL tests for the server rules, behaviour proofs run against a disposable
+backend for changes that alter behaviour, and manual testing on phones. This chapter describes
 each and states plainly what is not covered. \Cref{fig:validation} shows the path a change takes.
 
 \begin{figure}[ht]
@@ -54,6 +54,23 @@ the Expo SDK decides only move in an SDK upgrade. An optional AI review (PR-Agen
 stays off until the owner turns it on. \code{docs/RELEASING.md} lists the branch protection to require
 these checks, and how versions, builds, database changes and rollbacks work.
 
+\section{SQL tests}
+
+\code{supabase/tests/hardening_test.sql} is a pgTAP file that \code{supabase test db} runs against the
+local stack, inside a transaction it rolls back. Its 19 checks cover what a modified app could do
+before the October 2026 hardening migration: names, intros, interests and messages that show nothing
+or carry direction overrides or stacked accents, a second say-hi creating a second request, repeated
+reports, deleting events to get around the daily limit, uploads into a sub-folder or past 24 files, and
+\code{my_status} without the server clock. One more checks that \code{service_role}, which the
+dashboard uses, can still edit a profile now that its check constraints call private helpers. \code{supabase/tests/parallel_limits_test.sql} sends
+calls at the same moment from separate connections (through \code{dblink}): ten events, twelve people
+reported and five reports of one person. Its three checks pass only if the daily limits hold, five
+events, ten reports and one report. Before \code{create_event} and \code{report_user} took a per-person
+lock, all three failed (ten events, twelve reports, five reports). The people it signs up through those
+connections are saved for real, so it deletes them at its start and end. Continuous integration does not
+run these files yet; run them after changing those rules. The 24-file photo limit has no such check: it
+is best-effort against uploads sent at once.
+
 \section{Pre-merge review pipeline}
 
 Recent changes reach \code{main} through a pre-push pipeline, \code{no-mistakes}, which reviews the change
@@ -86,6 +103,17 @@ four simulated phones over Realtime and passed all 21 of its steps, from the ser
 blocking during a chat; on the previous code it failed at the second and sixth steps and stopped at the seventh. The
 generated database types were regenerated from the local stack as part of the same change.
 
+\paragraph{Trying to break the app (October 2026)} Four users signed up on the local stack and made 83
+attempts directly over HTTP, as a modified app would, against the tables, functions and storage paths the
+app uses: extreme text in every field, double taps on every action, other users' IDs, out-of-range values
+and storage abuse. On the previous migrations 28 abusive attempts got through (26 accepted outright, plus
+twelve copies of one report and a report pointing at a stranger's request), and a second say-hi answered
+with an error. With the hardening migration all 28 are refused or made harmless, a second say-hi returns
+the first request, and the 29 attempts the earlier rules refused are still refused. The SQL tests above
+came out of this pass: on the previous migrations the first file fails its first five checks and stops
+at the eighth, and the second fails all three; with the migration all 22 pass. The generated database types came out unchanged, because no public
+function changed its arguments or return type.
+
 \section{Manual testing}
 
 The core loop is tested by hand with two phones running Expo Go, signed in with different email
@@ -99,5 +127,6 @@ dashboard settings it needs.
     easiest to test.
   \item There are no automated user-interface tests on a device or simulator.
   \item The behaviour-proof scripts were written for their pull requests and are not part of the
-    repository, so they cannot be rerun as a regression suite.
+    repository, so they cannot be rerun as a regression suite; only \code{supabase/tests} can, and
+    continuous integration does not run it yet.
 \end{itemize}

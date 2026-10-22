@@ -74,6 +74,7 @@ export const LIMITS = {
   message: 1000,
   eventTitle: 60,
   eventDescription: 200,
+  reportDetails: 500,
 } as const;
 
 export const INTEREST_RANGE = { min: 3, max: 5 } as const;

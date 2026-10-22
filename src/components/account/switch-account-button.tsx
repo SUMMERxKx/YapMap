@@ -14,5 +14,5 @@ export function SwitchAccountButton() {
     }
   };
 
-  return <Button label="Use a different account" variant="ghost" onPress={() => void onPress()} />;
+  return <Button label="Use a different account" variant="ghost" onPress={onPress} />;
 }

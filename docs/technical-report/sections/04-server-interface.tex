@@ -87,8 +87,9 @@ message in parentheses where one applies.
   \multicolumn{2}{@{}l}{\textsf{\textbf{Say hi and chat}}} \\[2pt]
   \code{send_request}\newline{\scriptsize target}\newline{\scriptsize returns ID and end time}
   & Creates a request to \code{target} that expires in five minutes. Checks, in order: signed in; not the
-    caller (\code{cannot request yourself}); no block either way and target active (\code{not available});
-    caller not already in a chat (\code{already chatting}); target live, \code{open} and near the caller,
+    caller (\code{cannot request yourself}); no block either way and target active (\code{not available}).
+    If the caller is already waiting on this same person, it returns that request instead, so a second tap
+    sends nothing new. Then: caller not already in a chat (\code{already chatting}); target live, \code{open} and near the caller,
     who must also be live (\code{not nearby}); fewer than five requests sent in ten minutes
     (\code{too many requests}). It then marks the caller's own timed-out request as expired and refuses if
     one is still waiting (\code{already waiting}). The partial unique index enforces the same rule if two
@@ -121,7 +122,9 @@ message in parentheses where one applies.
   \code{my_status}\newline{\scriptsize returns live, chat and request}
   & What the app needs after a restart: the caller's live session (note, start and end) if not expired;
     the ID of the caller's newest accepted chat in which at least one person is still live; and the
-    caller's waiting request with the recipient's card, if one has not expired. \\[3pt]
+    caller's waiting request with the recipient's card, if one has not expired. Also returns the server's
+    clock (\texttt{now}, in milliseconds), which the app uses to correct for a phone whose clock is wrong
+    (\cref{sec:time}). \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Safety and account}}} \\[2pt]
   \code{block_user}\newline{\scriptsize target}
   & Records the block (repeating it is harmless). Checks: signed in; not the caller
@@ -131,9 +134,13 @@ message in parentheses where one applies.
   \code{blocked_list}\newline{\scriptsize returns names}
   & The caller's blocked users, newest first, as ID, first name and last initial. \\
   \code{report_user}\newline{\scriptsize target, reason, details, request\_id}
-  & Records a report; details are cut to 500 characters and the reason must be one of the six values.
-    Checks: signed in; not the caller (\code{cannot report yourself}). Sets the reported profile to
-    \code{hidden} once three different users have reported it. \\
+  & Records a report. Checks: signed in; not the caller (\code{cannot report yourself}); the target exists
+    (\code{not available}); the reason is one of the six values (\code{invalid reason}); the details are at
+    most 500 characters of clean text (\code{invalid details}). A second report of the same person within
+    a day returns without a new row, so a double tap files one report; otherwise fewer than ten reports
+    by the caller in 24 hours (\code{too many reports}). An attached request is kept only if it is
+    between the two users. Sets the reported profile to \code{hidden} once three different users have
+    reported it. \\
   \code{delete_account}
   & Returns the caller's chat partner, if any, to \code{open}, then deletes the caller's Auth user, which
     cascades through every table (\cref{sec:flow-delete}). The client removes the caller's photos through
@@ -145,9 +152,12 @@ message in parentheses where one applies.
     and not blocked in either direction, ordered by start time. \\
   \code{create_event}\newline{\scriptsize emoji, title, description, lat, lng, starts\_at\_ms}\newline{\scriptsize returns an event card}
   & Creates an event and adds the host as its first member. Checks: signed in; profile active and adult
-    (\code{profile not ready}); valid position (\code{invalid location}); start between five minutes ago and
-    seven days ahead (\code{invalid start time}); fewer than five events created by the caller in 24 hours
-    (\code{too many events}). Title and description lengths are enforced by check constraints. \\
+    (\code{profile not ready}); valid position (\code{invalid location}); a title of 1 to 60 characters on
+    one line with something visible (\code{invalid title}); details of at most 200 characters of clean text
+    (\code{invalid details}); start between five minutes ago and seven days ahead, checked before the
+    number is converted (\code{invalid start time}); fewer than five events created by the caller in 24
+    hours, counting events since deleted (\code{too many events}). Each creation is recorded in
+    \code{private.event_posts}. \\
   \code{join_event}\newline{\scriptsize event\_id, lat, lng}
   & Adds the caller as a member (repeating it is harmless). Checks: signed in; the event exists
     (\code{no such event}); no block between the caller and the host (\code{not available}); profile active
@@ -211,6 +221,7 @@ function that can change a given table.
   \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
   \code{auth.users} row; the cascade removes the profile and every row that references it.
   \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
+  Not shown: \code{create_event} also inserts into \code{private.event_posts}, which the minute job prunes.
 \end{table}
 
 Two details of these functions carry more weight than their size suggests. First, \code{respond},
@@ -251,9 +262,10 @@ update only the editable columns, so the database would refuse it.
 \section{Private helpers}
 \label{sec:helpers}
 
-The functions share a small set of helpers in the \code{private} schema (\cref{tab:helpers}). Four of
-them must be executable by signed-in users, because a row-level security policy, a storage policy or a
-check constraint runs them as the user. Each answers only for the caller, or reads no tables at all.
+The functions share a small set of helpers in the \code{private} schema (\cref{tab:helpers}). Those
+used by a row-level security policy, a storage policy or a check constraint must be executable by
+signed-in users, because the policy or constraint runs them as the user. Each answers only for the
+caller, or reads no tables at all.
 
 \begin{table}[ht]
   \centering
@@ -271,6 +283,10 @@ check constraint runs them as the user. Each answers only for the caller, or rea
     \code{is_chat_participant(request)} & Used by the \code{messages} select policy; executable by signed-in users \\
     \code{is_event_member(event)} & Used by the \code{messages} select policy; executable by signed-in users \\
     \code{in_own_folder(paths, owner)} & Used by the photo check constraints; reads no tables \\
+    \code{has_visible_text(value)} & True if the text shows at least one character, not only spaces, line breaks or invisible characters; used by check constraints and \code{create_event}; reads no tables \\
+    \code{is_clean_text(value, multiline)} & True if the text has no control characters, direction overrides or more than three stacked accents, and no line breaks unless \code{multiline}; used the same way \\
+    \code{valid_interests(interests)} & True for 3 to 5 different one-line interests of 1 to 30 characters in a plain list; used by a check constraint \\
+    \code{my_photo_count()} & How many files the caller has in the \code{photos} bucket; used by the storage insert policy, which cannot read \code{storage.objects} itself \\
     \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
     \code{expire_stale()} & The minute job (\cref{sec:housekeeping}) \\
     \bottomrule
@@ -309,6 +325,7 @@ time-based rules hold even when no app is open:
     is no longer live.
   \item It marks as \code{cancelled} every \code{accepted} chat in which neither person is live any more.
   \item It deletes entries older than ten minutes from \code{private.location_changes}.
+  \item It deletes entries older than a day from \code{private.event_posts}.
 \end{enumerate}
 
 Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do

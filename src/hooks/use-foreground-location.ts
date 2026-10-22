@@ -11,12 +11,21 @@ export const FIX_TIMEOUT_MS = 8000;
 // A position the phone already knows is still good for finding people nearby if it is at most this old.
 const RECENT_POSITION_MS = 5 * 60 * 1000;
 
-/** Foreground ("while using the app") location only. Never background. */
+/**
+ * Foreground ("while using the app") location only. Never background. `request` never throws:
+ * a phone that can't answer (location services off, the app in the background) gives no
+ * position, which callers already handle.
+ */
 export function useForegroundLocation() {
   const [denied, setDenied] = useState(false);
 
   const request = useCallback(async (): Promise<Result> => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
+    let status;
+    try {
+      ({ status } = await Location.requestForegroundPermissionsAsync());
+    } catch {
+      return { ok: true, latitude: null, longitude: null, accuracy: null };
+    }
     if (status !== 'granted') {
       setDenied(true);
       return { ok: false, reason: 'denied' };

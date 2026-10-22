@@ -10,6 +10,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
+import { useOneAtATime } from '@/hooks/use-one-at-a-time';
 import { errorMessage } from '@/lib/error-message';
 
 export default function ForgotPassword() {
@@ -18,7 +19,8 @@ export default function ForgotPassword() {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  const send = async () => {
+  // The button and the keyboard's Go key both send; one code at a time.
+  const send = useOneAtATime(async () => {
     if (!email.includes('@')) return;
     const trimmedEmail = email.trim();
     setError(null);
@@ -31,7 +33,7 @@ export default function ForgotPassword() {
     } finally {
       setSending(false);
     }
-  };
+  });
 
   return (
     <Screen

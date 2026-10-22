@@ -29,11 +29,11 @@ which has no delete policy on that table.
   \endfoot
   \tablehead{public.profiles: one row per account}
   \code{id} & \code{uuid}, primary key, references \code{auth.users(id)} \\
-  \code{first_name}, \code{last_name} & \code{text}, 1 to 30 characters \\
+  \code{first_name}, \code{last_name} & \code{text}, 1 to 30 characters; one line, something visible, clean text \\
   \code{gender} & \code{text}, one of \code{woman}, \code{man}, \code{non-binary}, \code{prefer-not} \\
   \code{show_gender} & \code{boolean}, default true \\
-  \code{intro} & \code{text}, 1 to 300 characters \\
-  \code{interests} & \code{text[]}, 3 to 5 elements \\
+  \code{intro} & \code{text}, 1 to 300 characters; something visible, clean text \\
+  \code{interests} & \code{text[]}, 3 to 5 different one-line elements of 1 to 30 characters (\code{valid_interests}) \\
   \code{photo_path} & \code{text}, nullable; must be a file directly in the owner's folder \\
   \code{photo_paths} & \code{text[]}, default empty; every element in the owner's folder; at most 6 \\
   \code{is_adult} & \code{boolean} \\
@@ -102,7 +102,7 @@ which has no delete policy on that table.
   \code{reporter}, \code{reported} & \code{uuid}, reference \code{profiles} \\
   \code{request_id} & \code{uuid}, nullable, references \code{chat_requests}, set to null on delete \\
   \code{reason} & \code{text}; one of \code{inappropriate-photo}, \code{harassment}, \code{unsafe}, \code{spam-or-fake}, \code{under-18}, \code{other} \\
-  \code{details} & \code{text}, default empty, at most 500 characters \\
+  \code{details} & \code{text}, default empty, at most 500 characters; clean text \\
   \code{created_at} & \code{timestamptz}, default \code{now()} \\
   \code{reviewed_at}, \code{action} & \code{timestamptz}, \code{text}; nullable; not written by any code \\
   \emph{Indexes} & \code{reports_reported_idx}; \code{reports_reporter_idx}; \code{reports_request_idx} \\
@@ -111,6 +111,11 @@ which has no delete policy on that table.
   \code{user_id} & \code{uuid}, references \code{profiles} \\
   \code{changed_at} & \code{timestamptz}, default \code{now()}; rows older than 10 minutes are deleted \\
   \emph{Indexes} & \code{location_changes_user_idx} (\code{user_id}, \code{changed_at}); no primary key \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.event\_posts: times events were created}
+  \code{user_id} & \code{uuid}, references \code{profiles} \\
+  \code{posted_at} & \code{timestamptz}, default \code{now()}; rows older than a day are deleted \\
+  \emph{Indexes} & \code{event_posts_user_idx} (\code{user_id}, \code{posted_at}); no primary key \\
   \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\
 \end{longtable}
 \endgroup

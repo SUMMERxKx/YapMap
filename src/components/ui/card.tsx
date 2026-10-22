@@ -6,7 +6,7 @@ import { StyleSheet, View, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@/theme';
 
-import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
+import { AnimatedPressable, useGuardedPress, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   children: ReactNode;
@@ -31,6 +31,7 @@ export function Card({
 }: Props) {
   const { scheme, colors, elevation, motion, radius, spacing } = useTheme();
   const press = usePressFeedback(colors[surface], colors.surfaceMuted, motion.cardPressScale);
+  const guarded = useGuardedPress(onPress);
 
   let paddingSize: number = spacing.lg;
   if (padding === 'compact') {
@@ -64,7 +65,7 @@ export function Card({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       accessibilityHint={accessibilityHint}
-      onPress={onPress}
+      onPress={guarded.onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={[boxStyle, press.style]}>

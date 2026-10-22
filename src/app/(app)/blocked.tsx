@@ -52,7 +52,7 @@ export default function Blocked() {
             <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
               {name}
             </AppText>
-            <Button label="Unblock" variant="secondary" size="compact" onPress={() => void unblock(id, name)} />
+            <Button label="Unblock" variant="secondary" size="compact" onPress={() => unblock(id, name)} />
           </Card>
         )}
         ListEmptyComponent={<EmptyState icon="people-outline" title="You haven't blocked anyone." />}

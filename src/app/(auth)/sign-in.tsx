@@ -12,6 +12,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
+import { useOneAtATime } from '@/hooks/use-one-at-a-time';
 import { errorMessage } from '@/lib/error-message';
 import { signInWithPassword } from '@/state/store';
 
@@ -23,7 +24,8 @@ export default function SignIn() {
 
   const canSignIn = email.includes('@') && password.length > 0;
 
-  const signIn = async () => {
+  // The button and the keyboard's Go key both sign in; one attempt at a time.
+  const signIn = useOneAtATime(async () => {
     if (!canSignIn) return;
     const trimmedEmail = email.trim();
     setError(null);
@@ -45,7 +47,7 @@ export default function SignIn() {
     } finally {
       setSigningIn(false);
     }
-  };
+  });
 
   return (
     <Screen

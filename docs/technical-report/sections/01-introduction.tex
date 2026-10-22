@@ -124,7 +124,7 @@ cannot be bypassed.
   \endfoot
   \multicolumn{3}{@{}l}{\textsf{\textbf{Going live and nearby}}} \\
   Live duration & 30, 60 or 120 minutes & \code{go_green}; \code{DURATIONS} in \code{constants.ts} \\
-  Live note length & 0 to 60 characters & check constraint; \code{go_green}, \code{update_note} \\
+  Live note length & 0 to 60 characters on one line & check constraints; \code{go_green}, \code{update_note} \\
   Nearby radius & 100\,m plus the caller's reported GPS accuracy, at most 150\,m & \code{nearby}, \code{private.near_each_other} \\
   Nearby list size & at most 50 people & \code{nearby} \\
   Nearby refresh & every 20\,s while live and on screen & \code{NEARBY_REFRESH_MS}, \code{useNearbyPolling} \\
@@ -135,9 +135,9 @@ cannot be bypassed.
   \multicolumn{3}{@{}l}{\textsf{\textbf{Requests and chats}}} \\
   Answer window & 5 minutes & default of \code{chat_requests.expires_at} \\
   Requests sent & at most 5 in any 10 minutes & \code{send_request} \\
-  Requests waiting per sender & 1 & partial unique index; \code{send_request} \\
+  Requests waiting per sender & 1; saying hi again to the same person returns that request & partial unique index; \code{send_request} \\
   Chats per user & 1 & \code{send_request}, \code{respond} \\
-  Message length & 1 to 1000 characters & check constraint; both send functions \\
+  Message length & 1 to 1000 characters with something visible & check constraints; both send functions \\
   Messages sent & at most 30 per minute, one-to-one and group combined & \code{send_chat_message}, \code{send_event_message} \\
   Chat history loaded & newest 200 messages & \code{HISTORY_LIMIT} in \code{api.ts} \\
   \midrule
@@ -145,26 +145,30 @@ cannot be bypassed.
   Map radius & 1 to 50\,km, default 10\,km & slider and \code{EVENT_RADIUS_KM}; \code{events_near} caps at 50\,km \\
   Visibility after start & 3 hours & \code{events_near} \\
   Start time & now to 7 days ahead (server allows 5 minutes in the past) & event form; \code{create_event} \\
-  Events created & at most 5 per host in any 24 hours & \code{create_event} \\
+  Events created & at most 5 per host in any 24 hours, deleted ones included & \code{create_event}, \code{private.event_posts} \\
   Events listed & at most 50 & \code{events_near} \\
   Join distance & within 5\,km & \code{join_event} \\
-  Title and description & 1 to 60 and 0 to 200 characters & check constraints; form limits \\
+  Title and description & 1 to 60 (one line, something visible) and 0 to 200 characters & \code{create_event}; check constraints; form limits \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Profiles and photos}}} \\
-  Names & 1 to 30 characters each & check constraints; form limits \\
-  Introduction & 1 to 300 characters & check constraint; form limit \\
-  Interests & 3 to 5 & check constraint; setup and edit forms \\
+  Names & 1 to 30 characters each, one line, something visible & check constraints; form limits \\
+  Introduction & 1 to 300 characters, something visible & check constraints; form limit \\
+  Interests & 3 to 5 different ones, each 1 to 30 characters & check constraints; setup and edit forms \\
+  Text people type & no control characters, direction overrides or more than 3 stacked accents & check constraints (\code{private.is_clean_text}); \code{src/lib/clean-text.ts} \\
   Extra photos & 4 to 6 in the app; at most 6 on the server & forms; \code{profiles_photo_paths_max} \\
-  Uploaded photo & JPEG, at most 1080\,px wide, quality 0.8 & \code{uploadJpeg} \\
-  Avatar copy & JPEG, 320\,px wide & \code{uploadJpeg} \\
+  Picked photo & a photo (not a video), at most 50 megapixels and 50\,MB & \code{photoProblem} in \code{src/lib/picked-photo.ts} \\
+  Uploaded photo & JPEG, at most 1080\,px wide and 1920\,px tall, quality 0.8 & \code{uploadJpeg} \\
+  Avatar copy & JPEG, at most 320\,px wide and 569\,px tall & \code{uploadJpeg} \\
   Storage object & at most 5\,MiB; JPEG, PNG or WebP & \code{photos} bucket settings \\
+  Files per user & at most 24 (best-effort against uploads sent at once), directly in the user's folder & \code{photos_insert_own_folder} policy \\
   Signed photo URL & valid 1 hour; reused until 10 minutes remain & \code{SIGNED_URL_SECONDS}, \code{SIGNED_URL_MIN_LEFT_MS} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Accounts and safety}}} \\
   Password & at least 8 characters & \code{PASSWORD_MIN_LENGTH}; Supabase Auth setting \\
   Emailed code & 8 digits; resend after 60\,s & email templates; \code{verify.tsx} \\
   Automatic hiding & 3 distinct reporters & \code{report_user} \\
-  Report details & at most 500 characters & \code{report_user}; check constraint \\
+  Report details & at most 500 characters & \code{report_user}; check constraints \\
+  Reports & 1 per person reported per day (a repeat keeps the first); at most 10 people a day & \code{report_user} \\
   Housekeeping & every minute & \code{pg_cron} job \code{yap-expire-stale} \\
 \end{longtable}
 \endgroup

@@ -26,6 +26,22 @@ supabase db reset     # after each edit: rebuilds the local database from all mi
 Studio is at http://127.0.0.1:54323. Emails (8-digit codes) are not sent; read them at
 http://127.0.0.1:54324. `supabase/config.toml` configures only this local stack.
 
+```bash
+supabase test db      # runs the pgTAP checks in supabase/tests against the local database
+```
+
+`supabase/tests/` holds SQL checks for server rules a modified app could otherwise get around
+(typed text, double say-hi, reports, the event limit, photo uploads). Each file runs in a
+transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
+from separate connections (dblink) to show the daily event and report limits hold; the people it
+signs up there are saved for real, so it deletes them at its start and end. CI doesn't run these
+checks yet, so run them after changing those rules.
+
+The 24-files-per-person photo limit is best-effort: the storage policy counts the folder, and
+uploads sent at the same moment can't see each other, so together they can go a little past it.
+Each file is still at most 5 MB and only in the person's own folder. The event and report limits
+are exact, because `create_event` and `report_user` take a per-person lock before counting.
+
 ## 3. Regenerate the app's types
 
 ```bash
@@ -49,6 +65,10 @@ supabase db push                                   # applies migrations the host
 
 `db push` asks for the database password (or reads `SUPABASE_DB_PASSWORD`). Where that
 password is kept is the owner's decision; never commit it.
+
+A migration that adds check constraints says so at the top, with a read-only query to run in the
+SQL editor first (for example `20261022083815_break_it_hardening.sql`). Every count it returns
+must be 0; otherwise the push fails on the existing rows (and changes nothing) until they are fixed.
 
 So far migrations have been applied with the Supabase MCP `apply_migration` tool, which
 records each one under the time it ran rather than the file's timestamp. If you use it,

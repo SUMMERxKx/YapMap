@@ -93,6 +93,12 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Press feedback, loading placeholders:** tappable surfaces use `usePressFeedback`
   (`src/components/ui/press-feedback.ts`) so they all shrink and darken the same way, and
   loading lists show `Skeleton` blocks (`src/components/ui/skeleton.tsx`) instead of a spinner.
+- **Double taps and odd input:** buttons, rows and cards ignore a second tap while the first
+  one's action runs (`useGuardedPress` in the same file); give a `Button` the async function
+  itself (`onPress={save}`) so it can wait for it. Typed text goes through `src/lib/clean-text.ts`
+  before it is saved, matching the database's check constraints, and picked photos through
+  `src/lib/picked-photo.ts`. Deadlines from the server are compared with `serverNow()`
+  (`src/lib/server-clock.ts`), so a phone with a wrong clock still counts down correctly.
 
 ## Releasing
 

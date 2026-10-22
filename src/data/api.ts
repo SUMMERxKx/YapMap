@@ -7,7 +7,9 @@ import { isAuthRetryableFetchError, type RealtimeChannel } from '@supabase/supab
 import { File } from 'expo-file-system';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
-import { PASSWORD_MIN_LENGTH } from './constants';
+import { serverNow, syncServerClock } from '@/lib/server-clock';
+
+import { INTEREST_RANGE, PASSWORD_MIN_LENGTH } from './constants';
 import { supabase } from './supabase-client';
 
 import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
@@ -162,6 +164,20 @@ const SERVER_REFUSALS: Record<string, string> = {
   'too many location changes': "You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again.",
   'too far away': 'You can join an event from within 5 km of it.',
   'objectionable text': "That has words Yap doesn't allow (see the community guidelines). Change them and try again.",
+  'invalid title': 'Give your event a title on one line, without special characters.',
+  'invalid details': "Some of the details can't be saved. Remove any unusual characters and try again.",
+  'invalid reason': 'Pick a reason for the report.',
+  'too many reports': "You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you.",
+};
+
+// The table rules (check constraints in supabase/migrations) the app can run into, by name.
+const CHECK_REFUSALS: Record<string, string> = {
+  profiles_first_name_text: 'Your first name needs at least one letter, on one line, without special characters.',
+  profiles_last_name_text: 'Your last name needs at least one letter, on one line, without special characters.',
+  profiles_intro_text: 'Your intro needs some text, without special characters.',
+  profiles_interests_valid: `Pick ${INTEREST_RANGE.min} to ${INTEREST_RANGE.max} different interests.`,
+  availability_note_text: 'Notes are one line, without special characters.',
+  messages_body_text: 'Messages need some text, without special characters.',
 };
 
 /** Turns a database or storage error into a sentence for the screen, never raw database text. */
@@ -175,6 +191,22 @@ function friendlyRpcError(error: { code?: string; message: string }) {
   }
   if (error.code === '23505') {
     return "That's already done.";
+  }
+  // 23514 is a broken table rule (a check constraint); its name says which one.
+  if (error.code === '23514') {
+    const constraint = error.message.match(/check constraint "([^"]+)"/)?.[1] ?? '';
+    return CHECK_REFUSALS[constraint] ?? "Some of what you typed can't be saved. Remove any unusual characters and try again.";
+  }
+  // Storage refusals: the photos bucket takes JPEG, PNG and WebP up to 5 MB, and at most 24
+  // files in your folder (more than the app ever keeps).
+  if (/exceeded the maximum allowed size/i.test(error.message)) {
+    return 'That photo is too big. Choose a different one.';
+  }
+  if (/mime type/i.test(error.message)) {
+    return 'Photos have to be JPEG, PNG or WebP images.';
+  }
+  if (/row-level security/i.test(error.message)) {
+    return "That couldn't be saved just now. Wait a minute and try again.";
   }
   if (/network request failed|failed to fetch|network error|load failed/i.test(error.message)) {
     return "Can't reach Yap right now. Check your connection and try again.";
@@ -239,8 +271,12 @@ const SIGNED_URL_MIN_LEFT_MS = 10 * 60 * 1000;
 // after its owner becomes visible to you.
 const UNSIGNED_RETRY_MS = 60 * 1000;
 
+// Photos are saved at most this wide, and at most 16:9 tall (1920 px), so a long screenshot
+// is cut down too. Thumbnails the same way.
 const PHOTO_MAX_WIDTH = 1080;
 const THUMB_WIDTH = 320;
+// The photos bucket refuses anything bigger.
+const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
 
 // Storage path -> its signed URL, and when that URL stops working. The URL is null when the
 // file doesn't exist (e.g. a small copy of a photo uploaded before small copies existed) or
@@ -281,9 +317,13 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
   return byPath;
 }
 
-/** Forget the signed URLs (on sign-out), so the next account signs its own. */
-export function forgetSignedUrls() {
+/**
+ * Forget what was kept for the account that just signed out: its signed photo URLs, and any
+ * Realtime channel still open (e.g. one waiting for an answer), so the next account starts clean.
+ */
+export function forgetSession() {
   signedUrls.clear();
+  void supabase.removeAllChannels();
 }
 
 /** Display URLs for photos that weren't signed with the rest, e.g. when a profile opens. */
@@ -322,15 +362,34 @@ function urlsForPaths(urls: Record<string, string>, paths: string[]): string[] {
   return result;
 }
 
-/** Re-encode a picked photo as a JPEG at most `maxWidth` wide (never larger than it was) and upload it. */
-async function uploadJpeg(uri: string, maxWidth: number, path: string) {
-  let image = await ImageManipulator.manipulate(uri).renderAsync();
-  if (image.width > maxWidth) {
-    // Resizes the image already loaded above instead of reading the file again.
-    image = await ImageManipulator.manipulate(image).resize({ width: maxWidth }).renderAsync();
+/**
+ * A picked photo as JPEG bytes, at most `maxWidth` wide and 16:9 tall (never larger than it
+ * was). Throws a sentence for the screen when the file can't be opened (a broken or unusual file).
+ */
+async function encodeJpeg(uri: string, maxWidth: number): Promise<Uint8Array> {
+  let savedUri: string;
+  try {
+    let image = await ImageManipulator.manipulate(uri).renderAsync();
+    const maxHeight = Math.round((maxWidth * 16) / 9);
+    const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+    if (scale < 1) {
+      // Resizes the image already loaded above instead of reading the file again.
+      image = await ImageManipulator.manipulate(image).resize({ width: Math.round(image.width * scale) }).renderAsync();
+    }
+    const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+    savedUri = saved.uri;
+  } catch {
+    throw new Error("That photo couldn't be opened. Choose a different one.");
   }
-  const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
-  const bytes = await new File(saved.uri).bytes();
+  return new File(savedUri).bytes();
+}
+
+/** Re-encode a picked photo as a small JPEG (see encodeJpeg) and upload it. */
+async function uploadJpeg(uri: string, maxWidth: number, path: string) {
+  const bytes = await encodeJpeg(uri, maxWidth);
+  if (bytes.length > UPLOAD_MAX_BYTES) {
+    throw new Error('That photo is too big. Choose a different one.');
+  }
   const { error } = await supabase.storage.from('photos').upload(path, bytes, { contentType: 'image/jpeg' });
   if (error) throw new Error(friendlyRpcError(error));
 }
@@ -358,6 +417,15 @@ async function ensureUploaded(uri: string, slot: string, userId: string, withThu
     }
   }
   return path;
+}
+
+/** The files a saved profile uses: its photos and the profile picture's small copy. */
+function photoFilesInUse(photoPath: string | null, photoPaths: string[]) {
+  const files = [...photoPaths];
+  if (photoPath) files.push(photoPath);
+  const thumbPath = thumbPathFor(photoPath);
+  if (thumbPath) files.push(thumbPath);
+  return files;
 }
 
 /** Deletes files in my folder that the saved profile no longer uses (replaced photos, failed tries). */
@@ -402,6 +470,16 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   const userId = await requireUserId();
   if (!values.photoUri) throw new Error('A profile picture is required.');
 
+  // The saved row, if any. Files left over from an earlier save that failed halfway are
+  // removed first: the storage only takes 24 files per person.
+  const existing = await supabase.from('profiles').select('photo_path, photo_paths').eq('id', userId).maybeSingle();
+  if (existing.error) throw new Error(friendlyRpcError(existing.error));
+  let filesInUse: string[] = [];
+  if (existing.data) {
+    filesInUse = photoFilesInUse(existing.data.photo_path, existing.data.photo_paths);
+  }
+  await removeUnusedPhotos(userId, filesInUse);
+
   const photoPath = await ensureUploaded(values.photoUri, 'profile', userId, true);
   const photoPaths: string[] = [];
   for (let i = 0; i < values.photos.length; i += 1) {
@@ -423,9 +501,6 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   // Not an upsert: an upsert's ON CONFLICT clause also sets `id` and `is_adult`, and the
   // database only lets clients update the columns in `fields`, so it is always refused.
   // Insert the row the first time, then update just the editable columns after that.
-  const existing = await supabase.from('profiles').select('id').eq('id', userId).maybeSingle();
-  if (existing.error) throw new Error(friendlyRpcError(existing.error));
-
   if (existing.data) {
     const { error } = await supabase.from('profiles').update(fields).eq('id', userId);
     if (error) throw new Error(friendlyRpcError(error));
@@ -434,10 +509,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
     if (error) throw new Error(friendlyRpcError(error));
   }
 
-  const keep = [photoPath, ...photoPaths];
-  const thumbPath = thumbPathFor(photoPath);
-  if (thumbPath) keep.push(thumbPath);
-  await removeUnusedPhotos(userId, keep);
+  await removeUnusedPhotos(userId, photoFilesInUse(photoPath, photoPaths));
 
   const profile = await fetchMyProfile();
   if (!profile) throw new Error('Profile failed to save.');
@@ -592,7 +664,7 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
     }, 7000);
 
     // A few seconds of grace after the deadline, in case the answer is still on its way.
-    const msUntilExpiry = Math.max(0, expiresAt - Date.now());
+    const msUntilExpiry = Math.max(0, expiresAt - serverNow());
     const timeout = setTimeout(() => finish('not-this-time'), msUntilExpiry + 3000);
   });
 }
@@ -630,7 +702,7 @@ export async function pendingIncoming(): Promise<RequestSummary | null> {
     .select('id, expires_at')
     .eq('to_user', myId)
     .eq('status', 'pending')
-    .gt('expires_at', new Date().toISOString())
+    .gt('expires_at', new Date(serverNow()).toISOString())
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -867,6 +939,7 @@ type MyStatus = {
 };
 
 type MyStatusRow = {
+  now?: number; // the server's clock (ms); missing before the October 2026 hardening migration
   live: MyStatus['live'];
   chatId: string | null;
   outgoing: { id: string; expiresAt: number; to: PersonCard } | null;
@@ -874,9 +947,12 @@ type MyStatusRow = {
 
 /** Whether I'm live, have an open chat, or am waiting on a request - for restoring state on app start. */
 export async function myStatus(): Promise<MyStatus> {
+  const sentAt = Date.now();
   const { data, error } = await supabase.rpc('my_status');
   if (error) throw new Error(friendlyRpcError(error));
   const status = data as MyStatusRow | null;
+  // Learn how far the phone's clock is off, so countdowns end when the server's deadlines do.
+  if (typeof status?.now === 'number') syncServerClock(status.now, sentAt, Date.now());
 
   let outgoing: MyStatus['outgoing'] = null;
   if (status?.outgoing) {

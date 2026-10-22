@@ -8,12 +8,13 @@ import { AppText } from '@/components/ui/app-text';
 import { SetupStep } from '@/components/profile/setup-step';
 import { TextField } from '@/components/ui/text-field';
 import { LIMITS } from '@/data/constants';
+import { hasVisibleText } from '@/lib/clean-text';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function NameStep() {
   const { draft, update } = useProfileDraft();
   const lastNameInput = useRef<TextInput>(null);
-  const ready = draft.firstName.trim().length > 0 && draft.lastName.trim().length > 0;
+  const ready = hasVisibleText(draft.firstName) && hasVisibleText(draft.lastName);
   const next = () => {
     if (ready) router.push('/profile-setup/gender');
   };

@@ -38,7 +38,7 @@ string, which the client parses with \code{Date.parse}.
   \code{request_person(request_id uuid)} & \code{jsonb} & plpgsql, stable; a person card or null \\
   \code{end_chat(request_id uuid, outcome text)} & \code{void} & plpgsql; outcome \code{met} or \code{cancelled} \\
   \code{send_chat_message(request_id uuid, body text)} & \code{jsonb} & plpgsql; the saved \code{messages} row \\
-  \code{my_status()} & \code{jsonb} & sql, stable; \texttt{\{live: \{note, startedAt, expiresAt\} | null, chatId, outgoing: \{id, expiresAt, to\} | null\}} \\
+  \code{my_status()} & \code{jsonb} & sql, stable; \texttt{\{now, live: \{note, startedAt, expiresAt\} | null, chatId, outgoing: \{id, expiresAt, to\} | null\}} \\
   \code{block_user(target uuid)} & \code{void} & plpgsql \\
   \code{blocked_list()} & \code{setof jsonb} & sql, stable; \texttt{\{id, firstName, lastInitial\}} \\
   \code{report_user(target uuid, reason text, details text default '', request_id uuid default null)} & \code{void} & plpgsql \\
@@ -74,6 +74,10 @@ string, which the client parses with \code{Date.parse}.
   \code{private.is_event_member(ev uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\
   \code{private.in_own_folder(paths text[], owner uuid)} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by check constraints) \\
   \code{private.can_see_photo(object_name text)} & \code{boolean} & plpgsql, stable, definer; \code{authenticated} (used by a storage policy) \\
+  \code{private.has_visible_text(value text)} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by check constraints) \\
+  \code{private.is_clean_text(value text, multiline boolean)} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by check constraints) \\
+  \code{private.valid_interests(interests text[])} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by a check constraint) \\
+  \code{private.my_photo_count()} & \code{bigint} & sql, stable, definer; \code{authenticated} (used by a storage policy) \\
   \code{private.expire_stale()} & \code{void} & sql, definer; no API role; run by \code{pg_cron} \\
 \end{longtable}
 \endgroup

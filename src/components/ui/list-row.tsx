@@ -7,7 +7,7 @@ import { StyleSheet, View } from 'react-native';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
-import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
+import { AnimatedPressable, useGuardedPress, usePressFeedback } from '@/components/ui/press-feedback';
 
 type Props = {
   label: string;
@@ -21,6 +21,7 @@ export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: 
   const { colors, layout, size, spacing } = useTheme();
   // A row inside a group only darkens; shrinking it would pull it away from its neighbours.
   const press = usePressFeedback(colors.surface, colors.surfaceMuted, 1);
+  const guarded = useGuardedPress(onPress);
 
   // An external row opens a web page, so it is announced as a link with an "open" icon.
   let role: 'link' | 'button' = 'button';
@@ -45,7 +46,7 @@ export function ListRow({ label, onPress, trailing = 'chevron', detail, last }: 
     <AnimatedPressable
       accessibilityRole={role}
       accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
+      onPress={guarded.onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={[

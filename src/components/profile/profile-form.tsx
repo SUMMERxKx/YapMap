@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { GENDERS, INTERESTS, INTEREST_RANGE, LIMITS, PHOTO_RANGE } from '@/data/constants';
 import type { Gender, Profile } from '@/data/types';
+import { hasVisibleText } from '@/lib/clean-text';
+import { photoProblem } from '@/lib/picked-photo';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
@@ -44,10 +46,10 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const missing: string[] = [];
   if (!photoUri) missing.push('a profile picture');
   if (photos.length < PHOTO_RANGE.min) missing.push(`at least ${PHOTO_RANGE.min} more photos`);
-  if (!firstName.trim()) missing.push('your first name');
-  if (!lastName.trim()) missing.push('your last name');
+  if (!hasVisibleText(firstName)) missing.push('your first name');
+  if (!hasVisibleText(lastName)) missing.push('your last name');
   if (!gender) missing.push('your gender');
-  if (!intro.trim()) missing.push('an intro');
+  if (!hasVisibleText(intro)) missing.push('an intro');
   if (interests.length < INTEREST_RANGE.min) missing.push(`at least ${INTEREST_RANGE.min} interests`);
   if (!isAdult) missing.push('confirmation that you are 18 or older');
 
@@ -58,8 +60,14 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
       aspect: [1, 1],
       quality: 0.8,
     });
-    if (result.canceled) return;
-    setPhotoUri(result.assets[0]?.uri ?? null);
+    const picked = result.assets?.[0];
+    if (result.canceled || !picked) return;
+    const problem = photoProblem(picked);
+    if (problem) {
+      Alert.alert("Can't use that photo", problem);
+      return;
+    }
+    setPhotoUri(picked.uri);
   };
 
   const toggleInterest = (interest: string) => {
@@ -238,7 +246,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </InfoNote>
       )}
 
-      <Button label={submitLabel} onPress={() => void submit()} loading={saving} />
+      <Button label={submitLabel} onPress={submit} loading={saving} />
     </View>
   );
 }
