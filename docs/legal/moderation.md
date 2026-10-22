@@ -11,7 +11,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | --- | --- |
 | Terms with zero tolerance for objectionable content, agreed before use | Sign-up screen ("By creating an account, you agree to..."), `docs/legal/terms-of-service.md` section 2 |
 | Community guidelines | Settings → Community guidelines, and the sign-up screen (`src/app/guidelines.tsx`) |
-| Filter for objectionable words | Server side, on intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022082408_content_moderation.sql`) |
+| Filter for objectionable words | Server side, on intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022100308_content_moderation.sql`) |
 | Report a person | The ··· menu on a profile, an incoming say-hi, a chat and an event; long-press a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
 | Automatic hiding | A profile reported by 3 different people is hidden from everyone until reviewed (`report_user`) |

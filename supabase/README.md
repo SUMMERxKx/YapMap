@@ -67,7 +67,7 @@ supabase db push                                   # applies migrations the host
 password is kept is the owner's decision; never commit it.
 
 A migration that adds check constraints says so at the top, with a read-only query to run in the
-SQL editor first (for example `20261022083815_break_it_hardening.sql`). Every count it returns
+SQL editor first (for example `20261022103744_break_it_hardening.sql`). Every count it returns
 must be 0; otherwise the push fails on the existing rows (and changes nothing) until they are fixed.
 
 So far migrations have been applied with the Supabase MCP `apply_migration` tool, which
@@ -81,7 +81,7 @@ Never run `supabase config push`: the hosted auth and email settings live in the
 
 ## Moderation tools
 
-`20261022082408_content_moderation.sql` adds two things the app stores require, both used from
+`20261022100308_content_moderation.sql` adds two things the app stores require, both used from
 the SQL editor rather than the app: the banned-word list `private.blocked_words` (a short list
 of slurs and abuse; intros, interests, notes, event text and messages are refused when they
 contain one, names are not) and `private.suspend_user(id, note)` for acting on a report.

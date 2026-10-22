@@ -5,7 +5,9 @@
 #
 # Fails when:
 #   - a migration that already exists on the base branch was edited, renamed or deleted
-#     (it may already be applied to the hosted database; add a new migration instead)
+#     (it may already be applied to the hosted database; add a new migration instead).
+#     One exception: a rename that keeps the file byte-for-byte the same is allowed, so a
+#     file can be renamed to the version the hosted database recorded when it was applied.
 #   - a new migration's version is not later than every migration on the base branch
 #     (the hosted database would skip or reorder it)
 #   - a file name is not <14-digit version>_<lowercase_name>.sql
@@ -40,7 +42,9 @@ if [ -n "$duplicates" ]; then
 fi
 
 # Existing migrations are history: changing one does nothing on the hosted database.
-changed=$(git diff --name-status --no-renames "$base"...HEAD -- "$dir" | grep -v '^A' || true)
+# -M100% reports a rename only when the contents are identical (R100); a rename that also
+# edits the file shows up as a delete plus an add, and the delete fails here.
+changed=$(git diff --name-status -M100% "$base"...HEAD -- "$dir" | grep -v '^A' | grep -v '^R100' || true)
 if [ -n "$changed" ]; then
   echo "$changed"
   fail "An existing migration was modified or deleted. Add a new migration instead."

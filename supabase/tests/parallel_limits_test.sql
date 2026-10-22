@@ -1,5 +1,5 @@
 -- Checks that calls sent at the same moment by one person can't get past the daily limits in
--- create_event and report_user (20261022083815_break_it_hardening.sql). Run against the local
+-- create_event and report_user (20261022103744_break_it_hardening.sql). Run against the local
 -- stack:
 --
 --   supabase start

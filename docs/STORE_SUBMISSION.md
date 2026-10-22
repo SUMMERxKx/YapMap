@@ -29,7 +29,7 @@ something new, update this file, `docs/legal/privacy-policy.md` and
    (`SUPPORT_EMAIL` in `src/config/links.ts`). Make sure that mailbox receives mail; reports of
    abuse that arrive there must be handled within 24 hours (`docs/legal/moderation.md`).
 5. **Apply the database migrations** to the hosted project (`supabase/README.md`, step 4).
-   `20261022082408_content_moderation.sql` adds the word filter and `private.suspend_user`;
+   `20261022100308_content_moderation.sql` adds the word filter and `private.suspend_user`;
    without it the app still works, but the store-required filter is off.
 6. **EAS (Expo's build service).** Builds run in Expo's cloud with your Expo account:
 
