@@ -6,19 +6,23 @@ import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { EventIcon } from '@/components/events/event-icon';
-import { Button } from '@/components/ui/button';
+import { Button, IconButton } from '@/components/ui/button';
 import { FormSection } from '@/components/ui/form-section';
 import { InfoNote } from '@/components/ui/info-note';
 import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
+import { TopBar } from '@/components/ui/top-bar';
 import { EVENT_CATEGORIES, EVENT_MAX_AHEAD_MS, LIMITS } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
 import { formatStartTime } from '@/lib/format-time';
 import { createEvent } from '@/state/store';
 import { useTheme } from '@/theme';
 
-/** Create an event at the spot picked on the map: what kind it is, title, details and a start time. */
+/**
+ * Create an event at the spot picked on the map: what kind it is, title, details and a start
+ * time. A full screen: the form scrolls, and Post event stays in the footer below it.
+ */
 export default function NewEvent() {
   const { lat, lng } = useLocalSearchParams<{ lat: string; lng: string }>();
   const { colors, layout, radius, size, spacing, scheme } = useTheme();
@@ -90,14 +94,8 @@ export default function NewEvent() {
   return (
     <Screen
       scroll
-      surface="surface"
-      edges={['bottom']}
-      footer={
-        <>
-          <Button label="Post event" onPress={post} loading={busy} disabled={!title.trim()} haptic />
-          <Button label="Cancel" variant="ghost" onPress={() => router.back()} />
-        </>
-      }>
+      footer={<Button label="Post event" onPress={post} loading={busy} disabled={!title.trim()} haptic />}>
+      <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
       <ScreenHeader title="Create an event" subtitle="It goes on the map at the spot you picked. Anyone can join." />
 
       <FormSection label="What kind of event? Its icon is the pin on the map">
@@ -141,7 +139,7 @@ export default function NewEvent() {
         value={title}
         onChangeText={setTitle}
         maxLength={LIMITS.eventTitle}
-        placeholder="e.g. Samar wants to go for coffee"
+        placeholder="e.g. Coffee at the café, anyone welcome"
       />
       <TextField
         label="Details (optional)"

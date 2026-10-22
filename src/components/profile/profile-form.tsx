@@ -150,7 +150,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
               maxLength={LIMITS.firstName}
               autoComplete="given-name"
               textContentType="givenName"
-              placeholder="e.g. Samar"
+              placeholder="e.g. Alex"
             />
           </View>
           <View style={styles.flex}>
@@ -162,7 +162,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
               maxLength={LIMITS.lastName}
               autoComplete="family-name"
               textContentType="familyName"
-              placeholder="e.g. Khajuria"
+              placeholder="e.g. Morgan"
             />
           </View>
         </View>

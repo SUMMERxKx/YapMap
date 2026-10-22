@@ -28,7 +28,7 @@ export default function NameStep() {
         autoComplete="given-name"
         textContentType="givenName"
         autoCapitalize="words"
-        placeholder="e.g. Samar"
+        placeholder="e.g. Alex"
         returnKeyType="next"
         submitBehavior="submit"
         onSubmitEditing={() => lastNameInput.current?.focus()}
@@ -43,7 +43,7 @@ export default function NameStep() {
         autoComplete="family-name"
         textContentType="familyName"
         autoCapitalize="words"
-        placeholder="e.g. Khajuria"
+        placeholder="e.g. Morgan"
         returnKeyType="next"
         onSubmitEditing={next}
       />

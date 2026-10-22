@@ -15,7 +15,7 @@ export default function AppLayout() {
   const chatId = useStore((state) => state.chat?.id);
   const expiresAt = useStore((state) => state.availability?.expiresAt);
   const live = useStore((state) => state.availability !== null);
-  const seenTutorial = useStore((state) => state.seenTutorial);
+  const tutorialDue = useStore((state) => state.tutorialDue);
   // The request and chat ids already shown, so each one only takes over the screen once.
   const shown = useRef<{ incoming?: string; chat?: string }>({});
 
@@ -23,10 +23,10 @@ export default function AppLayout() {
   useNearbyPolling();
   useNearbyAlerts();
 
-  // First time in the app: show how it works.
+  // Just signed up: show how it works, once. Settings can open it again later.
   useEffect(() => {
-    if (!seenTutorial) router.push('/tutorial');
-  }, [seenTutorial]);
+    if (tutorialDue) router.push('/tutorial');
+  }, [tutorialDue]);
 
   // Availability ends on time whichever screen is open.
   useEffect(() => {
@@ -81,16 +81,9 @@ export default function AppLayout() {
             contentStyle: { backgroundColor: colors.surface },
           }}
         />
-        <Stack.Screen
-          name="event/new"
-          options={{
-            presentation: 'formSheet',
-            sheetAllowedDetents: [0.9],
-            sheetGrabberVisible: true,
-            sheetCornerRadius: 24,
-            contentStyle: { backgroundColor: colors.surface },
-          }}
-        />
+        {/* A full pushed screen rather than a sheet, so the form scrolls freely and the Post
+            event button stays in its own footer below it. */}
+        <Stack.Screen name="event/new" />
         <Stack.Screen
           name="event/[id]"
           options={{
@@ -102,7 +95,9 @@ export default function AppLayout() {
           }}
         />
         <Stack.Screen name="group/[id]" />
-        <Stack.Screen name="tutorial" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
+        {/* A normal screen (not a full-screen modal), so its safe areas match every other
+            screen and Skip sits below the notch or status bar on any phone. */}
+        <Stack.Screen name="tutorial" options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="waiting" options={{ presentation: 'modal' }} />
         <Stack.Screen name="incoming" options={{ presentation: 'fullScreenModal', gestureEnabled: false }} />
         {/* A normal pushed screen: the back gesture works, and the status bar inset is
