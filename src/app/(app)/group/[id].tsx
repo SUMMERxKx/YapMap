@@ -24,7 +24,6 @@ export default function GroupChat() {
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const blockedIds = useStore((state) => state.blockedIds);
   const myId = useStore((state) => state.myId);
-  const deleted = useStore((state) => state.deletedEventIds.includes(id));
 
   // Load the chat history and listen for new messages while this screen is open.
   useEffect(() => {
@@ -32,8 +31,8 @@ export default function GroupChat() {
     return () => leaveEventChat();
   }, [id]);
 
-  // The host deleted the event while this chat was open.
-  if (!event && deleted) {
+  // No longer in the store: the server says the host deleted it.
+  if (!event) {
     return (
       <SafeAreaView edges={['top', 'bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
         <ChatHeader onBack={() => router.back()}>
@@ -45,7 +44,6 @@ export default function GroupChat() {
       </SafeAreaView>
     );
   }
-  if (!event) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const leave = () =>
     Alert.alert('Leave this event?', 'You’ll leave the group chat too.', [

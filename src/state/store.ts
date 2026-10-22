@@ -52,7 +52,6 @@ type State = {
   nearbyAlert: NearbyAlert | null;
   events: MapEvent[];
   eventsRadiusKm: number | null; // the distance the shown events were loaded for; null until the first answer
-  deletedEventIds: string[]; // events deleted while the app was open, so their screens can say so
 };
 
 const initialState: State = {
@@ -78,7 +77,6 @@ const initialState: State = {
   nearbyAlert: null,
   events: [],
   eventsRadiusKm: null,
-  deletedEventIds: [],
 };
 
 let state = initialState;
@@ -105,7 +103,6 @@ export function useStore<T>(selector: (state: State) => T): T {
 let stopIncoming: (() => void) | null = null;
 let stopChat: (() => void) | null = null;
 let stopEventMessages: (() => void) | null = null;
-let stopDeletedEvents: (() => void) | null = null;
 
 // Requests already answered or timed out here, and chats already closed here, so a
 // catch-up that read the server a moment earlier never brings them back.
@@ -116,11 +113,9 @@ function teardownRealtime() {
   stopIncoming?.();
   stopChat?.();
   stopEventMessages?.();
-  stopDeletedEvents?.();
   stopIncoming = null;
   stopChat = null;
   stopEventMessages = null;
-  stopDeletedEvents = null;
 }
 
 /** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
@@ -141,12 +136,6 @@ function listenForRequests(userId: string) {
       joinedBefore = true;
     },
   );
-}
-
-/** Start listening for events their host deleted. Safe to call again. */
-function listenForDeletedEvents() {
-  if (stopDeletedEvents) return;
-  stopDeletedEvents = api.subscribeDeletedEvents(forgetDeletedEvent);
 }
 
 /** Whether the network looks reachable. Unknown counts as online. */
@@ -237,9 +226,8 @@ async function refreshAfterAuth() {
     // Offline: catchUp() fills these in when the app is back online.
   }
 
-  // New say-hi requests and deleted events arrive over Realtime for the whole session.
+  // New say-hi requests arrive over Realtime for the whole session.
   listenForRequests(user.id);
-  listenForDeletedEvents();
 }
 
 // Whether the block list and the live and chat state have loaded since sign-in.
@@ -350,6 +338,7 @@ async function catchUpOnce() {
     if (state.chat) await checkChatStillOn(state.chat.id);
   }
   await checkForMissedRequest();
+  await reloadEvents(); // events deleted while away
   // Messages sent while away. A chat opened just now loads them when its channel joins.
   if (chatIdBefore !== null && state.chat?.id === chatIdBefore) await syncChatMessages();
 }
@@ -462,7 +451,6 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   // A new account can be said hi to from now on, so start listening (sign-in only does
   // this for accounts that already had a profile).
   listenForRequests(stored.id);
-  listenForDeletedEvents();
 }
 
 export async function verifySelfie(selfieUri: string) {
@@ -912,15 +900,26 @@ export async function loadEvents(center: { latitude: number; longitude: number }
   const radiusKm = state.eventRadiusKm;
   const nearby = await api.eventsNear(center, radiusKm * 1000);
   if (thisLoad !== eventLoads) return;
-  // An answer that left the server just before an event was deleted still has it.
-  const stillThere = nearby.filter((event) => !state.deletedEventIds.includes(event.id));
   // Keep the loaded chat history of events we're in; refresh everything else.
-  const events = stillThere.map((event) => {
+  const events = nearby.map((event) => {
     const existing = state.events.find((loaded) => loaded.id === event.id);
     if (!existing) return event;
     return { ...event, messages: existing.messages };
   });
   set({ events, eventsRadiusKm: radiusKm });
+}
+
+/**
+ * Loads the events around the same spot again, so ones deleted meanwhile leave the map, and
+ * their details or group chat, if open, show "This event was deleted".
+ */
+async function reloadEvents() {
+  if (!lastEventsCenter) return;
+  try {
+    await loadEvents(lastEventsCenter);
+  } catch {
+    // Offline; the next catch-up tries again.
+  }
 }
 
 /** Changes how far around you the map looks for events, remembers it, and reloads the pins. */
@@ -955,7 +954,10 @@ function updateEvent(id: string, getChanges: (event: MapEvent) => Partial<MapEve
 
 /** Joins from where the phone is: the server only allows it within about 5 km of the event. */
 export async function joinEvent(id: string, position: { latitude: number | null; longitude: number | null }) {
-  await api.joinEvent(id, position);
+  if ((await api.joinEvent(id, position)) === 'event-deleted') {
+    forgetEvent(id);
+    return;
+  }
   updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
 }
 
@@ -964,7 +966,7 @@ export async function leaveEvent(id: string) {
   await api.leaveEvent(id);
   if (event && event.host.id === state.myId) {
     // Leaving your own event deletes it.
-    set({ events: state.events.filter((existing) => existing.id !== id) });
+    forgetEvent(id);
     return;
   }
   updateEvent(id, (current) => ({
@@ -977,20 +979,15 @@ export async function leaveEvent(id: string) {
 /** Deletes an event you host. It leaves the map and lists straight away. */
 export async function deleteEvent(id: string) {
   await api.deleteEvent(id);
-  forgetDeletedEvent(id);
+  forgetEvent(id);
 }
 
 /**
  * Takes a deleted event off the map and lists. Its details or group chat, if open, then
  * show "This event was deleted".
  */
-function forgetDeletedEvent(id: string) {
-  const events = state.events.filter((event) => event.id !== id);
-  let deletedEventIds = state.deletedEventIds;
-  if (!deletedEventIds.includes(id)) {
-    deletedEventIds = [...deletedEventIds, id];
-  }
-  set({ events, deletedEventIds });
+function forgetEvent(id: string) {
+  set({ events: state.events.filter((event) => event.id !== id) });
 }
 
 // Counts group chat visits, so history that arrives after the screen closed is dropped.
@@ -1008,8 +1005,12 @@ export function enterEventChat(eventId: string) {
     eventId,
     myId,
     (message) => updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [message]) })),
-    // Joined (the history loads then), or re-joined after a dropped connection.
-    () => void loadEventHistory(eventId, visit),
+    // Joined (the history loads then, and the event is checked to still be there), or
+    // re-joined after a dropped connection.
+    () => {
+      void loadEventHistory(eventId, visit);
+      void reloadEvents();
+    },
   );
 }
 
@@ -1035,6 +1036,11 @@ export async function sendGroupMessage(eventId: string, text: string) {
   try {
     // Show the saved message now; when Realtime delivers the same one, it's skipped.
     const sent = await api.sendEventMessage(eventId, body);
+    if (sent === 'not-member') {
+      // The event was deleted, or I left it on another device: reloading shows which.
+      await reloadEvents();
+      return;
+    }
     updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [sent]) }));
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));

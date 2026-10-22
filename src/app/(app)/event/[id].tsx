@@ -23,14 +23,13 @@ export default function EventDetails() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { colors, layout, size, spacing } = useTheme();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
-  const deleted = useStore((state) => state.deletedEventIds.includes(id));
   const [joining, setJoining] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const myId = useStore((state) => state.myId);
   const location = useForegroundLocation();
 
-  // The host deleted it while this screen was open.
-  if (!event && deleted) {
+  // No longer in the store: the server says the host deleted it.
+  if (!event) {
     return (
       <Screen surface="surface" edges={['bottom']}>
         <TopBar leading={<IconButton icon="close" label="Close" onPress={() => router.back()} />} />
@@ -38,7 +37,6 @@ export default function EventDetails() {
       </Screen>
     );
   }
-  if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
   // Signed out (no myId) means you can't be the host.
   const hostedByMe = myId !== null && event.host.id === myId;

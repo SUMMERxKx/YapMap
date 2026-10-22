@@ -3,8 +3,6 @@
 --   * delete_event: only the event's host can call it. Deleting the event also deletes who
 --     joined it (event_members) and its group chat (messages), through the foreign keys'
 --     `on delete cascade`.
---   * Realtime announces the deletion, so anyone who has the event or its group chat open
---     sees "This event was deleted" straight away.
 
 -- map events --------------------------------------------------------------------------
 
@@ -32,8 +30,3 @@ $$;
 
 revoke execute on function public.delete_event (uuid) from public, anon;
 grant execute on function public.delete_event (uuid) to authenticated;
-
--- Realtime: the app listens for deleted events. Nobody can read public.events directly
--- (no SELECT policy), so Realtime never sends its new or changed rows; for a DELETE it sends
--- only the primary key, the event's id, which the map already shows to everyone.
-alter publication supabase_realtime add table public.events;

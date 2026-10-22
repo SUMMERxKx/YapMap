@@ -688,10 +688,14 @@ export async function sendMessage(chatId: string, text: string): Promise<Message
   return toMessage(data as unknown as MessageRow, myId);
 }
 
-/** Sends a group message and returns it as saved, like sendMessage. */
-export async function sendEventMessage(eventId: string, text: string): Promise<Message> {
+/**
+ * Sends a group message and returns it as saved, like sendMessage, or 'not-member' when I'm
+ * no longer in the event (it was deleted, or I left it on another device).
+ */
+export async function sendEventMessage(eventId: string, text: string): Promise<Message | 'not-member'> {
   const myId = await requireUserId();
   const { data, error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
+  if (error && error.message === 'not a member') return 'not-member';
   if (error) throw new Error(friendlyRpcError(error));
   return toMessage(data as unknown as MessageRow, myId);
 }
@@ -975,8 +979,14 @@ export async function createEvent(input: {
   return event;
 }
 
-/** Join an event from where the phone is; the server only allows it within about 5 km. */
-export async function joinEvent(eventId: string, position: { latitude: number | null; longitude: number | null }) {
+/**
+ * Join an event from where the phone is; the server only allows it within about 5 km.
+ * Returns 'event-deleted' when the host already deleted it.
+ */
+export async function joinEvent(
+  eventId: string,
+  position: { latitude: number | null; longitude: number | null },
+): Promise<'event-deleted' | void> {
   if (position.latitude === null || position.longitude === null) {
     throw new Error(NO_LOCATION);
   }
@@ -985,6 +995,7 @@ export async function joinEvent(eventId: string, position: { latitude: number | 
     lat: position.latitude,
     lng: position.longitude,
   });
+  if (error && error.message === 'no such event') return 'event-deleted';
   if (error) throw new Error(friendlyRpcError(error));
 }
 
@@ -993,22 +1004,12 @@ export async function leaveEvent(eventId: string) {
   if (error) throw new Error(friendlyRpcError(error));
 }
 
-/** Deletes an event you host. Who joined it and its group chat go with it. */
+/**
+ * Deletes an event you host. Who joined it and its group chat go with it. One already
+ * deleted (from another phone, say) counts as done.
+ */
 export async function deleteEvent(eventId: string) {
   const { error } = await supabase.rpc('delete_event', { event_id: eventId });
+  if (error && error.message === 'no such event') return;
   if (error) throw new Error(friendlyRpcError(error));
-}
-
-/**
- * Events deleted by their host, over Realtime. Only the event's id arrives. Returns an
- * unsubscribe function.
- */
-export function subscribeDeletedEvents(onDeleted: (eventId: string) => void) {
-  const channel = supabase
-    .channel('deleted-events')
-    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'events' }, (payload) => {
-      const row = payload.old as { id?: string };
-      if (row.id) onDeleted(row.id);
-    });
-  return subscribeAsMe(channel);
 }
