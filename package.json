@@ -50,5 +50,6 @@
     "lint": "expo lint",
     "icons": "sh scripts/make-icons.sh"
   },
-  "private": true
+  "private": true,
+  "license": "UNLICENSED"
 }
