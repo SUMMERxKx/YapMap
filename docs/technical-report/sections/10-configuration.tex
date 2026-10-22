@@ -34,6 +34,7 @@ settings that password sign-in needs, and the project's email delivery is config
     \textsf{\textbf{Setting}} & \textsf{\textbf{Value}} \\
     \midrule
     Auth, email provider & Enabled for password sign-in; \ui{Confirm email} on; minimum password length 8 \\
+    Auth, email rate & At most one emailed code per address per minute \\
     Template: confirm sign-up & Shows the 8-digit code (\texttt{\{\{ .Token \}\}}) \\
     Template: reset password & Shows the 8-digit code instead of a link, with a subject such as \ui{Reset your Yap password} \\
     Template: magic link & No longer used by the app \\
@@ -45,8 +46,9 @@ settings that password sign-in needs, and the project's email delivery is config
 
 The \code{pg_cron} extension and its schedule, the \code{photos} bucket, the Realtime publication and all
 policies are created by the migrations, not by hand. \code{supabase/config.toml} repeats the Auth settings
-for the local stack only; it is never pushed to the hosted project, and \code{supabase/README.md} warns
-against running \code{supabase config push}.
+for the local stack only, except that it allows one emailed code per second so local testing is faster;
+it is never pushed to the hosted project, and \code{supabase/README.md} warns against
+running \code{supabase config push}.
 
 \section{Database migrations}
 \label{sec:migrations}
@@ -115,7 +117,7 @@ local stack and applies every migration; \code{supabase/config.toml} configures 
     Project ID; Postgres & \code{yapmap}; major version 17, as on the hosted project \\
     Ports & API 54321, database 54322, Studio 54323, mail viewer 54324 \\
     Email & Not sent: read in the local mail viewer at \code{http://127.0.0.1:54324} \\
-    Auth & Sign-up and email confirmation on; 8-digit codes valid for 3600\,s; minimum password length 8 \\
+    Auth & Sign-up and email confirmation on; 8-digit codes valid for 3600\,s; one emailed code per address per second; minimum password length 8 \\
     Email templates & \code{supabase/templates/confirmation.html} and \code{recovery.html}, showing the code \\
     Seed data; Edge Functions & Off; off \\
     \bottomrule

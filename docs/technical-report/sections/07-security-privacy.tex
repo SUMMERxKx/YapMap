@@ -265,7 +265,7 @@ tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} 
     Creating events & 5 per host in any 24 hours & \code{create_event} \\
     Changing location & 3 changes in any 10 minutes & \code{go_green} \\
     Moving while live & 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
-    Email codes & 1 per address per minute & Supabase Auth \\
+    Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\
     Auth requests & Supabase's per-project limits & Supabase Auth \\
     \bottomrule
   \end{tabularx}

@@ -61,7 +61,9 @@ skipped.
 behind eight boxes, which keeps pasting and the operating system's one-time-code autofill working. It
 submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
 session; the store then loads the (missing) profile and the guards open profile setup. \ui{Resend code}
-is disabled for 60 seconds after each send, matching Supabase's limit of one code per minute.
+is disabled for 60 seconds after each send, matching the hosted project's limit of one code per address
+per minute (\cref{tab:dashboard}). The local stack allows one per second, so the button's wait is the
+only limit there.
 
 \paragraph{Signing in} Sign-in calls \code{signInWithPassword}. If the password is correct but the
 account was never confirmed, Supabase answers \code{email_not_confirmed}; the screen then requests a new
