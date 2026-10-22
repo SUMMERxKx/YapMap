@@ -32,7 +32,15 @@ supabase test db      # runs the pgTAP checks in supabase/tests against the loca
 
 `supabase/tests/` holds SQL checks for server rules a modified app could otherwise get around
 (typed text, double say-hi, reports, the event limit, photo uploads). Each file runs in a
-transaction that is rolled back. CI doesn't run them yet, so run them after changing those rules.
+transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
+from separate connections (dblink) to show the daily event and report limits hold; the people it
+signs up there are saved for real, so it deletes them at its start and end. CI doesn't run these
+checks yet, so run them after changing those rules.
+
+The 24-files-per-person photo limit is best-effort: the storage policy counts the folder, and
+uploads sent at the same moment can't see each other, so together they can go a little past it.
+Each file is still at most 5 MB and only in the person's own folder. The event and report limits
+are exact, because `create_event` and `report_user` take a per-person lock before counting.
 
 ## 3. Regenerate the app's types
 

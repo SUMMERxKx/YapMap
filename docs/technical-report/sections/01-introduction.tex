@@ -160,7 +160,7 @@ cannot be bypassed.
   Uploaded photo & JPEG, at most 1080\,px wide and 1920\,px tall, quality 0.8 & \code{uploadJpeg} \\
   Avatar copy & JPEG, at most 320\,px wide and 569\,px tall & \code{uploadJpeg} \\
   Storage object & at most 5\,MiB; JPEG, PNG or WebP & \code{photos} bucket settings \\
-  Files per user & at most 24, directly in the user's folder & \code{photos_insert_own_folder} policy \\
+  Files per user & at most 24 (best-effort against uploads sent at once), directly in the user's folder & \code{photos_insert_own_folder} policy \\
   Signed photo URL & valid 1 hour; reused until 10 minutes remain & \code{SIGNED_URL_SECONDS}, \code{SIGNED_URL_MIN_LEFT_MS} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Accounts and safety}}} \\

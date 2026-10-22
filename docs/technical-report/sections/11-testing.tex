@@ -61,8 +61,14 @@ local stack, inside a transaction it rolls back. Each of its 18 checks covers so
 could do before the October 2026 hardening migration: names, intros, interests and messages that show
 nothing or carry direction overrides or stacked accents, a second say-hi creating a second request,
 repeated reports, deleting events to get around the daily limit, uploads into a sub-folder or past 24
-files, and \code{my_status} without the server clock. Continuous integration does not run it yet; run it
-after changing those rules.
+files, and \code{my_status} without the server clock. \code{supabase/tests/parallel_limits_test.sql} sends
+calls at the same moment from separate connections (through \code{dblink}): ten events, twelve people
+reported and five reports of one person. Its three checks pass only if the daily limits hold, five
+events, ten reports and one report. Before \code{create_event} and \code{report_user} took a per-person
+lock, all three failed (ten events, twelve reports, five reports). The people it signs up through those
+connections are saved for real, so it deletes them at its start and end. Continuous integration does not
+run these files yet; run them after changing those rules. The 24-file photo limit has no such check: it
+is best-effort against uploads sent at once.
 
 \section{Pre-merge review pipeline}
 

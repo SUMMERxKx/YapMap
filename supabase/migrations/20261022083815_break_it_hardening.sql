@@ -16,7 +16,10 @@
 --     tap files one report), you can report at most 10 people a day, and the request a report
 --     points at has to be one between the two of you.
 --   * The 5-events-a-day limit counts events you deleted too, so deleting doesn't reset it.
---   * Photos: each person's folder holds at most 24 files, all directly inside it.
+--   * Photos: each person's folder holds at most 24 files, all directly inside it. The count
+--     is best-effort: uploads sent at the same moment can't see each other and may go a little
+--     past it (each file is still at most 5 MB and in the person's own folder). The report and
+--     event limits are exact: those functions take a per-person lock before counting.
 --   * my_status also returns the server's clock, so the app can correct for a phone whose
 --     clock is wrong.
 --
@@ -251,6 +254,8 @@ begin
     raise exception 'invalid details';
   end if;
 
+  -- one call at a time per reporter, so parallel calls can't all pass the checks below
+  perform pg_advisory_xact_lock(hashtextextended('yap:report_user:' || uid::text, 0));
   -- already reported them today: that report stands
   if exists (
     select 1 from public.reports r
@@ -347,6 +352,8 @@ begin
   then
     raise exception 'invalid start time';
   end if;
+  -- one call at a time per host, so parallel calls can't all pass the limit below
+  perform pg_advisory_xact_lock(hashtextextended('yap:create_event:' || uid::text, 0));
   -- rate limit: at most 5 events a day per host, deleted ones included
   if (
     select count(*) from private.event_posts
@@ -378,7 +385,8 @@ $$;
 -- the app's tidy-up can't see), and the folder holds at most 24 files. The app keeps up to 8
 -- (the profile picture, its small copy and 6 more) and tidies up before uploading new ones,
 -- so 24 leaves room for a whole new set while a save is under way. Without a limit, a
--- modified app could fill the storage with 5 MB files.
+-- modified app could fill the storage with 5 MB files. The limit is best-effort: uploads sent
+-- at the same moment each count the folder without the others, so they can go past 24 together.
 
 -- How many files the signed-in user has in their folder of the photos bucket. A policy on
 -- storage.objects can't read storage.objects itself (Postgres refuses that as recursion), so

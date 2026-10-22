@@ -268,9 +268,9 @@ tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} 
     Sending requests & 5 per sender in any 10 minutes & \code{send_request} \\
     Waiting requests & 1 per sender at a time & \code{send_request}; partial unique index \\
     Sending messages & 30 per sender per minute, both chat kinds & \code{send_chat_message}, \code{send_event_message} \\
-    Creating events & 5 per host in any 24 hours, deleted events included & \code{create_event}; \code{private.event_posts} \\
-    Reporting & 1 report per person per day; 10 people per day & \code{report_user} \\
-    Storing photos & 24 files per user & storage insert policy \\
+    Creating events & 5 per host in any 24 hours, deleted events included; exact for calls sent at once & \code{create_event} (a per-host lock); \code{private.event_posts} \\
+    Reporting & 1 report per person per day; 10 people per day; exact for calls sent at once & \code{report_user} (a per-reporter lock) \\
+    Storing photos & 24 files per user; best-effort, as uploads sent at once can go a little past it & storage insert policy \\
     Changing location & 3 changes in any 10 minutes & \code{go_green} \\
     Moving while live & 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
     Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\
