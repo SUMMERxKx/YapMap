@@ -155,6 +155,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'too many events': "You've posted as many events as you can today. Try again tomorrow.",
   'no such event': 'This event has ended.',
   'not a member': 'Join the event to chat.',
+  'not the host': 'Only the host can delete this event.',
   'already chatting': "You're already in a chat. End it before starting a new one.",
   'already waiting': 'You already have a request waiting. Wait for the answer, or cancel it first.',
   'moving too fast': 'Your location changed too quickly. Wait a few minutes, then try again.',
@@ -990,4 +991,24 @@ export async function joinEvent(eventId: string, position: { latitude: number | 
 export async function leaveEvent(eventId: string) {
   const { error } = await supabase.rpc('leave_event', { event_id: eventId });
   if (error) throw new Error(friendlyRpcError(error));
+}
+
+/** Deletes an event you host. Who joined it and its group chat go with it. */
+export async function deleteEvent(eventId: string) {
+  const { error } = await supabase.rpc('delete_event', { event_id: eventId });
+  if (error) throw new Error(friendlyRpcError(error));
+}
+
+/**
+ * Events deleted by their host, over Realtime. Only the event's id arrives. Returns an
+ * unsubscribe function.
+ */
+export function subscribeDeletedEvents(onDeleted: (eventId: string) => void) {
+  const channel = supabase
+    .channel('deleted-events')
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'events' }, (payload) => {
+      const row = payload.old as { id?: string };
+      if (row.id) onDeleted(row.id);
+    });
+  return subscribeAsMe(channel);
 }

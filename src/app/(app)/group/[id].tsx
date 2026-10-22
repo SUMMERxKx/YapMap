@@ -7,6 +7,7 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
+import { EmptyState } from '@/components/ui/empty-state';
 import { EventIcon } from '@/components/events/event-icon';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
@@ -23,6 +24,7 @@ export default function GroupChat() {
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const blockedIds = useStore((state) => state.blockedIds);
   const myId = useStore((state) => state.myId);
+  const deleted = useStore((state) => state.deletedEventIds.includes(id));
 
   // Load the chat history and listen for new messages while this screen is open.
   useEffect(() => {
@@ -30,6 +32,19 @@ export default function GroupChat() {
     return () => leaveEventChat();
   }, [id]);
 
+  // The host deleted the event while this chat was open.
+  if (!event && deleted) {
+    return (
+      <SafeAreaView edges={['top', 'bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
+        <ChatHeader onBack={() => router.back()}>
+          <AppText variant="bodyStrong" accessibilityRole="header">
+            Group chat
+          </AppText>
+        </ChatHeader>
+        <EmptyState mascot="sleepy" title="This event was deleted" body="The host deleted it, and its group chat too." />
+      </SafeAreaView>
+    );
+  }
   if (!event) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const leave = () =>

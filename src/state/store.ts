@@ -52,6 +52,7 @@ type State = {
   nearbyAlert: NearbyAlert | null;
   events: MapEvent[];
   eventsRadiusKm: number | null; // the distance the shown events were loaded for; null until the first answer
+  deletedEventIds: string[]; // events deleted while the app was open, so their screens can say so
 };
 
 const initialState: State = {
@@ -77,6 +78,7 @@ const initialState: State = {
   nearbyAlert: null,
   events: [],
   eventsRadiusKm: null,
+  deletedEventIds: [],
 };
 
 let state = initialState;
@@ -103,6 +105,7 @@ export function useStore<T>(selector: (state: State) => T): T {
 let stopIncoming: (() => void) | null = null;
 let stopChat: (() => void) | null = null;
 let stopEventMessages: (() => void) | null = null;
+let stopDeletedEvents: (() => void) | null = null;
 
 // Requests already answered or timed out here, and chats already closed here, so a
 // catch-up that read the server a moment earlier never brings them back.
@@ -113,9 +116,11 @@ function teardownRealtime() {
   stopIncoming?.();
   stopChat?.();
   stopEventMessages?.();
+  stopDeletedEvents?.();
   stopIncoming = null;
   stopChat = null;
   stopEventMessages = null;
+  stopDeletedEvents = null;
 }
 
 /** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
@@ -136,6 +141,12 @@ function listenForRequests(userId: string) {
       joinedBefore = true;
     },
   );
+}
+
+/** Start listening for events their host deleted. Safe to call again. */
+function listenForDeletedEvents() {
+  if (stopDeletedEvents) return;
+  stopDeletedEvents = api.subscribeDeletedEvents(forgetDeletedEvent);
 }
 
 /** Whether the network looks reachable. Unknown counts as online. */
@@ -226,8 +237,9 @@ async function refreshAfterAuth() {
     // Offline: catchUp() fills these in when the app is back online.
   }
 
-  // New say-hi requests arrive over Realtime for the whole session.
+  // New say-hi requests and deleted events arrive over Realtime for the whole session.
   listenForRequests(user.id);
+  listenForDeletedEvents();
 }
 
 // Whether the block list and the live and chat state have loaded since sign-in.
@@ -450,6 +462,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   // A new account can be said hi to from now on, so start listening (sign-in only does
   // this for accounts that already had a profile).
   listenForRequests(stored.id);
+  listenForDeletedEvents();
 }
 
 export async function verifySelfie(selfieUri: string) {
@@ -899,8 +912,10 @@ export async function loadEvents(center: { latitude: number; longitude: number }
   const radiusKm = state.eventRadiusKm;
   const nearby = await api.eventsNear(center, radiusKm * 1000);
   if (thisLoad !== eventLoads) return;
+  // An answer that left the server just before an event was deleted still has it.
+  const stillThere = nearby.filter((event) => !state.deletedEventIds.includes(event.id));
   // Keep the loaded chat history of events we're in; refresh everything else.
-  const events = nearby.map((event) => {
+  const events = stillThere.map((event) => {
     const existing = state.events.find((loaded) => loaded.id === event.id);
     if (!existing) return event;
     return { ...event, messages: existing.messages };
@@ -957,6 +972,25 @@ export async function leaveEvent(id: string) {
     memberCount: Math.max(0, current.memberCount - 1),
     messages: [],
   }));
+}
+
+/** Deletes an event you host. It leaves the map and lists straight away. */
+export async function deleteEvent(id: string) {
+  await api.deleteEvent(id);
+  forgetDeletedEvent(id);
+}
+
+/**
+ * Takes a deleted event off the map and lists. Its details or group chat, if open, then
+ * show "This event was deleted".
+ */
+function forgetDeletedEvent(id: string) {
+  const events = state.events.filter((event) => event.id !== id);
+  let deletedEventIds = state.deletedEventIds;
+  if (!deletedEventIds.includes(id)) {
+    deletedEventIds = [...deletedEventIds, id];
+  }
+  set({ events, deletedEventIds });
 }
 
 // Counts group chat visits, so history that arrives after the screen closed is dropped.
