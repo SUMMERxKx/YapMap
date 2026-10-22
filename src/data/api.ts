@@ -233,12 +233,16 @@ const SIGNED_URL_SECONDS = 60 * 60;
 // A signed URL is reused until it has less than this long left, so the same photo keeps
 // the same URL and the image cache doesn't download it again on every refresh.
 const SIGNED_URL_MIN_LEFT_MS = 10 * 60 * 1000;
+// A photo that couldn't be signed is asked for again after this long, so it shows up soon
+// after its owner becomes visible to you.
+const UNSIGNED_RETRY_MS = 60 * 1000;
 
 const PHOTO_MAX_WIDTH = 1080;
 const THUMB_WIDTH = 320;
 
-// Storage path -> its signed URL (null when the file doesn't exist, e.g. a small copy of
-// a photo uploaded before small copies existed), and when that URL stops working.
+// Storage path -> its signed URL, and when that URL stops working. The URL is null when the
+// file doesn't exist (e.g. a small copy of a photo uploaded before small copies existed) or
+// you can't see that person right now; then it's only kept until it's time to ask again.
 const signedUrls = new Map<string, { url: string | null; expiresAt: number }>();
 
 /** Turn storage paths into display URLs, in at most one round trip. Empty paths are skipped. */
@@ -248,7 +252,7 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
   for (const path of paths) {
     if (path === '' || toSign.includes(path)) continue;
     const cached = signedUrls.get(path);
-    if (cached && cached.expiresAt - now > SIGNED_URL_MIN_LEFT_MS) continue;
+    if (cached && cached.expiresAt - now > (cached.url ? SIGNED_URL_MIN_LEFT_MS : 0)) continue;
     toSign.push(path);
   }
 
@@ -259,9 +263,11 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
     }
     const { data, error } = await supabase.storage.from('photos').createSignedUrls(toSign, SIGNED_URL_SECONDS);
     if (error) throw new Error(friendlyRpcError(error));
-    const expiresAt = now + SIGNED_URL_SECONDS * 1000;
     for (const entry of data) {
-      if (entry.path) signedUrls.set(entry.path, { url: entry.signedUrl || null, expiresAt });
+      if (!entry.path) continue;
+      const url = entry.signedUrl || null;
+      const expiresAt = now + (url ? SIGNED_URL_SECONDS * 1000 : UNSIGNED_RETRY_MS);
+      signedUrls.set(entry.path, { url, expiresAt });
     }
   }
 

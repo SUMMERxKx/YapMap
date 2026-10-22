@@ -7,6 +7,8 @@
 --     if you're already in one and withdraws the request you're waiting on.
 --   * block_user only puts people back on nearby lists when it ended a chat between the two.
 --   * request_person shows nothing once either person has blocked the other.
+--   * Deleting your account puts the person you were chatting with back on nearby lists
+--     (delete_account).
 --   * Profile photo paths must point at files in your own folder, with at most 6 extra photos.
 --   * Photos can only be loaded by people who can see you right now (nearby while live, a
 --     waiting request or a chat or meeting between you, or your event on the map).
@@ -253,6 +255,29 @@ begin
     update public.availability set state = 'open'
     where user_id in (uid, target) and state = 'chatting';
   end if;
+end;
+$$;
+
+-- Deleting your account ends your chat with it (the request row goes with your profile), so
+-- the other person goes back on nearby lists and can say hi again. The app removes your
+-- photos through the Storage API first; this only deletes the auth user, which cascades
+-- through profiles and everything referencing it.
+create or replace function public.delete_account()
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+begin
+  if uid is null then raise exception 'not signed in'; end if;
+
+  update public.availability a set state = 'open'
+  from public.chat_requests r
+  where r.status = 'accepted' and uid in (r.from_user, r.to_user)
+    and a.user_id = case when r.from_user = uid then r.to_user else r.from_user end
+    and a.state = 'chatting';
+
+  delete from auth.users where id = uid;
 end;
 $$;
 
