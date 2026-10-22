@@ -71,8 +71,8 @@ export default function Guidelines() {
           reported by three different people is hidden straight away until it has been reviewed.
         </AppText>
         <AppText color="textSecondary">
-          Words that break these rules are refused when you post them. There is zero tolerance for objectionable
-          content or abusive behaviour.
+          Slurs and abusive words are refused when you post them. There is zero tolerance for objectionable content
+          or abusive behaviour.
         </AppText>
       </View>
 

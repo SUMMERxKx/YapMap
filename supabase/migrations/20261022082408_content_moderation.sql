@@ -14,9 +14,10 @@
 -- 5 -> s, 7 -> t, @ -> a, $ -> s), so "h4te" is checked as "hate". Whole words only, so a
 -- longer word that merely contains a listed one is never refused.
 --
--- It is deliberately narrow: only unambiguous slurs and explicit abuse, never words people use
--- to describe harm or ask for help, or that are also names or ordinary words in another
--- language. It is a first line, not the moderation itself: reports and blocks
+-- It is deliberately narrow: only unambiguous slurs and explicit abuse aimed at people. It
+-- leaves out general swearing, sexual words, words people use to describe harm or ask for help,
+-- and words that are also names or ordinary words (here or in another language). It is a first
+-- line, not the moderation itself: reports and blocks
 -- (docs/legal/moderation.md) handle everything a word list can't. The list is a table,
 -- so the owner can change it without a migration:
 --
@@ -39,14 +40,9 @@ revoke all on private.blocked_words from public, anon, authenticated;
 insert into private.blocked_words (word) values
   -- slurs
   ('faggot'), ('faggots'), ('gook'), ('gooks'), ('nigga'), ('niggas'), ('nigger'),
-  ('niggers'), ('raghead'), ('ragheads'), ('spic'), ('spics'), ('tranny'), ('trannies'),
-  ('wetback'), ('wetbacks'),
-  -- sexual
-  ('blowjob'), ('blowjobs'), ('cumshot'), ('handjob'), ('porn'), ('porno'), ('slut'),
-  ('sluts'), ('whore'), ('whores'),
-  -- the strongest swearing and abuse
-  ('cunt'), ('cunts'), ('fuck'), ('fucked'), ('fucker'), ('fuckers'), ('fucking'),
-  ('fucks'), ('motherfucker'), ('kys');
+  ('niggers'), ('raghead'), ('ragheads'), ('wetback'), ('wetbacks'),
+  -- abuse aimed at a person
+  ('cunt'), ('cunts'), ('slut'), ('sluts'), ('whore'), ('whores'), ('kys');
 
 -- True when the text contains a listed word, matched as described at the top.
 create function private.has_blocked_word(input text)

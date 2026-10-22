@@ -107,7 +107,7 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
   inside the app (`src/app/guidelines.tsx`, `src/app/acknowledgements.tsx`).
 - **Open-source licences:** after adding, removing or updating a dependency, run `npm run licenses`
   and commit `src/data/third-party-licenses.json` (the Acknowledgements list).
-- **Moderation:** objectionable words are refused by the database (`private.blocked_words`), and
+- **Moderation:** slurs and abusive words are refused by the database (`private.blocked_words`), and
   reports are reviewed daily as described in [`docs/legal/moderation.md`](docs/legal/moderation.md).
 
 ## Checks

@@ -19,16 +19,17 @@ content, a way to report it, a way to block abusive users, and a developer who a
 
 ## The word filter
 
-`private.blocked_words` holds about 35 words: unambiguous slurs, explicit sexual terms and the
-strongest abuse. Text containing one as a whole word (also with look-alike digits, like `h4te`)
+`private.blocked_words` holds about 20 words: unambiguous slurs and explicit abuse aimed at a
+person (such as "kys"). Text containing one as a whole word (also with look-alike digits, like `h4te`)
 is refused with the message "That has words Yap doesn't allow". It checks the intro, interests,
 live note, event text and messages. Names are not checked, and report details are not
 filtered, so people can quote what was said to them.
 
-The list is intentionally narrow. It leaves out words people use to describe harm or ask for
-help (such as "rape"), and words that are also names or ordinary words in another language
-(such as "kike", a Spanish nickname for Enrique), because refusing those blocks the people the
-filter is meant to protect. Keep it that way when adding words. Reports and blocking are the
+The list is intentionally narrow. It leaves out general swearing and sexual words (adults may
+use them in a chat, and sexual content is handled through reports), words people use to
+describe harm or ask for help (such as "rape"), and words that are also names or ordinary words
+in another language (such as "kike", a Spanish nickname for Enrique), because refusing those
+blocks the people the filter is meant to protect. Keep it that way when adding words. Reports and blocking are the
 main moderation tool; the filter is only a first line.
 
 Change the list in the Supabase SQL editor (no migration or app update needed):

@@ -74,7 +74,8 @@ and to check you are within 5 km when you join one; it is not stored.
   read reports to keep Yap safe (see our Community Guidelines). A profile reported by three
   different people is hidden until we have reviewed it.
 - **Text checks.** Intros, interests, notes, event text and messages are checked against a
-  short list of banned words when you save or send them. Text that fails is refused, not stored.
+  short list of slurs and abusive words when you save or send them. Text that fails is
+  refused, not stored.
 
 ### Technical information
 

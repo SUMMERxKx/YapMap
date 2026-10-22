@@ -62,7 +62,7 @@ Never run `supabase config push`: the hosted auth and email settings live in the
 ## Moderation tools
 
 `20261022082408_content_moderation.sql` adds two things the app stores require, both used from
-the SQL editor rather than the app: the banned-word list `private.blocked_words` (intros,
-interests, notes, event text and messages are refused when they contain one; names are not) and `private.suspend_user(id, note)` for acting on a
-report. [`docs/legal/moderation.md`](../docs/legal/moderation.md) has the daily review queries.
+the SQL editor rather than the app: the banned-word list `private.blocked_words` (a short list
+of slurs and abuse; intros, interests, notes, event text and messages are refused when they
+contain one, names are not) and `private.suspend_user(id, note)` for acting on a report. [`docs/legal/moderation.md`](../docs/legal/moderation.md) has the daily review queries.
 The word list is data, so changing it needs no migration.

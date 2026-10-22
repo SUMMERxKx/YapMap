@@ -33,7 +33,7 @@ When you use Yap you agree to follow the Community Guidelines. In short:
 
 **There is zero tolerance for objectionable content or abusive users.** We review every
 report within 24 hours, remove content that breaks the rules, and suspend or remove the
-people who post it. Some words are refused automatically.
+people who post it. Slurs and abusive words are refused automatically.
 
 ## 3. Your content
 
