@@ -34,8 +34,8 @@ supabase test db      # runs the pgTAP checks in supabase/tests against the loca
 (typed text, double say-hi, reports, the event limit, photo uploads). Each file runs in a
 transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
 from separate connections (dblink) to show the daily event and report limits hold; the people it
-signs up there are saved for real, so it deletes them at its start and end. CI doesn't run these
-checks yet, so run them after changing those rules.
+signs up there are saved for real, so it deletes them at its start and end. CI runs them too
+(the Database job), but run them yourself after changing those rules.
 
 The 24-files-per-person photo limit is best-effort: the storage policy counts the folder, and
 uploads sent at the same moment can't see each other, so together they can go a little past it.
@@ -73,8 +73,13 @@ must be 0; otherwise the push fails on the existing rows (and changes nothing) u
 So far migrations have been applied with the Supabase MCP `apply_migration` tool, which
 records each one under the time it ran rather than the file's timestamp. If you use it,
 rename the file to the version it recorded (`list_migrations` shows it) so the repo and the
-hosted history stay identical. `supabase db push` keeps the file's own version, so no
-rename is needed.
+hosted history stay identical. Rename it with `git mv` and change nothing inside: the
+Migration files check in CI accepts a rename only when the contents are byte-for-byte the
+same. `supabase db push` keeps the file's own version, so no rename is needed.
+
+As of October 22, 2026 the hosted project has all eleven migrations, under exactly the
+versions the files in `supabase/migrations/` are named with. After linking,
+`supabase migration list` shows the same versions in the Local and Remote columns.
 
 Never run `supabase config push`: the hosted auth and email settings live in the dashboard
 (see the main README), not in `config.toml`.

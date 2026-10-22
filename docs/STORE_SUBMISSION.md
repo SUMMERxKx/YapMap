@@ -28,9 +28,12 @@ something new, update this file, `docs/legal/privacy-policy.md` and
 4. **Support email.** The app, the policies and the store listings use `support@samarxkx.dev`
    (`SUPPORT_EMAIL` in `src/config/links.ts`). Make sure that mailbox receives mail; reports of
    abuse that arrive there must be handled within 24 hours (`docs/legal/moderation.md`).
-5. **Apply the database migrations** to the hosted project (`supabase/README.md`, step 4).
-   `20261022100308_content_moderation.sql` adds the word filter and `private.suspend_user`;
-   without it the app still works, but the store-required filter is off.
+5. **Database migrations.** The hosted project must have every migration in
+   `supabase/migrations/` (`supabase/README.md`, step 4). As of October 22, 2026 it has all
+   eleven, including `20261022100308_content_moderation.sql` (the word filter and
+   `private.suspend_user` the stores ask for) and `20261022103744_break_it_hardening.sql`
+   (the text rules and daily limits). Check again before each release: after `supabase link`,
+   `supabase migration list` shows the same versions in the Local and Remote columns.
 6. **EAS (Expo's build service).** Builds run in Expo's cloud with your Expo account:
 
    ```bash
@@ -231,8 +234,8 @@ same place.
   library. There is no background location and no microphone.
 - Acknowledgements (Settings → Acknowledgements) list every open-source package the app ships.
   After adding, removing or updating a dependency, run `npm run licenses` (it exports both
-  bundles, so it takes a few minutes) and commit `src/data/third-party-licenses.json`. A CI job
-  can run `npm run licenses -- --check --export-dir <dir>` after an `npx expo export
-  --source-maps --output-dir <dir>` it already does.
+  bundles, so it takes a few minutes) and commit `src/data/third-party-licenses.json`. CI
+  doesn't check this file, because the list records versions and every Dependabot update would
+  fail; `npm run licenses -- --check` before a release shows whether it is current.
 - Test the production build on a real Android phone (the map) and a real iPhone before
   submitting: `eas build --profile preview`.

@@ -119,12 +119,19 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 ## Checks
 
 ```bash
-npm run typecheck
+npm run typecheck    # generates the Expo Router route types, then runs TypeScript
 npm run lint
 npx expo-doctor
 ```
 
-GitHub Actions runs these on every pull request, along with the iOS and Android bundle
-builds and a database job that applies every migration from scratch. `docs/RELEASING.md`
-covers CI, branch protection, versioning, EAS builds, shipping database changes and
-rollback.
+With Docker running, the database checks are:
+
+```bash
+supabase start && supabase db reset   # every migration from an empty database
+supabase test db                      # the pgTAP checks in supabase/tests
+npm run db:types:check                # src/data/database.types.ts matches the migrations
+```
+
+GitHub Actions runs all of these on every pull request, along with the iOS and Android bundle
+builds and a check of the migration file names. `docs/RELEASING.md` covers CI, branch
+protection, versioning, EAS builds, shipping database changes and rollback.

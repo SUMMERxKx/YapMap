@@ -22,9 +22,9 @@ the same branch cancels the older run.
 
 | Check (job name) | What it does | Run it yourself |
 | --- | --- | --- |
-| **App (types, lint, doctor, export)** | `npm ci`, TypeScript, ESLint (with security rules; warnings fail), `expo-doctor`, and builds the iOS and Android bundles with `expo export`. Also prints an `npm audit` report that never fails the run. | `npm run typecheck`, `npm run lint`, `npx expo-doctor`, `npx expo export --platform ios --platform android` |
-| **Migration files** | New migration files are named `<14-digit version>_<name>.sql` and are later than every migration on `main`; existing migrations were not edited, renamed or deleted. | `npm run db:check-migrations` |
-| **Database (reset, lint, types)** | Starts Supabase in Docker, applies every migration from an empty database, lints the SQL functions in `public` and `private`, and checks `src/data/database.types.ts` matches the migrations. | `supabase start`, `supabase db reset`, `supabase db lint --schema public,private`, `npm run db:types:check` |
+| **App (types, lint, doctor, export)** | `npm ci`, TypeScript (it generates the Expo Router route types first, so a link to a missing route fails), ESLint (with security rules; warnings fail), `expo-doctor`, and builds the iOS and Android bundles with `expo export`. Also prints an `npm audit` report that never fails the run. | `npm run typecheck`, `npm run lint`, `npx expo-doctor`, `npx expo export --platform ios --platform android` |
+| **Migration files** | New migration files are named `<14-digit version>_<name>.sql` and are later than every migration on `main`; existing migrations were not edited, renamed or deleted. The one exception is a rename that keeps the file byte-for-byte the same, for matching the version the hosted project recorded (`supabase/README.md`, step 4). | `npm run db:check-migrations` |
+| **Database (reset, lint, tests, types)** | Starts Supabase in Docker, applies every migration from an empty database, lints the SQL functions in `public` and `private`, runs the pgTAP checks in `supabase/tests`, and checks `src/data/database.types.ts` matches the migrations. | `supabase start`, `supabase db reset`, `supabase db lint --schema public,private`, `supabase test db`, `npm run db:types:check` |
 
 CI uses Supabase CLI **2.121.0**. Use the same version locally when you run `npm run db:types`
 (`brew upgrade supabase`, or `npx supabase@2.121.0 ...`): a different CLI can format the
@@ -43,7 +43,7 @@ for `main`:
   CODEOWNERS already asks the owner to review every PR.
 - Require status checks to pass, and require branches to be up to date before merging.
   Required checks: `App (types, lint, doctor, export)`, `Migration files`,
-  `Database (reset, lint, types)`. They appear in the search box after CI has run once.
+  `Database (reset, lint, tests, types)`. They appear in the search box after CI has run once.
 - Require conversation resolution before merging.
 - Block force pushes and deletion of `main`.
 
@@ -86,6 +86,17 @@ eas submit --platform android --latest          # upload the newest Android buil
 ```
 
 Build from a clean, up-to-date `main` with green CI.
+
+### Before each store build
+
+1. CI is green on the commit you build from.
+2. `version` in `app.json` is raised if this is a new release (see "Versioning").
+3. Every migration is applied to the hosted project: after `supabase link`,
+   `supabase migration list` shows the same versions in the Local and Remote columns.
+4. `npm run licenses` gives no change (or you commit the change), so the Acknowledgements
+   screen lists what ships.
+5. The privacy policy and terms open in a browser at the addresses in `src/config/links.ts`.
+6. The build was tried on a real iPhone and a real Android phone (`--profile preview`).
 
 ## Database changes
 
