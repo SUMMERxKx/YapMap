@@ -333,8 +333,11 @@ without its token, so re-signing a URL does not cause the image to be downloaded
 \section{Account deletion}
 \label{sec:flow-delete}
 
-\ui{Delete account} in Settings asks for confirmation and then runs the sequence in
-\cref{fig:seq-delete}. The photos are removed first, through the Storage API, because once the account is
+\ui{Delete account} in Settings opens a screen that lists what is deleted. Its \ui{Delete my account}
+button only works once the user has typed their first name as it is on their profile (ignoring capitals
+and spaces around it), so a stray tap cannot delete an account. The app checks for a connection first,
+so a dropped network cannot remove the photos and leave the account, and a second tap waits for the
+first. It then runs the sequence in \cref{fig:seq-delete}. The photos are removed first, through the Storage API, because once the account is
 gone the session can no longer reach Storage, and Supabase does not allow deleting rows from the storage
 tables directly.
 
@@ -349,5 +352,6 @@ tables directly.
 be found and can say hi again; then it deletes the Auth user. Every user foreign key cascades, so the
 delete removes the profile, the live session, every request sent or received with its messages, every
 event hosted with its members and messages, every membership, every message sent, every block made or
-received, every report made or received, and the location-change log. The app then signs out, and the
-Auth listener resets the store to its initial state and closes every channel.
+received, every report made or received, the location-change log and the event-post log. The app then
+signs out and forgets what the phone saved for the account, and the Auth listener resets the store to its
+initial state, closes every channel and clears the image cache.

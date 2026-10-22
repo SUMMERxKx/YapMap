@@ -29,7 +29,8 @@ describes the files in \code{src/app} individually.
   \code{docs/technical-report/} & This report: LaTeX sources, diagram sources and the compiled PDF \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Backend}}} \\
-  \code{supabase/migrations/*.sql} & The nine migrations, each named \code{<version>_<name>.sql} (\cref{app:migrations}) \\
+  \code{supabase/migrations/*.sql} & The ten migrations, each named \code{<version>_<name>.sql} (\cref{app:migrations}) \\
+  \code{supabase/tests/*.sql} & pgTAP checks run by \code{supabase test db} \\
   \code{supabase/config.toml} & Local stack configuration only (\cref{tab:local-stack}) \\
   \code{supabase/README.md} & How to change the database (\cref{tab:migration-workflow}) \\
   \code{supabase/templates/*.html} & Local confirmation and recovery emails showing the code \\
@@ -60,15 +61,19 @@ describes the files in \code{src/app} individually.
   \code{use-foreground-location.ts} & Permission, fix with timeout, recent-position fallback \\
   \code{use-nearby.ts} & \code{useNearbyPolling} (20\,s poll) and \code{useNearby} (list and pull-to-refresh) \\
   \code{use-nearby-alerts.ts} & Nearby prompts, each person once per session \\
+  \code{use-one-at-a-time.ts} & Runs a submit once at a time when a button and a keyboard key (or a full code) both trigger it \\
   \code{use-person-photos.ts} & Lazy signing of a person's further photos \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/lib}}}} \\
+  \code{clean-text.ts} & \code{cleanLine}, \code{cleanLines}, \code{hasVisibleText}: typed text tidied to the server's rules \\
   \code{error-message.ts} & An error's message or a fallback \\
   \code{event-category.ts} & Stored event value to name and icon \\
   \code{format-person.ts} & \code{displayName}, \code{genderLabel}, \code{asSeenByOthers} \\
   \code{format-time.ts} & \code{formatClock}, \code{formatMinutesLeft}, \code{formatEventTime}, \code{formatStartTime} \\
   \code{password-problem.ts} & Length and confirmation check \\
   \code{photo-source.ts} & Image source with a token-free cache key \\
+  \code{picked-photo.ts} & \code{photoProblem}: turns away videos and huge files from the picker \\
+  \code{server-clock.ts} & \code{serverNow}, \code{syncServerClock}: the phone's clock corrected to the server's \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/theme}}}} \\
   \code{tokens.ts} & Palettes (light, dark), spacing, layout, radius, size, type, elevation, motion \\

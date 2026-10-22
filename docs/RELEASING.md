@@ -115,6 +115,10 @@ Rules that keep this safe:
   working with the app version already on people's phones. Old builds stay installed for
   weeks. To rename or remove a column or function: add the new one, ship an app that uses
   it, and drop the old one in a later migration.
+- **A migration that adds check constraints can pass CI and still fail on the hosted
+  project**, because CI starts from an empty database. Such a migration says so at the top
+  with a read-only query to run in the SQL editor first; every count must be 0. If one isn't,
+  the push fails without changing anything until those rows are fixed.
 - Never run `supabase config push`; hosted auth and email settings live in the dashboard.
 
 ## Rolling back

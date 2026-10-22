@@ -29,7 +29,7 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \code{REPORT_REASONS} & 6 values & Report form \\
   \code{DURATIONS} & 30, 60, 120 & Live durations, in minutes \\
   \code{NEARBY_REFRESH_MS} & 20\,000 & Nearby poll period \\
-  \code{LIMITS} & intro 300; note 60; first and last name 30; message 1000; event title 60; event description 200 & Text field limits, in characters \\
+  \code{LIMITS} & intro 300; note 60; first and last name 30; message 1000; event title 60; event description 200; report details 500 & Text field limits, in characters \\
   \code{INTEREST_RANGE} & 3 to 5 & Interests per profile \\
   \code{PHOTO_RANGE} & 4 to 6 & Further photos per profile \\
   \code{PASSWORD_MIN_LENGTH} & 8 & New passwords \\
@@ -118,10 +118,15 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Event radius & default 10\,000\,m, at most 50\,000\,m & \code{events_near} \\
   Event visibility after start & 3 hours & \code{events_near}, \code{can_see_photo} \\
   Event start & 5 minutes ago to 7 days ahead & \code{create_event} \\
-  Events created & 5 per 24 hours & \code{create_event} \\
+  Events created & 5 per 24 hours, deleted ones included & \code{create_event}, \code{private.event_posts} \\
   Join distance & 5000\,m & \code{join_event} \\
   Report details & 500 characters & \code{report_user}, check \\
   Reporters before hiding & 3 distinct & \code{report_user} \\
+  Reports & 1 per person reported per day; 10 people per day & \code{report_user} \\
+  Interests & 3 to 5 different, each 1 to 30 characters & \code{valid_interests}, check \\
+  Stacked accents & at most 3 on one letter & \code{is_clean_text}, checks \\
+  Files per user & 24 & storage insert policy \\
+  Event-post log & 24 hours & \code{expire_stale} \\
   Location-change log & 10 minutes & \code{expire_stale} \\
   Photo object size & 5\,242\,880 bytes & bucket \\
   Photo types & \code{image/jpeg}, \code{image/png}, \code{image/webp} & bucket \\

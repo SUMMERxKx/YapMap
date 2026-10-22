@@ -67,7 +67,7 @@ steps follow, one question per screen, each with a progress bar and its number:
 \implemented
   {\code{profile-setup/index}, \code{name}, \code{gender}, \code{about}, \code{interests}, \code{photo}, \code{photos}}
   {\code{ProfileDraftProvider}, \code{saveProfile}, \code{api.saveProfile}; \code{PhotoGrid}, \code{SetupStep}}
-  {\code{profiles} check constraints (lengths, 3 to 5 interests, own-folder photo paths, at most 6 extra photos); insert policy requires \code{is_adult}}
+  {\code{profiles} check constraints (lengths; names and intro with something visible and no control characters, direction overrides or stacked accents; 3 to 5 different interests of 1 to 30 characters; own-folder photo paths; at most 6 extra photos); insert policy requires \code{is_adult}}
 
 \section{Profile tab and editing}
 
@@ -235,8 +235,9 @@ real pages are published. Below are \ui{Sign out}, \ui{Delete account} and the a
 
 Signing out requires a connection; offline, it explains why and does nothing, because ending the chat and
 the live session must reach the server or the other person would be left waiting. Online, it ends any chat,
-goes offline, then signs out, and the Auth listener resets the app. Deleting the account follows
-\cref{sec:flow-delete}.
+goes offline, then signs out, and the Auth listener resets the app. \ui{Delete account} opens its own
+screen, which lists what is deleted and keeps \ui{Delete my account} disabled until the user types their
+first name; deleting then follows \cref{sec:flow-delete}.
 
 \implemented
   {\code{(app)/settings}, \code{(app)/password}, \code{(app)/blocked}}
