@@ -25,11 +25,12 @@ export default function EventDetails() {
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const [joining, setJoining] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const myId = useStore((state) => state.myId);
   const location = useForegroundLocation();
 
-  // No longer in the store: the server says the host deleted it.
-  if (!event) {
+  // Joining found the host had already deleted it.
+  if (!event && deleted) {
     return (
       <Screen surface="surface" edges={['bottom']}>
         <TopBar leading={<IconButton icon="close" label="Close" onPress={() => router.back()} />} />
@@ -37,6 +38,7 @@ export default function EventDetails() {
       </Screen>
     );
   }
+  if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
   // Signed out (no myId) means you can't be the host.
   const hostedByMe = myId !== null && event.host.id === myId;
@@ -59,7 +61,10 @@ export default function EventDetails() {
         ]);
         return;
       }
-      await joinEvent(event.id, position);
+      if ((await joinEvent(event.id, position)) === 'event-deleted') {
+        setDeleted(true);
+        return;
+      }
       openChat();
     } catch (error) {
       Alert.alert("Couldn't join", errorMessage(error, 'Try again.'));

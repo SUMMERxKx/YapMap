@@ -154,7 +154,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'invalid start time': 'Pick a start time within the next 7 days.',
   'too many events': "You've posted as many events as you can today. Try again tomorrow.",
   'no such event': 'This event has ended.',
-  'not a member': 'Join the event to chat.',
+  'not a member': "You can't post here. The event may have ended or been deleted.",
   'not the host': 'Only the host can delete this event.',
   'already chatting': "You're already in a chat. End it before starting a new one.",
   'already waiting': 'You already have a request waiting. Wait for the answer, or cancel it first.',
@@ -688,14 +688,10 @@ export async function sendMessage(chatId: string, text: string): Promise<Message
   return toMessage(data as unknown as MessageRow, myId);
 }
 
-/**
- * Sends a group message and returns it as saved, like sendMessage, or 'not-member' when I'm
- * no longer in the event (it was deleted, or I left it on another device).
- */
-export async function sendEventMessage(eventId: string, text: string): Promise<Message | 'not-member'> {
+/** Sends a group message and returns it as saved, like sendMessage. */
+export async function sendEventMessage(eventId: string, text: string): Promise<Message> {
   const myId = await requireUserId();
   const { data, error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
-  if (error && error.message === 'not a member') return 'not-member';
   if (error) throw new Error(friendlyRpcError(error));
   return toMessage(data as unknown as MessageRow, myId);
 }

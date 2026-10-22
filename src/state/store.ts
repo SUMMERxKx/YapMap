@@ -338,7 +338,6 @@ async function catchUpOnce() {
     if (state.chat) await checkChatStillOn(state.chat.id);
   }
   await checkForMissedRequest();
-  await reloadEvents(); // events deleted while away
   // Messages sent while away. A chat opened just now loads them when its channel joins.
   if (chatIdBefore !== null && state.chat?.id === chatIdBefore) await syncChatMessages();
 }
@@ -909,19 +908,6 @@ export async function loadEvents(center: { latitude: number; longitude: number }
   set({ events, eventsRadiusKm: radiusKm });
 }
 
-/**
- * Loads the events around the same spot again, so ones deleted meanwhile leave the map, and
- * their details or group chat, if open, show "This event was deleted".
- */
-async function reloadEvents() {
-  if (!lastEventsCenter) return;
-  try {
-    await loadEvents(lastEventsCenter);
-  } catch {
-    // Offline; the next catch-up tries again.
-  }
-}
-
 /** Changes how far around you the map looks for events, remembers it, and reloads the pins. */
 export async function setEventRadius(km: number) {
   set({ eventRadiusKm: clampRadiusKm(km) });
@@ -952,11 +938,14 @@ function updateEvent(id: string, getChanges: (event: MapEvent) => Partial<MapEve
   set({ events });
 }
 
-/** Joins from where the phone is: the server only allows it within about 5 km of the event. */
+/**
+ * Joins from where the phone is: the server only allows it within about 5 km of the event.
+ * Returns 'event-deleted' when the host already deleted it, and takes it off the map.
+ */
 export async function joinEvent(id: string, position: { latitude: number | null; longitude: number | null }) {
   if ((await api.joinEvent(id, position)) === 'event-deleted') {
     forgetEvent(id);
-    return;
+    return 'event-deleted';
   }
   updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
 }
@@ -982,10 +971,7 @@ export async function deleteEvent(id: string) {
   forgetEvent(id);
 }
 
-/**
- * Takes a deleted event off the map and lists. Its details or group chat, if open, then
- * show "This event was deleted".
- */
+/** Takes a deleted event off the map and lists. */
 function forgetEvent(id: string) {
   set({ events: state.events.filter((event) => event.id !== id) });
 }
@@ -1005,12 +991,8 @@ export function enterEventChat(eventId: string) {
     eventId,
     myId,
     (message) => updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [message]) })),
-    // Joined (the history loads then, and the event is checked to still be there), or
-    // re-joined after a dropped connection.
-    () => {
-      void loadEventHistory(eventId, visit);
-      void reloadEvents();
-    },
+    // Joined (the history loads then), or re-joined after a dropped connection.
+    () => void loadEventHistory(eventId, visit),
   );
 }
 
@@ -1036,11 +1018,6 @@ export async function sendGroupMessage(eventId: string, text: string) {
   try {
     // Show the saved message now; when Realtime delivers the same one, it's skipped.
     const sent = await api.sendEventMessage(eventId, body);
-    if (sent === 'not-member') {
-      // The event was deleted, or I left it on another device: reloading shows which.
-      await reloadEvents();
-      return;
-    }
     updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [sent]) }));
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));

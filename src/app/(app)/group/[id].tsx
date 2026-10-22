@@ -7,7 +7,6 @@ import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
 import { ChatHeader } from '@/components/chat/chat-header';
 import { ChatThread } from '@/components/chat/chat-thread';
-import { EmptyState } from '@/components/ui/empty-state';
 import { EventIcon } from '@/components/events/event-icon';
 import { InfoNote } from '@/components/ui/info-note';
 import type { Message } from '@/data/types';
@@ -31,19 +30,7 @@ export default function GroupChat() {
     return () => leaveEventChat();
   }, [id]);
 
-  // No longer in the store: the server says the host deleted it.
-  if (!event) {
-    return (
-      <SafeAreaView edges={['top', 'bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
-        <ChatHeader onBack={() => router.back()}>
-          <AppText variant="bodyStrong" accessibilityRole="header">
-            Group chat
-          </AppText>
-        </ChatHeader>
-        <EmptyState mascot="sleepy" title="This event was deleted" body="The host deleted it, and its group chat too." />
-      </SafeAreaView>
-    );
-  }
+  if (!event) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
 
   const leave = () =>
     Alert.alert('Leave this event?', 'You’ll leave the group chat too.', [
