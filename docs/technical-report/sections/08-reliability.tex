@@ -141,7 +141,8 @@ blocking and going live again change nothing.
 \paragraph{In the store}
 \begin{itemize}
   \item A say-hi on its way to the server blocks a second one, and a sign-out or account deletion
-    already under way makes a second tap wait for it.
+    already under way makes a second tap of the same action wait for it. The other action is refused
+    with an error rather than waiting, so a sign-out never passes for a deletion.
   \item Sign-out resets every counter and in-flight marker below, so an answer meant for the previous
     account lands nowhere.
   \item Counters on nearby refreshes, event loads and group chat visits discard any answer that arrives
