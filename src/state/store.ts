@@ -491,17 +491,30 @@ export function markVerified() {
   set({ profile: { ...state.profile, verified: true } });
 }
 
-// A sign-out or account deletion already under way; a second tap waits for the same one.
-let leaving: Promise<void> | null = null;
+type Leaving = 'sign-out' | 'delete';
 
-/** Runs `leave` once: calls made while it is running wait for that same run. */
-async function leaveOnce(leave: () => Promise<void>) {
+// A sign-out or account deletion already under way; a second tap waits for the same one.
+let leaving: { kind: Leaving; done: Promise<void> } | null = null;
+
+/**
+ * Runs `leave` once: calls for the same `kind` made while it is running wait for that
+ * same run. The other kind is refused, so a sign-out never passes for a deletion.
+ */
+async function leaveOnce(kind: Leaving, leave: () => Promise<void>) {
+  if (leaving && leaving.kind !== kind) {
+    throw new Error(
+      leaving.kind === 'delete'
+        ? 'Your account is still being deleted.'
+        : "You're still being signed out. Sign in again to delete your account.",
+    );
+  }
   if (!leaving) {
-    leaving = leave().finally(() => {
+    const done = leave().finally(() => {
       leaving = null;
     });
+    leaving = { kind, done };
   }
-  await leaving;
+  await leaving.done;
 }
 
 /** Throws when the phone is offline, before anything is changed. */
@@ -513,7 +526,7 @@ async function requireConnection(action: string) {
 }
 
 export async function signOut() {
-  await leaveOnce(async () => {
+  await leaveOnce('sign-out', async () => {
     // Offline, the sign-out itself would fail after the chat and live session had already
     // ended here, leaving the other person in a chat nobody reads. So check first.
     await requireConnection('sign out');
@@ -526,7 +539,7 @@ export async function signOut() {
 }
 
 export async function deleteAccount() {
-  await leaveOnce(async () => {
+  await leaveOnce('delete', async () => {
     // Checked first: losing the connection halfway would remove your photos but keep the account.
     await requireConnection('delete your account');
     const myId = state.myId;
