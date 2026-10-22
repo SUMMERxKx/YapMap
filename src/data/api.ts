@@ -154,7 +154,8 @@ const SERVER_REFUSALS: Record<string, string> = {
   'invalid start time': 'Pick a start time within the next 7 days.',
   'too many events': "You've posted as many events as you can today. Try again tomorrow.",
   'no such event': 'This event has ended.',
-  'not a member': 'Join the event to chat.',
+  'not a member': "You can't post here. The event may have ended or been deleted.",
+  'not the host': 'Only the host can delete this event.',
   'already chatting': "You're already in a chat. End it before starting a new one.",
   'already waiting': 'You already have a request waiting. Wait for the answer, or cancel it first.',
   'moving too fast': 'Your location changed too quickly. Wait a few minutes, then try again.',
@@ -974,8 +975,14 @@ export async function createEvent(input: {
   return event;
 }
 
-/** Join an event from where the phone is; the server only allows it within about 5 km. */
-export async function joinEvent(eventId: string, position: { latitude: number | null; longitude: number | null }) {
+/**
+ * Join an event from where the phone is; the server only allows it within about 5 km.
+ * Returns 'event-deleted' when the host already deleted it.
+ */
+export async function joinEvent(
+  eventId: string,
+  position: { latitude: number | null; longitude: number | null },
+): Promise<'event-deleted' | void> {
   if (position.latitude === null || position.longitude === null) {
     throw new Error(NO_LOCATION);
   }
@@ -984,10 +991,21 @@ export async function joinEvent(eventId: string, position: { latitude: number | 
     lat: position.latitude,
     lng: position.longitude,
   });
+  if (error && error.message === 'no such event') return 'event-deleted';
   if (error) throw new Error(friendlyRpcError(error));
 }
 
 export async function leaveEvent(eventId: string) {
   const { error } = await supabase.rpc('leave_event', { event_id: eventId });
+  if (error) throw new Error(friendlyRpcError(error));
+}
+
+/**
+ * Deletes an event you host. Who joined it and its group chat go with it. One already
+ * deleted (from another phone, say) counts as done.
+ */
+export async function deleteEvent(eventId: string) {
+  const { error } = await supabase.rpc('delete_event', { event_id: eventId });
+  if (error && error.message === 'no such event') return;
   if (error) throw new Error(friendlyRpcError(error));
 }

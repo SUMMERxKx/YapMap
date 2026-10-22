@@ -359,6 +359,7 @@ export type Database = {
         Returns: Json;
       };
       delete_account: { Args: never; Returns: undefined };
+      delete_event: { Args: { event_id: string }; Returns: undefined };
       end_chat: { Args: { outcome: string; request_id: string }; Returns: undefined };
       events_near: { Args: { lat: number; lng: number; radius_m?: number }; Returns: Json[] };
       go_green: {

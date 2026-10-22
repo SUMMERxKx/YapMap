@@ -938,9 +938,15 @@ function updateEvent(id: string, getChanges: (event: MapEvent) => Partial<MapEve
   set({ events });
 }
 
-/** Joins from where the phone is: the server only allows it within about 5 km of the event. */
+/**
+ * Joins from where the phone is: the server only allows it within about 5 km of the event.
+ * Returns 'event-deleted' when the host already deleted it, and takes it off the map.
+ */
 export async function joinEvent(id: string, position: { latitude: number | null; longitude: number | null }) {
-  await api.joinEvent(id, position);
+  if ((await api.joinEvent(id, position)) === 'event-deleted') {
+    forgetEvent(id);
+    return 'event-deleted';
+  }
   updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
 }
 
@@ -949,7 +955,7 @@ export async function leaveEvent(id: string) {
   await api.leaveEvent(id);
   if (event && event.host.id === state.myId) {
     // Leaving your own event deletes it.
-    set({ events: state.events.filter((existing) => existing.id !== id) });
+    forgetEvent(id);
     return;
   }
   updateEvent(id, (current) => ({
@@ -957,6 +963,17 @@ export async function leaveEvent(id: string) {
     memberCount: Math.max(0, current.memberCount - 1),
     messages: [],
   }));
+}
+
+/** Deletes an event you host. It leaves the map and lists straight away. */
+export async function deleteEvent(id: string) {
+  await api.deleteEvent(id);
+  forgetEvent(id);
+}
+
+/** Takes a deleted event off the map and lists. */
+function forgetEvent(id: string) {
+  set({ events: state.events.filter((event) => event.id !== id) });
 }
 
 // Counts group chat visits, so history that arrives after the screen closed is dropped.

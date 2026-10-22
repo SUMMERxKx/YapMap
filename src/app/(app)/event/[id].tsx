@@ -8,6 +8,7 @@ import { Avatar } from '@/components/profile/avatar';
 import { EventIcon } from '@/components/events/event-icon';
 import { Button, IconButton } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
@@ -15,7 +16,7 @@ import { useForegroundLocation } from '@/hooks/use-foreground-location';
 import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
-import { joinEvent, useStore } from '@/state/store';
+import { deleteEvent, joinEvent, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function EventDetails() {
@@ -23,9 +24,20 @@ export default function EventDetails() {
   const { colors, layout, size, spacing } = useTheme();
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const [joining, setJoining] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleted, setDeleted] = useState(false);
   const myId = useStore((state) => state.myId);
   const location = useForegroundLocation();
 
+  // Joining found the host had already deleted it.
+  if (!event && deleted) {
+    return (
+      <Screen surface="surface" edges={['bottom']}>
+        <TopBar leading={<IconButton icon="close" label="Close" onPress={() => router.back()} />} />
+        <EmptyState mascot="sleepy" title="This event was deleted" body="The host deleted it, and its group chat too." />
+      </Screen>
+    );
+  }
   if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
   // Signed out (no myId) means you can't be the host.
@@ -49,7 +61,10 @@ export default function EventDetails() {
         ]);
         return;
       }
-      await joinEvent(event.id, position);
+      if ((await joinEvent(event.id, position)) === 'event-deleted') {
+        setDeleted(true);
+        return;
+      }
       openChat();
     } catch (error) {
       Alert.alert("Couldn't join", errorMessage(error, 'Try again.'));
@@ -57,6 +72,26 @@ export default function EventDetails() {
       setJoining(false);
     }
   };
+
+  const confirmDelete = () =>
+    Alert.alert('Delete this event?', 'Everyone who joined will lose the group chat.', [
+      { text: 'Keep', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setDeleting(true);
+          try {
+            await deleteEvent(event.id);
+          } catch (error) {
+            Alert.alert("Couldn't delete the event", errorMessage(error, 'Try again.'));
+            setDeleting(false);
+            return;
+          }
+          router.back();
+        },
+      },
+    ]);
 
   let safetyMenu = null;
   if (!hostedByMe) {
@@ -114,6 +149,16 @@ export default function EventDetails() {
           <AppText variant="bodyStrong">{hostName}</AppText>
         </View>
       </View>
+
+      {hostedByMe && (
+        <Button
+          label="Delete event"
+          icon="trash-outline"
+          variant="destructiveSoft"
+          onPress={confirmDelete}
+          loading={deleting}
+        />
+      )}
     </Screen>
   );
 }
