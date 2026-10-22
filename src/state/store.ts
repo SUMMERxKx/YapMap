@@ -246,7 +246,7 @@ async function loadBlockedList() {
   set({ blockedIds, blockedNames });
 }
 
-/** If the app was killed while live or mid-chat, pick up where things stand. */
+/** If the app was killed while live, mid-chat or waiting for an answer, pick up where things stand. */
 async function restoreLiveAndChat() {
   const status = await api.myStatus();
   const live = status.live;
@@ -261,7 +261,13 @@ async function restoreLiveAndChat() {
       },
     });
   }
-  if (status.chatId && !closedChatIds.has(status.chatId)) await openChat(status.chatId);
+  if (status.chatId) {
+    if (!closedChatIds.has(status.chatId)) await openChat(status.chatId);
+  } else if (status.outgoing && state.outgoing?.id !== status.outgoing.id) {
+    // Still waiting on a request: show it again and keep watching for the answer.
+    set({ outgoing: { ...status.outgoing, status: 'pending' } });
+    void watchAnswer(status.outgoing.id, status.outgoing.to);
+  }
 }
 
 /** The live-duration option (30, 60 or 120 minutes) closest to a session's length. */
@@ -480,15 +486,10 @@ export async function goGreen(args: {
   accuracy?: number | null;
 }) {
   if (offlineRetry) await offlineRetry;
-  await api.goGreen(args);
-  const now = Date.now();
+  // The server's times, so the countdown ends when the session really does.
+  const { startedAt, expiresAt } = await api.goGreen(args);
   set({
-    availability: {
-      minutes: args.minutes,
-      note: args.note,
-      startedAt: now,
-      expiresAt: now + args.minutes * 60 * 1000,
-    },
+    availability: { minutes: args.minutes, note: args.note, startedAt, expiresAt },
     availabilityExpired: false,
     offlinePending: false, // going live replaced the session that didn't get removed
   });
@@ -593,10 +594,14 @@ export async function sayHi(to: NearbyPerson) {
   void watchAnswer(id, to);
 }
 
+let watchingId: string | null = null; // the request watchAnswer is waiting on, if any
+
 async function watchAnswer(id: string, to: NearbyPerson) {
   const outgoing = state.outgoing;
   if (!outgoing) return;
+  watchingId = id;
   const outcome = await api.waitForAnswer(id, outgoing.expiresAt);
+  if (watchingId === id) watchingId = null;
   if (state.outgoing?.id !== id) return; // cancelled meanwhile
   if (outcome === 'accepted') {
     set({ outgoing: { ...state.outgoing, status: 'accepted' } });
@@ -610,8 +615,23 @@ async function watchAnswer(id: string, to: NearbyPerson) {
   }
 }
 
-export function cancelRequest() {
+/** Withdraws the waiting request on the server too, so it can't be accepted any more. */
+export async function cancelRequest() {
+  const outgoing = state.outgoing;
+  if (!outgoing) return;
+  // Gone from the screen straight away; watchAnswer ignores an answer from now on.
   set({ outgoing: null });
+  if (outgoing.status !== 'pending') return; // already answered or timed out
+  try {
+    await api.cancelRequest(outgoing.id);
+  } catch (error) {
+    // Still waiting on the server, so show it again and let the caller say so.
+    if (!state.outgoing) {
+      set({ outgoing });
+      if (watchingId !== outgoing.id) void watchAnswer(outgoing.id, outgoing.to);
+    }
+    throw error;
+  }
 }
 
 export function expireOutgoing() {
@@ -648,7 +668,8 @@ export async function respondToIncoming(accept: boolean) {
   try {
     await api.respond(incoming.id, accept);
   } catch (error) {
-    // A decline that fails needs no message: the sender sees "not this time" anyway.
+    // Expired or cancelled just before answering (the sender sees "not this time" anyway),
+    // or you're already in a chat. Only a failed Accept needs explaining.
     if (accept) Alert.alert("Couldn't accept", errorMessage(error, 'Try again.'));
     return;
   }
@@ -746,9 +767,10 @@ export async function sendMessage(text: string) {
   const body = text.trim();
   if (!chat || !body) return;
   try {
-    // The message appears when Realtime echoes it back, so both sides stay in sync.
+    // Show the saved message now; when Realtime delivers the same one, it's skipped.
     const result = await api.sendMessage(chat.id, body);
     if (result === 'chat-ended') markChatEnded(chat.id);
+    else addChatMessages(chat.id, [result]);
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
   }
@@ -890,8 +912,9 @@ function updateEvent(id: string, getChanges: (event: MapEvent) => Partial<MapEve
   set({ events });
 }
 
-export async function joinEvent(id: string) {
-  await api.joinEvent(id);
+/** Joins from where the phone is: the server only allows it within about 5 km of the event. */
+export async function joinEvent(id: string, position: { latitude: number | null; longitude: number | null }) {
+  await api.joinEvent(id, position);
   updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
 }
 
@@ -950,7 +973,9 @@ export async function sendGroupMessage(eventId: string, text: string) {
   const body = text.trim();
   if (!body) return;
   try {
-    await api.sendEventMessage(eventId, body); // appears via the Realtime echo
+    // Show the saved message now; when Realtime delivers the same one, it's skipped.
+    const sent = await api.sendEventMessage(eventId, body);
+    updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [sent]) }));
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
   }

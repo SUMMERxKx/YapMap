@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { Alert, StyleSheet, View } from 'react-native';
+import { Alert, Linking, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
+import { useForegroundLocation } from '@/hooks/use-foreground-location';
 import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { formatEventTime } from '@/lib/format-time';
@@ -23,6 +24,7 @@ export default function EventDetails() {
   const event = useStore((state) => state.events.find((mapEvent) => mapEvent.id === id));
   const [joining, setJoining] = useState(false);
   const myId = useStore((state) => state.myId);
+  const location = useForegroundLocation();
 
   if (!event) return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
 
@@ -35,17 +37,25 @@ export default function EventDetails() {
 
   const openChat = () => router.replace({ pathname: '/group/[id]', params: { id: event.id } });
 
+  // Joining checks where you are: the server only lets you join from within about 5 km.
   const join = async () => {
     setJoining(true);
     try {
-      await joinEvent(event.id);
+      const position = await location.request();
+      if (!position.ok) {
+        Alert.alert('Location is off', "Yap checks that you're near an event before you join it.", [
+          { text: 'Not now', style: 'cancel' },
+          { text: 'Open Settings', onPress: () => Linking.openSettings() },
+        ]);
+        return;
+      }
+      await joinEvent(event.id, position);
+      openChat();
     } catch (error) {
       Alert.alert("Couldn't join", errorMessage(error, 'Try again.'));
+    } finally {
       setJoining(false);
-      return;
     }
-    setJoining(false);
-    openChat();
   };
 
   let safetyMenu = null;

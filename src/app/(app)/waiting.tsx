@@ -2,7 +2,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
@@ -30,6 +30,15 @@ export default function Waiting() {
   }
 
   const name = outgoing.to.firstName;
+
+  const cancel = async () => {
+    router.back();
+    try {
+      await cancelRequest();
+    } catch {
+      Alert.alert("Couldn't cancel", `You're still waiting for ${name}. Check your connection and try again.`);
+    }
+  };
 
   // Same message whether they declined or the 5 minutes ran out.
   if (outgoing.status === 'not-this-time') {
@@ -61,10 +70,7 @@ export default function Waiting() {
           <Button
             label="Cancel request"
             variant="ghost"
-            onPress={() => {
-              cancelRequest();
-              router.back();
-            }}
+            onPress={() => void cancel()}
           />
         </>
       }>

@@ -155,6 +155,11 @@ const SERVER_REFUSALS: Record<string, string> = {
   'too many events': "You've posted as many events as you can today. Try again tomorrow.",
   'no such event': 'This event has ended.',
   'not a member': 'Join the event to chat.',
+  'already chatting': "You're already in a chat. End it before starting a new one.",
+  'already waiting': 'You already have a request waiting. Wait for the answer, or cancel it first.',
+  'moving too fast': 'Your location changed too quickly. Wait a few minutes, then try again.',
+  'too many location changes': "You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again.",
+  'too far away': 'You can join an event from within 5 km of it.',
 };
 
 /** Turns a database or storage error into a sentence for the screen, never raw database text. */
@@ -220,19 +225,24 @@ function subscribeAsMe(channel: RealtimeChannel, onSubscribed?: () => void) {
 // ---------------------------------------------------------------- photos
 
 // Photos live in the private `photos` bucket under <userId>/..., and are shown through
-// short-lived signed URLs. Storage policies only let a user write their own folder.
+// short-lived signed URLs. Storage policies only let a user write their own folder, and only
+// sign someone else's photo while the user can see that person (see can_see_photo).
 // Each profile picture also has a small copy next to it (<name>-small.jpg) for avatars.
 
 const SIGNED_URL_SECONDS = 60 * 60;
 // A signed URL is reused until it has less than this long left, so the same photo keeps
 // the same URL and the image cache doesn't download it again on every refresh.
 const SIGNED_URL_MIN_LEFT_MS = 10 * 60 * 1000;
+// A photo that couldn't be signed is asked for again after this long, so it shows up soon
+// after its owner becomes visible to you.
+const UNSIGNED_RETRY_MS = 60 * 1000;
 
 const PHOTO_MAX_WIDTH = 1080;
 const THUMB_WIDTH = 320;
 
-// Storage path -> its signed URL (null when the file doesn't exist, e.g. a small copy of
-// a photo uploaded before small copies existed), and when that URL stops working.
+// Storage path -> its signed URL, and when that URL stops working. The URL is null when the
+// file doesn't exist (e.g. a small copy of a photo uploaded before small copies existed) or
+// you can't see that person right now; then it's only kept until it's time to ask again.
 const signedUrls = new Map<string, { url: string | null; expiresAt: number }>();
 
 /** Turn storage paths into display URLs, in at most one round trip. Empty paths are skipped. */
@@ -242,7 +252,7 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
   for (const path of paths) {
     if (path === '' || toSign.includes(path)) continue;
     const cached = signedUrls.get(path);
-    if (cached && cached.expiresAt - now > SIGNED_URL_MIN_LEFT_MS) continue;
+    if (cached && cached.expiresAt - now > (cached.url ? SIGNED_URL_MIN_LEFT_MS : 0)) continue;
     toSign.push(path);
   }
 
@@ -253,9 +263,11 @@ async function signPaths(paths: string[]): Promise<Record<string, string>> {
     }
     const { data, error } = await supabase.storage.from('photos').createSignedUrls(toSign, SIGNED_URL_SECONDS);
     if (error) throw new Error(friendlyRpcError(error));
-    const expiresAt = now + SIGNED_URL_SECONDS * 1000;
     for (const entry of data) {
-      if (entry.path) signedUrls.set(entry.path, { url: entry.signedUrl || null, expiresAt });
+      if (!entry.path) continue;
+      const url = entry.signedUrl || null;
+      const expiresAt = now + (url ? SIGNED_URL_SECONDS * 1000 : UNSIGNED_RETRY_MS);
+      signedUrls.set(entry.path, { url, expiresAt });
     }
   }
 
@@ -479,17 +491,23 @@ async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
 
 // ---------------------------------------------------------------- going live
 
+const NO_LOCATION = "We couldn't get your location. Try again in a moment.";
+
+/**
+ * Go live, or update the live session. Returns the session's start and end as the server
+ * set them. The server limits how often and how fast the location can change.
+ */
 export async function goGreen(args: {
   latitude: number | null;
   longitude: number | null;
   accuracy?: number | null;
   minutes: number;
   note: string;
-}) {
+}): Promise<{ startedAt: number; expiresAt: number }> {
   if (args.latitude === null || args.longitude === null) {
-    throw new Error("We couldn't get your location. Try again in a moment.");
+    throw new Error(NO_LOCATION);
   }
-  const { error } = await supabase.rpc('go_green', {
+  const { data, error } = await supabase.rpc('go_green', {
     lat: args.latitude,
     lng: args.longitude,
     // 0 means a perfect fix; the server adds the accuracy to its 100 m base radius.
@@ -498,6 +516,8 @@ export async function goGreen(args: {
     note: args.note,
   });
   if (error) throw new Error(friendlyRpcError(error));
+  const times = data as { startedAt: number; expiresAt: number };
+  return { startedAt: times.startedAt, expiresAt: times.expiresAt };
 }
 
 export async function updateNote(note: string) {
@@ -575,6 +595,12 @@ export function waitForAnswer(requestId: string, expiresAt: number): Promise<'ac
   });
 }
 
+/** Withdraws my waiting request, so it can't be accepted any more. */
+export async function cancelRequest(requestId: string) {
+  const { error } = await supabase.rpc('cancel_request', { request_id: requestId });
+  if (error) throw new Error(friendlyRpcError(error));
+}
+
 export async function respond(requestId: string, accept: boolean) {
   const { error } = await supabase.rpc('respond', { request_id: requestId, accept });
   if (error) throw new Error(friendlyRpcError(error));
@@ -649,17 +675,24 @@ export async function endChat(chatId: string, outcome: 'met' | 'cancelled') {
   if (error) throw new Error(friendlyRpcError(error));
 }
 
-/** Returns 'chat-ended' when the other person already ended the chat (or blocked, or left Yap). */
-export async function sendMessage(chatId: string, text: string): Promise<'sent' | 'chat-ended'> {
-  const { error } = await supabase.rpc('send_chat_message', { request_id: chatId, body: text });
+/**
+ * Sends a chat message and returns it as saved (Realtime delivers the same row to both sides),
+ * or 'chat-ended' when the other person already ended the chat (or blocked, or left Yap).
+ */
+export async function sendMessage(chatId: string, text: string): Promise<Message | 'chat-ended'> {
+  const myId = await requireUserId();
+  const { data, error } = await supabase.rpc('send_chat_message', { request_id: chatId, body: text });
   if (error && error.message === 'no such chat') return 'chat-ended';
   if (error) throw new Error(friendlyRpcError(error));
-  return 'sent';
+  return toMessage(data as unknown as MessageRow, myId);
 }
 
-export async function sendEventMessage(eventId: string, text: string) {
-  const { error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
+/** Sends a group message and returns it as saved, like sendMessage. */
+export async function sendEventMessage(eventId: string, text: string): Promise<Message> {
+  const myId = await requireUserId();
+  const { data, error } = await supabase.rpc('send_event_message', { event_id: eventId, body: text });
   if (error) throw new Error(friendlyRpcError(error));
+  return toMessage(data as unknown as MessageRow, myId);
 }
 
 type MessageRow = {
@@ -828,14 +861,29 @@ export async function deleteAccount() {
 type MyStatus = {
   live: { note: string; startedAt: number; expiresAt: number } | null;
   chatId: string | null;
+  outgoing: { id: string; expiresAt: number; to: NearbyPerson } | null; // the request I'm waiting on
 };
 
-/** Whether I'm live and whether I have an open chat - for restoring state on app start. */
+type MyStatusRow = {
+  live: MyStatus['live'];
+  chatId: string | null;
+  outgoing: { id: string; expiresAt: number; to: PersonCard } | null;
+};
+
+/** Whether I'm live, have an open chat, or am waiting on a request - for restoring state on app start. */
 export async function myStatus(): Promise<MyStatus> {
   const { data, error } = await supabase.rpc('my_status');
   if (error) throw new Error(friendlyRpcError(error));
-  const status = data as MyStatus | null;
-  return { live: status?.live ?? null, chatId: status?.chatId ?? null };
+  const status = data as MyStatusRow | null;
+
+  let outgoing: MyStatus['outgoing'] = null;
+  if (status?.outgoing) {
+    const [to] = await toPeople([status.outgoing.to]);
+    if (to) {
+      outgoing = { id: status.outgoing.id, expiresAt: status.outgoing.expiresAt, to };
+    }
+  }
+  return { live: status?.live ?? null, chatId: status?.chatId ?? null, outgoing };
 }
 
 // ---------------------------------------------------------------- map events
@@ -886,8 +934,20 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
   }));
 }
 
-export async function eventsNear(center: { latitude: number; longitude: number }): Promise<MapEvent[]> {
-  const { data, error } = await supabase.rpc('events_near', { lat: center.latitude, lng: center.longitude });
+/**
+ * Events around a point, within `radiusM` metres. Leave it out for the server's default of
+ * 10 km; the server never goes beyond 50 km.
+ */
+export async function eventsNear(
+  center: { latitude: number; longitude: number },
+  radiusM?: number,
+): Promise<MapEvent[]> {
+  // An undefined radius is left out of the request, so the server's default applies.
+  const { data, error } = await supabase.rpc('events_near', {
+    lat: center.latitude,
+    lng: center.longitude,
+    radius_m: radiusM,
+  });
   if (error) throw new Error(friendlyRpcError(error));
   return toEvents((data ?? []) as EventCard[]);
 }
@@ -914,8 +974,16 @@ export async function createEvent(input: {
   return event;
 }
 
-export async function joinEvent(eventId: string) {
-  const { error } = await supabase.rpc('join_event', { event_id: eventId });
+/** Join an event from where the phone is; the server only allows it within about 5 km. */
+export async function joinEvent(eventId: string, position: { latitude: number | null; longitude: number | null }) {
+  if (position.latitude === null || position.longitude === null) {
+    throw new Error(NO_LOCATION);
+  }
+  const { error } = await supabase.rpc('join_event', {
+    event_id: eventId,
+    lat: position.latitude,
+    lng: position.longitude,
+  });
   if (error) throw new Error(friendlyRpcError(error));
 }
 
