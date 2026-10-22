@@ -79,6 +79,9 @@ export default function RootLayout() {
               <Stack.Protected guard={showApp}>
                 <Stack.Screen name="(app)" />
               </Stack.Protected>
+              {/* Reading pages, open whether signed in or not (sign-up and Settings link to them). */}
+              <Stack.Screen name="guidelines" />
+              <Stack.Screen name="acknowledgements" />
             </Stack>
           )}
           <OfflineBanner />

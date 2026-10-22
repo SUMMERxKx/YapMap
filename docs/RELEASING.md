@@ -69,12 +69,16 @@ eas login
 eas init                      # links the project and adds its ID to app.json; commit that
 ```
 
-Before the first store build, `app.json` needs `ios.bundleIdentifier` and `android.package`
-(for example `dev.samarxkx.yap`). They can never change after the first store upload.
+`app.json` sets `ios.bundleIdentifier` and `android.package` to `ca.samarxkx.yapmap`. Change
+them before the first store upload if you want something else; after that they can never
+change. Android builds also need the Google Maps key (`GOOGLE_MAPS_ANDROID_API_KEY`), and the
+stores need the legal pages published first: [`STORE_SUBMISSION.md`](STORE_SUBMISSION.md) has
+that one-time setup and the answers for every store form.
 
 Builds (`eas.json` has the profiles):
 
 ```bash
+eas build --platform ios --profile development  # a development build (expo-dev-client) for the iOS Simulator
 eas build --platform all --profile preview      # installable test builds for your own phones
 eas build --platform all --profile production   # store builds, build number raised automatically
 eas submit --platform ios --latest              # upload the newest iOS build to App Store Connect
@@ -147,6 +151,9 @@ npx expo-doctor
 ```
 
 Read Expo's SDK release notes first, then open the upgrade as its own PR.
+
+Any dependency change can change what ships in the app, so after one run `npm run licenses`
+and commit `src/data/third-party-licenses.json` (the Acknowledgements screen in Settings).
 
 ## AI code review (optional, free)
 

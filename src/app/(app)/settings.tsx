@@ -12,17 +12,10 @@ import { ListGroup, ListRow } from '@/components/ui/list-row';
 import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TopBar } from '@/components/ui/top-bar';
+import { LINKS } from '@/config/links';
 import { errorMessage } from '@/lib/error-message';
 import { deleteAccount, signOut, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
-
-// Placeholder pages until the real ones are published.
-const LINKS = {
-  rules: 'https://example.com/yap/community-rules',
-  privacy: 'https://example.com/yap/privacy',
-  terms: 'https://example.com/yap/terms',
-  support: 'mailto:support@example.com',
-};
 
 export default function Settings() {
   const { spacing } = useTheme();
@@ -81,9 +74,10 @@ export default function Settings() {
 
       <SettingsSection title="SAFETY AND LEGAL">
         <ListGroup>
-          <ListRow label="Community rules" trailing="external" onPress={() => Linking.openURL(LINKS.rules)} />
+          <ListRow label="Community guidelines" onPress={() => router.push('/guidelines')} />
           <ListRow label="Privacy policy" trailing="external" onPress={() => Linking.openURL(LINKS.privacy)} />
           <ListRow label="Terms of service" trailing="external" onPress={() => Linking.openURL(LINKS.terms)} />
+          <ListRow label="Acknowledgements" onPress={() => router.push('/acknowledgements')} />
           <ListRow label="Contact support" trailing="external" onPress={() => Linking.openURL(LINKS.support)} last />
         </ListGroup>
       </SettingsSection>

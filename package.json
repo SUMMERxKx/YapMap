@@ -10,6 +10,7 @@
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.31",
     "expo-constants": "~57.0.22",
+    "expo-dev-client": "~57.0.20",
     "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
     "expo-haptics": "~57.0.3",
@@ -45,9 +46,9 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --go",
+    "android": "expo start --go --android",
+    "ios": "expo start --go --ios",
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
@@ -55,7 +56,8 @@
     "mascot": "node scripts/make-mascot.mjs",
     "db:types": "sh scripts/db-types.sh",
     "db:types:check": "sh scripts/db-types.sh --check",
-    "db:check-migrations": "sh scripts/check-migrations.sh origin/main"
+    "db:check-migrations": "sh scripts/check-migrations.sh origin/main",
+    "licenses": "node scripts/make-licenses.mjs"
   },
   "private": true,
   "license": "UNLICENSED"

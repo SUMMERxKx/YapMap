@@ -41,7 +41,7 @@ export default function Welcome() {
           <Button label="Create account" icon="mail-outline" onPress={() => router.push('/sign-up')} />
           <Button label="Sign in" variant="secondary" onPress={() => router.push('/sign-in')} />
           <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.sm }}>
-            By continuing you agree to the Community Rules and Privacy Policy.
+            By continuing you agree to the Community Guidelines and Privacy Policy.
           </AppText>
         </>
       }>

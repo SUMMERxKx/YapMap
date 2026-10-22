@@ -161,6 +161,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'moving too fast': 'Your location changed too quickly. Wait a few minutes, then try again.',
   'too many location changes': "You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again.",
   'too far away': 'You can join an event from within 5 km of it.',
+  'objectionable text': "That has words Yap doesn't allow (see the community guidelines). Change them and try again.",
 };
 
 /** Turns a database or storage error into a sentence for the screen, never raw database text. */
