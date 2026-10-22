@@ -144,6 +144,14 @@ begin
     return;
   end if;
 
+  -- The sender has to still be live, or they'd be in a chat they never see.
+  if not exists (
+    select 1 from public.availability
+    where user_id = req.from_user and expires_at > now()
+  ) then
+    raise exception 'not available';
+  end if;
+
   -- Accepting starts your one chat, so the request you're waiting on (if any) is withdrawn.
   -- Doing this first also waits for an answer to that request that is landing right now,
   -- so the check below sees it.
@@ -667,15 +675,22 @@ as $$
 $$;
 
 -- Runs every minute via pg_cron: live sessions end on time even if the app is closed,
--- unanswered requests expire into the same silent "not this time", and a chat nobody ended
--- stops once neither person is live any more.
+-- unanswered requests expire into the same silent "not this time" (also once the sender
+-- isn't live any more), and a chat nobody ended stops once neither person is live any more.
 create or replace function private.expire_stale()
 returns void
 language sql security definer set search_path = ''
 as $$
   delete from public.availability where expires_at <= now();
-  update public.chat_requests set status = 'expired'
-  where status = 'pending' and expires_at <= now();
+  update public.chat_requests r set status = 'expired'
+  where r.status = 'pending'
+    and (
+      r.expires_at <= now()
+      or not exists (
+        select 1 from public.availability a
+        where a.user_id = r.from_user and a.expires_at > now()
+      )
+    );
   update public.chat_requests r set status = 'cancelled', ended_at = now()
   where r.status = 'accepted'
     and not exists (
