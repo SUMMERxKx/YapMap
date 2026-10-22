@@ -1,0 +1,109 @@
+# Checks every pull request and every push to main. docs/RELEASING.md lists which of these
+# jobs branch protection should require.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same branch cancels the run that is still checking the old commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Same version in every job; `npm run db:types` needs it locally too (see supabase/README.md).
+  SUPABASE_CLI_VERSION: 2.121.0
+
+jobs:
+  app:
+    name: App (types, lint, doctor, export)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: ESLint (warnings fail too)
+        run: npm run lint -- --max-warnings 0
+
+      - name: Expo doctor
+        run: npx expo-doctor
+
+      # Builds the JavaScript bundles the same way an EAS build does, without a native build.
+      - name: Expo export (iOS and Android)
+        run: npx expo export --platform ios --platform android --output-dir dist
+
+      # A report only: a known advisory in a dependency shouldn't block unrelated work.
+      - name: npm audit (production dependencies, report only)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  migrations:
+    name: Migration files
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check migration names and history
+        env:
+          # A pull request is compared with its target branch, a push with the commit before it.
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE=origin/main
+          fi
+          sh scripts/check-migrations.sh "$BASE"
+
+  database:
+    name: Database (reset, lint, types)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      # Only Prettier is needed here (to format the generated types), not the whole app.
+      - run: npm ci --ignore-scripts
+
+      - uses: supabase/setup-cli@v3
+        with:
+          version: ${{ env.SUPABASE_CLI_VERSION }}
+
+      # Postgres, auth and storage are all the migrations need; the rest is skipped to save time.
+      - name: Start local Supabase
+        run: supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,mailpit,postgres-meta
+
+      - name: Apply every migration from scratch
+        run: supabase db reset
+
+      - name: Lint the database functions
+        run: supabase db lint --schema public,private --level warning --fail-on error
+
+      - name: Generated types match the migrations
+        run: npm run db:types:check
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup

@@ -40,6 +40,8 @@
     "@types/react": "~19.2.2",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.2",
+    "eslint-plugin-security": "4.2.0",
+    "prettier": "3.9.9",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -48,8 +50,12 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "icons": "sh scripts/make-icons.sh",
-    "mascot": "node scripts/make-mascot.mjs"
+    "mascot": "node scripts/make-mascot.mjs",
+    "db:types": "sh scripts/db-types.sh",
+    "db:types:check": "sh scripts/db-types.sh --check",
+    "db:check-migrations": "sh scripts/check-migrations.sh origin/main"
   },
   "private": true,
   "license": "UNLICENSED"

@@ -5,6 +5,8 @@ export function passwordProblem(password: string, confirmation: string) {
   if (password.length < PASSWORD_MIN_LENGTH) {
     return `Use at least ${PASSWORD_MIN_LENGTH} characters.`;
   }
+  // Compares two fields on the user's own screen, not a secret, so timing doesn't matter.
+  // eslint-disable-next-line security/detect-possible-timing-attacks
   if (password !== confirmation) {
     return "The passwords don't match.";
   }
