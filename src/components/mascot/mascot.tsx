@@ -21,17 +21,13 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SvgXml } from 'react-native-svg';
 
+import { useTheme } from '@/theme';
+
 import { MASCOT_ART } from '@/components/mascot/mascot-art';
 
 export type MascotPose = keyof typeof MASCOT_ART;
 
-type Props = {
-  pose: MascotPose;
-  size?: number;
-  // What a screen reader says. Leave it out when the text next to the cat already says it all,
-  // and the drawing is treated as decoration.
-  label?: string;
-};
+type Props = { pose: MascotPose; size?: number };
 
 // A slow, small loop per pose: `rotate` sways (in degrees), `lift` bobs up (in points).
 const MOTION: Record<MascotPose, { rotate: number; lift: number; duration: number }> = {
@@ -42,7 +38,9 @@ const MOTION: Record<MascotPose, { rotate: number; lift: number; duration: numbe
   happy: { rotate: 0, lift: 5, duration: 700 },
 };
 
-export function Mascot({ pose, size = 160, label }: Props) {
+// The cat is decoration: the text next to it always says what it means, so screen readers skip it.
+export function Mascot({ pose, size = 160 }: Props) {
+  const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const motion = MOTION[pose];
   // 0 is standing still; it swings between -1 and 1 for as long as the cat is on screen.
@@ -67,16 +65,14 @@ export function Mascot({ pose, size = 160, label }: Props) {
     transform: [{ translateY: motion.lift * swing.value }, { rotate: `${motion.rotate * swing.value}deg` }],
   }));
 
-  let a11y;
-  if (label) {
-    a11y = { accessible: true, accessibilityRole: 'image' as const, accessibilityLabel: label };
-  } else {
-    a11y = { accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' as const };
-  }
-
+  // The outlines drawn against the page are `currentColor`, so they follow the theme's text colour
+  // and stay visible in dark mode.
   return (
-    <Animated.View {...a11y} style={[styles.box, { width: size, height: size }, moving]}>
-      <SvgXml xml={MASCOT_ART[pose]} width={size} height={size} />
+    <Animated.View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.box, { width: size, height: size }, moving]}>
+      <SvgXml xml={MASCOT_ART[pose]} width={size} height={size} color={colors.textPrimary} />
     </Animated.View>
   );
 }

@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import type { ComponentProps } from 'react';
 import { ActivityIndicator, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useAnimatedStyle } from 'react-native-reanimated';
 
 import { useTheme } from '@/theme';
 
@@ -80,6 +81,15 @@ export function Button({
   if (inactive && !isLoading) {
     opacity = 0.5;
   }
+  // A link has no background to darken, so it dims while pressed instead.
+  let pressedOpacity = opacity;
+  if (variant === 'link') {
+    pressedOpacity = 0.6;
+  }
+  const pressed = press.pressed;
+  const fade = useAnimatedStyle(() => ({
+    opacity: opacity + (pressedOpacity - opacity) * pressed.value,
+  }));
 
   // Regular buttons are full height; compact ones fit in a header row; links have no padding
   // so their text lines up with the text around them.
@@ -110,9 +120,9 @@ export function Button({
       borderRadius: radius.pill,
       borderColor: look.border,
       borderWidth,
-      opacity,
     },
     press.style,
+    fade,
     style,
   ];
 

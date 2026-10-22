@@ -41,5 +41,5 @@ export function usePressFeedback(color: string, pressedColor: string, pressedSca
     transform: [{ scale: 1 + (scaleTo - 1) * pressed.value }],
   }));
 
-  return { onPressIn, onPressOut, style };
+  return { onPressIn, onPressOut, style, pressed };
 }

@@ -43,7 +43,7 @@ function DurationChip({ minutes, selected, isDefault, onPress }: ChipProps) {
 
   let chipColor = colors.surface;
   let pressedColor = colors.surfaceMuted;
-  let chipBorderColor = colors.border;
+  let chipBorderColor = colors.inputBorder;
   let labelColor = colors.textPrimary;
   let captionColor = colors.textSecondary;
   if (selected) {

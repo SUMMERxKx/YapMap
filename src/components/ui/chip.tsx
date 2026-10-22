@@ -48,7 +48,7 @@ function ChoiceChip({ label, selected, onPress, disabled, role = 'checkbox' }: C
   // Unselected chips are light outlined pills; a chosen one fills green with a tick.
   let backgroundColor = colors.surface;
   let pressedColor = colors.surfaceMuted;
-  let borderColor = colors.border;
+  let borderColor = colors.inputBorder;
   let textColor = colors.textPrimary;
   if (isSelected) {
     backgroundColor = colors.green;
