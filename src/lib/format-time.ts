@@ -1,6 +1,8 @@
 // Pure helpers that turn milliseconds and timestamps into human wording.
 // No React in here, so they're trivial to test and reuse.
 
+import { serverNow } from './server-clock';
+
 const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * 60 * MINUTE_MS;
 
@@ -32,7 +34,7 @@ export function formatMinutesLeft(ms: number) {
 }
 
 /** "Starting now", "Starts in 25 min", "Started 10 min ago" for map events. */
-export function formatEventTime(startsAt: number, now = Date.now()) {
+export function formatEventTime(startsAt: number, now = serverNow()) {
   const minutesUntilStart = Math.round((startsAt - now) / MINUTE_MS);
   if (Math.abs(minutesUntilStart) <= 1) {
     return 'Starting now';
@@ -58,7 +60,7 @@ export function formatEventTime(startsAt: number, now = Date.now()) {
 }
 
 /** A chosen start time, the way a person would say it. */
-export function formatStartTime(ts: number, now = Date.now()) {
+export function formatStartTime(ts: number, now = serverNow()) {
   if (ts - now < 2 * MINUTE_MS) return 'Now';
 
   const date = new Date(ts);

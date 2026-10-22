@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { SetupStep } from '@/components/profile/setup-step';
 import { TextField } from '@/components/ui/text-field';
 import { LIMITS } from '@/data/constants';
+import { hasVisibleText } from '@/lib/clean-text';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function AboutStep() {
@@ -15,7 +16,7 @@ export default function AboutStep() {
       total={SETUP_STEPS}
       title="Tell us a bit about yourself"
       subtitle="What do you do, what are you up to today, what could you talk about for hours?"
-      canContinue={draft.intro.trim().length > 0}
+      canContinue={hasVisibleText(draft.intro)}
       onNext={() => router.push('/profile-setup/interests')}>
       <TextField
         label="Intro"

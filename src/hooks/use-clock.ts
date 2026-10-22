@@ -1,17 +1,20 @@
 import { useSyncExternalStore } from 'react';
 
+import { serverNow } from '@/lib/server-clock';
+
 // A shared once-a-second clock, exposed as an external store so components can render
 // countdowns without calling Date.now() during render (which React forbids as impure).
-// One interval serves every subscriber and stops when nobody is listening.
+// One interval serves every subscriber and stops when nobody is listening. It tells the
+// server's time (see server-clock), since every deadline counted down to comes from the server.
 
 const listeners = new Set<() => void>();
-let now = Date.now();
+let now = serverNow();
 let timer: ReturnType<typeof setInterval> | null = null;
 
 function readNow() {
   // Refresh the cached time when it's a tick stale (e.g. the first read after the timer
   // was idle), but keep it stable within a second so React sees a consistent snapshot.
-  const current = Date.now();
+  const current = serverNow();
   const isStale = current - now >= 1000;
   const wentBackwards = current < now; // the device clock was changed
   if (isStale || wentBackwards) {
@@ -23,9 +26,9 @@ function readNow() {
 function subscribe(listener: () => void) {
   listeners.add(listener);
   if (!timer) {
-    now = Date.now();
+    now = serverNow();
     timer = setInterval(() => {
-      now = Date.now();
+      now = serverNow();
       listeners.forEach((listener) => listener());
     }, 1000);
   }

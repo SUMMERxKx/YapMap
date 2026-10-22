@@ -48,12 +48,18 @@ type FindResult =
 /**
  * Finds the user. Asks for "while using the app" permission only when they haven't decided yet,
  * then uses a recent position the phone already has, or else asks for a fresh fix, and if that
- * fails too, uses whatever position the phone last knew, however old.
+ * fails too, uses whatever position the phone last knew, however old. Never throws: a phone that
+ * can't answer (location services off, say) counts as unavailable.
  */
 async function findUser(): Promise<FindResult> {
-  let permission = await Location.getForegroundPermissionsAsync();
-  if (permission.status === 'undetermined') {
-    permission = await Location.requestForegroundPermissionsAsync();
+  let permission;
+  try {
+    permission = await Location.getForegroundPermissionsAsync();
+    if (permission.status === 'undetermined') {
+      permission = await Location.requestForegroundPermissionsAsync();
+    }
+  } catch {
+    return { status: 'unavailable' };
   }
   if (permission.status !== 'granted') {
     return { status: 'denied', askAgain: permission.canAskAgain };
@@ -252,8 +258,21 @@ export default function EventsMap() {
     );
   }
 
+  // A double tap on a pin, or a long-press right after one, opens one screen, not two.
+  const opening = useRef(false);
+  const openOnce = (open: () => void) => {
+    if (opening.current) return;
+    opening.current = true;
+    setTimeout(() => {
+      opening.current = false;
+    }, 800);
+    open();
+  };
+
   const createAt = (latitude: number, longitude: number) =>
-    router.push({ pathname: '/event/new', params: { lat: String(latitude), lng: String(longitude) } });
+    openOnce(() =>
+      router.push({ pathname: '/event/new', params: { lat: String(latitude), lng: String(longitude) } }),
+    );
 
   return (
     <View style={styles.flex}>
@@ -290,7 +309,7 @@ export default function EventsMap() {
             <Marker
               key={event.id}
               coordinate={{ latitude: event.latitude, longitude: event.longitude }}
-              onPress={() => router.push({ pathname: '/event/[id]', params: { id: event.id } })}
+              onPress={() => openOnce(() => router.push({ pathname: '/event/[id]', params: { id: event.id } }))}
               accessibilityLabel={`${eventCategory(event.emoji).name}: ${event.title}, ${event.memberCount} going`}
               tracksViewChanges={false}>
               <View style={[styles.pin, elevation.card, { backgroundColor: pinColor, borderColor: colors.green }]}>

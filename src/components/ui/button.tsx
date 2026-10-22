@@ -9,7 +9,7 @@ import { useAnimatedStyle } from 'react-native-reanimated';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
-import { AnimatedPressable, usePressFeedback } from '@/components/ui/press-feedback';
+import { AnimatedPressable, useGuardedPress, usePressFeedback } from '@/components/ui/press-feedback';
 
 // `link` is a text-only action (e.g. "Forgot password?") that lines up with the text around it.
 type Variant = 'primary' | 'secondary' | 'ghost' | 'link' | 'inverse' | 'destructive' | 'destructiveSoft';
@@ -19,7 +19,8 @@ type Size = 'regular' | 'compact';
 
 type Props = {
   label: string;
-  onPress: () => void;
+  // An async onPress shows the spinner until it finishes, and taps meanwhile are ignored.
+  onPress: () => void | Promise<unknown>;
   variant?: Variant;
   size?: Size;
   icon?: ComponentProps<typeof Ionicons>['name'];
@@ -67,8 +68,12 @@ export function Button({
   };
   const look = looks[variant];
   const press = usePressFeedback(look.bg, look.pressed);
+  const guarded = useGuardedPress(() => {
+    if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    return onPress();
+  });
 
-  const isLoading = Boolean(loading);
+  const isLoading = Boolean(loading) || guarded.busy;
   const inactive = Boolean(disabled) || isLoading;
 
   let borderWidth = 0;
@@ -107,11 +112,6 @@ export function Button({
     labelVariant = 'bodyStrong';
   }
 
-  const handlePress = () => {
-    if (haptic) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onPress();
-  };
-
   const buttonStyle = [
     styles.base,
     {
@@ -147,7 +147,7 @@ export function Button({
       accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: inactive, busy: isLoading }}
       disabled={inactive}
-      onPress={handlePress}
+      onPress={guarded.onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       style={buttonStyle}>
@@ -165,12 +165,14 @@ type IconButtonProps = {
 export function IconButton({ icon, label, onPress }: IconButtonProps) {
   const { colors, layout, size } = useTheme();
   const press = usePressFeedback(colors.surfaceMuted, colors.border);
+  // A double tap on Back goes back one screen, not two.
+  const guarded = useGuardedPress(onPress);
 
   return (
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      onPress={onPress}
+      onPress={guarded.onPress}
       onPressIn={press.onPressIn}
       onPressOut={press.onPressOut}
       hitSlop={4}

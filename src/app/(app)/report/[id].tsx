@@ -12,7 +12,7 @@ import { RadioOption } from '@/components/ui/radio-option';
 import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
 import { TextField } from '@/components/ui/text-field';
-import { REPORT_REASONS } from '@/data/constants';
+import { LIMITS, REPORT_REASONS } from '@/data/constants';
 import type { ReportReason } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
 import { blockUser, reportUser } from '@/state/store';
@@ -107,7 +107,7 @@ export default function Report() {
         value={details}
         onChangeText={setDetails}
         multiline
-        maxLength={500}
+        maxLength={LIMITS.reportDetails}
         placeholder="What happened"
       />
 

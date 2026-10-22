@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { NearbyToast } from '@/components/live/nearby-toast';
 import { useNearbyPolling } from '@/hooks/use-nearby';
 import { useNearbyAlerts } from '@/hooks/use-nearby-alerts';
+import { serverNow } from '@/lib/server-clock';
 import { goOffline, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -28,10 +29,11 @@ export default function AppLayout() {
     if (tutorialDue) router.push('/tutorial');
   }, [tutorialDue]);
 
-  // Availability ends on time whichever screen is open.
+  // Availability ends on time whichever screen is open. expiresAt is the server's time, so it is
+  // compared with the server's clock: a phone set an hour ahead would otherwise end it at once.
   useEffect(() => {
     if (!expiresAt) return;
-    const msUntilExpiry = Math.max(0, expiresAt - Date.now());
+    const msUntilExpiry = Math.max(0, expiresAt - serverNow());
     const timer = setTimeout(() => goOffline('expired'), msUntilExpiry);
     return () => clearTimeout(timer);
   }, [expiresAt]);
@@ -115,6 +117,7 @@ export default function AppLayout() {
         <Stack.Screen name="settings" />
         <Stack.Screen name="blocked" />
         <Stack.Screen name="password" />
+        <Stack.Screen name="delete-account" />
       </Stack>
       <NearbyToast />
       {live && <KeepScreenOn />}

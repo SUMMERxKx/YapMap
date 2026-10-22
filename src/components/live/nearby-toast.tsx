@@ -11,6 +11,7 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 import { Avatar } from '@/components/profile/avatar';
+import { useGuardedPress } from '@/components/ui/press-feedback';
 
 const SHOW_FOR_MS = 8000;
 
@@ -25,6 +26,17 @@ export function NearbyToast() {
     const timer = setTimeout(dismissNearbyAlert, SHOW_FOR_MS);
     return () => clearTimeout(timer);
   }, [alert]);
+
+  // While the toast slides away it can still be tapped; a second tap must not open it twice.
+  const open = useGuardedPress(() => {
+    if (!alert) return;
+    dismissNearbyAlert();
+    if (alert.kind === 'person') {
+      router.push({ pathname: '/person/[id]', params: { id: alert.person.id } });
+    } else {
+      router.navigate('/nearby');
+    }
+  });
 
   if (!alert) return null;
 
@@ -55,15 +67,6 @@ export function NearbyToast() {
     );
   }
 
-  const open = () => {
-    dismissNearbyAlert();
-    if (alert.kind === 'person') {
-      router.push({ pathname: '/person/[id]', params: { id: alert.person.id } });
-    } else {
-      router.navigate('/nearby');
-    }
-  };
-
   return (
     <Animated.View
       key={alert.id}
@@ -90,7 +93,7 @@ export function NearbyToast() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={action}
-          onPress={open}
+          onPress={open.onPress}
           hitSlop={4}
           style={[styles.action, { paddingHorizontal: spacing.md, backgroundColor: colors.green, borderRadius: radius.pill }]}>
           <AppText variant="caption" style={{ color: colors.onGreen, fontWeight: '700' }}>

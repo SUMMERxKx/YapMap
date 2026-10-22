@@ -5,6 +5,7 @@
 // requests, chat messages, event messages) and the catch-up that runs when the app comes
 // back to the front or back online, since Realtime doesn't replay what it missed.
 
+import { Image } from 'expo-image';
 import * as Network from 'expo-network';
 import { Alert, AppState } from 'react-native';
 import { useSyncExternalStore } from 'react';
@@ -22,8 +23,9 @@ import type {
   Profile,
   ReportReason,
 } from '@/data/types';
+import { cleanLine, cleanLines } from '@/lib/clean-text';
 import { errorMessage } from '@/lib/error-message';
-import { clampRadiusKm, loadPrefs, savePrefs } from '@/state/saved-prefs';
+import { clampRadiusKm, forgetPrefs, loadPrefs, savePrefs } from '@/state/saved-prefs';
 
 export type NearbyAlert =
   | { id: string; kind: 'summary'; count: number }
@@ -118,6 +120,31 @@ function teardownRealtime() {
   stopEventMessages = null;
 }
 
+/**
+ * After sign-out: nothing from that account may stay behind for the next one to see. Clears
+ * the state, the channels and signed photo URLs, the photos cached on the phone (other people's
+ * faces), and makes answers still on their way from before the sign-out land nowhere.
+ */
+function forgetAccount() {
+  teardownRealtime();
+  api.forgetSession();
+  void Image.clearMemoryCache();
+  void Image.clearDiskCache();
+  handledRequestIds.clear();
+  closedChatIds.clear();
+  extrasLoaded = false;
+  offlineRetry = null;
+  sayingHi = false;
+  watchingId = null;
+  openingChatId = null;
+  // Bumping the counters makes a refresh or load that is still running throw its answer away.
+  nearbyRefreshes += 1;
+  eventLoads += 1;
+  eventChatVisits += 1;
+  lastEventsCenter = null; // where the last account was looking
+  set({ ...initialState, booted: true, appActive: state.appActive });
+}
+
 /** Start listening for say-hi requests. Needs a saved profile; safe to call again. */
 function listenForRequests(userId: string) {
   if (stopIncoming) return;
@@ -155,12 +182,7 @@ export async function init() {
   api.onAuthStateChange((signedIn) => {
     // Sign-out (from anywhere, including account deletion) resets the app.
     if (!signedIn) {
-      teardownRealtime();
-      api.forgetSignedUrls();
-      handledRequestIds.clear();
-      closedChatIds.clear();
-      extrasLoaded = false;
-      set({ ...initialState, booted: true, appActive: state.appActive });
+      forgetAccount();
       return;
     }
     // A refreshed token usually means the network is back: try the failed load again.
@@ -434,7 +456,12 @@ export function signInWithProvider(_provider: 'apple' | 'google') {
 /** Saves the profile (uploads photos first). A changed photo re-triggers the selfie check. */
 export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   const previous = state.profile;
-  const stored = await api.saveProfile(values);
+  const stored = await api.saveProfile({
+    ...values,
+    firstName: cleanLine(values.firstName),
+    lastName: cleanLine(values.lastName),
+    intro: cleanLines(values.intro),
+  });
   // Keep an earlier verification only while the profile photo stays the same.
   let keepsVerification = false;
   if (previous && previous.verified && previous.photoUri === values.photoUri) {
@@ -464,22 +491,49 @@ export function markVerified() {
   set({ profile: { ...state.profile, verified: true } });
 }
 
-export async function signOut() {
-  // Offline, the sign-out itself would fail after the chat and live session had already
-  // ended here, leaving the other person in a chat nobody reads. So check first.
+// A sign-out or account deletion already under way; a second tap waits for the same one.
+let leaving: Promise<void> | null = null;
+
+/** Runs `leave` once: calls made while it is running wait for that same run. */
+async function leaveOnce(leave: () => Promise<void>) {
+  if (!leaving) {
+    leaving = leave().finally(() => {
+      leaving = null;
+    });
+  }
+  await leaving;
+}
+
+/** Throws when the phone is offline, before anything is changed. */
+async function requireConnection(action: string) {
   const network = await Network.getNetworkStateAsync();
   if (!isOnline(network)) {
-    throw new Error("You need a connection to sign out. Try again when you're back online.");
+    throw new Error(`You need a connection to ${action}. Try again when you're back online.`);
   }
-  // Leave cleanly first, so nobody keeps seeing you on their nearby list or waits on a
-  // chat nobody is reading. Both carry on if the network call fails.
-  if (state.chat) await endChat('cancelled');
-  if (state.availability) await goOffline('done');
-  await api.signOut(); // the auth listener resets the state
+}
+
+export async function signOut() {
+  await leaveOnce(async () => {
+    // Offline, the sign-out itself would fail after the chat and live session had already
+    // ended here, leaving the other person in a chat nobody reads. So check first.
+    await requireConnection('sign out');
+    // Leave cleanly first, so nobody keeps seeing you on their nearby list or waits on a
+    // chat nobody is reading. Both carry on if the network call fails.
+    if (state.chat) await endChat('cancelled');
+    if (state.availability) await goOffline('done');
+    await api.signOut(); // the auth listener resets the state
+  });
 }
 
 export async function deleteAccount() {
-  await api.deleteAccount(); // signs out too; the auth listener resets the state
+  await leaveOnce(async () => {
+    // Checked first: losing the connection halfway would remove your photos but keep the account.
+    await requireConnection('delete your account');
+    const myId = state.myId;
+    await api.deleteAccount(); // signs out too; the auth listener resets the state
+    // What this phone remembered for the account goes too.
+    if (myId) forgetPrefs(myId);
+  });
 }
 
 // ---------------------------------------------------------------- availability
@@ -496,19 +550,21 @@ export async function goGreen(args: {
   accuracy?: number | null;
 }) {
   if (offlineRetry) await offlineRetry;
+  const note = cleanLine(args.note);
   // The server's times, so the countdown ends when the session really does.
-  const { startedAt, expiresAt } = await api.goGreen(args);
+  const { startedAt, expiresAt } = await api.goGreen({ ...args, note });
   set({
-    availability: { minutes: args.minutes, note: args.note, startedAt, expiresAt },
+    availability: { minutes: args.minutes, note, startedAt, expiresAt },
     availabilityExpired: false,
     offlinePending: false, // going live replaced the session that didn't get removed
   });
 }
 
 /** Saves a new note. Throws (and puts the old note back) if the server refuses it. */
-export async function updateNote(note: string) {
+export async function updateNote(text: string) {
   const before = state.availability;
   if (!before) return;
+  const note = cleanLine(text);
   set({ availability: { ...before, note } });
   try {
     await api.updateNote(note);
@@ -591,6 +647,10 @@ function inActiveChat() {
   return state.chat !== null && state.chat.status === 'active';
 }
 
+// A say-hi on its way to the server. Until it answers, `outgoing` isn't set yet, so this stops
+// a second tap from sending another.
+let sayingHi = false;
+
 /** Sends the request (throws if the server refuses), then waits for the answer. */
 export async function sayHi(to: NearbyPerson) {
   // One conversation at a time: the person you're chatting with would be left waiting.
@@ -598,10 +658,19 @@ export async function sayHi(to: NearbyPerson) {
   if (chat && chat.status === 'active') {
     throw new Error(`Finish your chat with ${chat.other.firstName} first.`);
   }
-  if (state.outgoing?.status === 'pending') return; // one request at a time
-  const { id, expiresAt } = await api.sendRequest(to);
-  set({ outgoing: { id, to, expiresAt, status: 'pending' } });
-  void watchAnswer(id, to);
+  if (state.outgoing?.status === 'pending' || sayingHi) return; // one request at a time
+  const myId = state.myId;
+  sayingHi = true;
+  let request;
+  try {
+    request = await api.sendRequest(to);
+  } finally {
+    sayingHi = false;
+  }
+  if (state.myId !== myId) return; // signed out meanwhile
+  if (state.outgoing?.id === request.id) return; // the server says it's the one already shown
+  set({ outgoing: { id: request.id, to, expiresAt: request.expiresAt, status: 'pending' } });
+  void watchAnswer(request.id, to);
 }
 
 let watchingId: string | null = null; // the request watchAnswer is waiting on, if any
@@ -772,17 +841,23 @@ async function resyncChat(chatId: string) {
   await checkChatStillOn(chatId);
 }
 
+/** Sends a chat message. Returns false when it wasn't sent, so the screen can keep the text. */
 export async function sendMessage(text: string) {
   const chat = state.chat;
-  const body = text.trim();
-  if (!chat || !body) return;
+  const body = cleanLines(text);
+  if (!chat || !body) return false;
   try {
     // Show the saved message now; when Realtime delivers the same one, it's skipped.
     const result = await api.sendMessage(chat.id, body);
-    if (result === 'chat-ended') markChatEnded(chat.id);
-    else addChatMessages(chat.id, [result]);
+    if (result === 'chat-ended') {
+      markChatEnded(chat.id);
+      return false;
+    }
+    addChatMessages(chat.id, [result]);
+    return true;
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
+    return false;
   }
 }
 
@@ -882,7 +957,7 @@ export async function unblockUser(userId: string) {
 }
 
 export async function reportUser(userId: string, reason: ReportReason, details: string) {
-  await api.report(userId, reason, details);
+  await api.report(userId, reason, cleanLines(details));
 }
 
 // ---------------------------------------------------------------- map events
@@ -923,7 +998,11 @@ export async function createEvent(input: {
   longitude: number;
   startsAt: number;
 }) {
-  const event = await api.createEvent(input);
+  const event = await api.createEvent({
+    ...input,
+    title: cleanLine(input.title),
+    description: cleanLines(input.description),
+  });
   const otherEvents = state.events.filter((existing) => existing.id !== event.id);
   set({ events: [event, ...otherEvents] });
   return event.id;
@@ -947,7 +1026,11 @@ export async function joinEvent(id: string, position: { latitude: number | null;
     forgetEvent(id);
     return 'event-deleted';
   }
-  updateEvent(id, (event) => ({ joined: true, memberCount: event.memberCount + 1 }));
+  // Counted once, even if Join was tapped twice.
+  updateEvent(id, (event) => {
+    if (event.joined) return {};
+    return { joined: true, memberCount: event.memberCount + 1 };
+  });
 }
 
 export async function leaveEvent(id: string) {
@@ -958,11 +1041,10 @@ export async function leaveEvent(id: string) {
     forgetEvent(id);
     return;
   }
-  updateEvent(id, (current) => ({
-    joined: false,
-    memberCount: Math.max(0, current.memberCount - 1),
-    messages: [],
-  }));
+  updateEvent(id, (current) => {
+    if (!current.joined) return {}; // already left
+    return { joined: false, memberCount: Math.max(0, current.memberCount - 1), messages: [] };
+  });
 }
 
 /** Deletes an event you host. It leaves the map and lists straight away. */
@@ -1012,14 +1094,17 @@ export function leaveEventChat() {
   stopEventMessages = null;
 }
 
+/** Sends a group message. Returns false when it wasn't sent, so the screen can keep the text. */
 export async function sendGroupMessage(eventId: string, text: string) {
-  const body = text.trim();
-  if (!body) return;
+  const body = cleanLines(text);
+  if (!body) return false;
   try {
     // Show the saved message now; when Realtime delivers the same one, it's skipped.
     const sent = await api.sendEventMessage(eventId, body);
     updateEvent(eventId, (current) => ({ messages: mergeMessages(current.messages, [sent]) }));
+    return true;
   } catch (error) {
     Alert.alert('Message not sent', errorMessage(error, 'Try again.'));
+    return false;
   }
 }

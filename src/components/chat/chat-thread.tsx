@@ -5,13 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LIMITS } from '@/data/constants';
 import type { Message } from '@/data/types';
+import { hasVisibleText } from '@/lib/clean-text';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 
 type Props = {
   messages: Message[];
-  onSend: (text: string) => void;
+  onSend: (text: string) => Promise<boolean>; // false when it wasn't sent
   showSenderNames?: boolean; // for group chats
   placeholder?: string;
   disabled?: boolean;
@@ -35,10 +36,15 @@ export function ChatThread({
   const insets = useSafeAreaInsets();
   const [text, setText] = useState('');
 
-  const send = () => {
-    if (!text.trim()) return;
-    onSend(text);
+  const send = async () => {
+    const draft = text;
+    if (!hasVisibleText(draft)) return;
+    // Cleared straight away, so a second tap has nothing to send twice.
     setText('');
+    const sent = await onSend(draft);
+    // Not sent (offline, say): put the text back so nothing typed is lost, unless a new
+    // message has been started meanwhile.
+    if (!sent) setText((current) => (current === '' ? draft : current));
   };
 
   let keyboardBehavior: 'padding' | undefined;
@@ -119,7 +125,7 @@ export function ChatThread({
     );
   };
 
-  const canSend = text.trim() !== '';
+  const canSend = hasVisibleText(text);
   let sendBackground = colors.surfaceMuted;
   let sendIconColor = colors.textSecondary;
   if (canSend) {
@@ -163,7 +169,7 @@ export function ChatThread({
           accessibilityLabel="Send"
           accessibilityState={{ disabled: !canSend }}
           disabled={!canSend}
-          onPress={send}
+          onPress={() => void send()}
           style={[
             styles.send,
             {

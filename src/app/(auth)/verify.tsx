@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TopBar } from '@/components/ui/top-bar';
 import * as api from '@/data/api';
+import { useOneAtATime } from '@/hooks/use-one-at-a-time';
 import { errorMessage } from '@/lib/error-message';
 import { confirmSignUp } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -35,7 +36,9 @@ export default function Verify() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  const verify = async (value = code) => {
+  // The code submits itself once all 8 digits are in, and the button submits it too; a code
+  // works once, so one attempt at a time (a second would show "invalid code" after success).
+  const verify = useOneAtATime(async (value: string) => {
     if (value.length !== LENGTH) return;
     setVerifying(true);
     setError(null);
@@ -51,7 +54,7 @@ export default function Verify() {
     } finally {
       setVerifying(false);
     }
-  };
+  });
 
   const resend = async () => {
     setCooldown(RESEND_SECONDS);
@@ -73,7 +76,7 @@ export default function Verify() {
     const digits = text.replace(/\D/g, '').slice(0, LENGTH);
     setCode(digits);
     setError(null);
-    if (digits.length === LENGTH) verify(digits);
+    if (digits.length === LENGTH) void verify(digits);
   };
 
   let resendLabel = 'Resend code';
@@ -85,7 +88,7 @@ export default function Verify() {
     <Screen
       scroll
       footer={
-        <Button label="Verify and continue" onPress={() => verify()} loading={verifying} disabled={code.length !== LENGTH} />
+        <Button label="Verify and continue" onPress={() => verify(code)} loading={verifying} disabled={code.length !== LENGTH} />
       }>
       <TopBar leading={<IconButton icon="arrow-back" label="Back" onPress={() => router.back()} />} />
       <ScreenHeader

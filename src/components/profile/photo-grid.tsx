@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Alert, Pressable, StyleSheet, View } from 'react-native';
 
 import { PHOTO_RANGE } from '@/data/constants';
+import { photoProblem } from '@/lib/picked-photo';
 import { useTheme } from '@/theme';
 
 type Props = { photos: string[]; onChange: (photos: string[]) => void };
@@ -24,7 +25,18 @@ export function PhotoGrid({ photos, onChange }: Props) {
       quality: 0.8,
     });
     if (result.canceled) return;
-    const pickedUris = result.assets.map((asset) => asset.uri);
+    // Photos that can't be used are left out, and the first reason is shown.
+    const pickedUris: string[] = [];
+    let firstProblem: string | null = null;
+    for (const asset of result.assets) {
+      const problem = photoProblem(asset);
+      if (problem) {
+        firstProblem ??= problem;
+      } else {
+        pickedUris.push(asset.uri);
+      }
+    }
+    if (firstProblem) Alert.alert("Some photos couldn't be added", firstProblem);
     const allPhotos = [...photos, ...pickedUris];
     onChange(allPhotos.slice(0, PHOTO_RANGE.max));
   };
@@ -34,6 +46,11 @@ export function PhotoGrid({ photos, onChange }: Props) {
     if (result.canceled) return;
     const picked = result.assets[0];
     if (!picked) return;
+    const problem = photoProblem(picked);
+    if (problem) {
+      Alert.alert("Can't use that photo", problem);
+      return;
+    }
     const updated = [...photos];
     updated[index] = picked.uri;
     onChange(updated);

@@ -38,6 +38,11 @@ export function savePrefs(userId: string, prefs: SavedPrefs) {
   AsyncStorage.setItem(storageKey(userId), JSON.stringify(prefs)).catch(() => {});
 }
 
+/** Forgets what was saved for this account (when the account is deleted). */
+export function forgetPrefs(userId: string) {
+  AsyncStorage.removeItem(storageKey(userId)).catch(() => {});
+}
+
 /** A whole number of kilometres inside the allowed range. */
 export function clampRadiusKm(km: number) {
   return Math.min(Math.max(Math.round(km), EVENT_RADIUS_KM.min), EVENT_RADIUS_KM.max);

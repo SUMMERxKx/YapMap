@@ -10,6 +10,7 @@ import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
 import { IconButton } from '@/components/ui/button';
+import { useGuardedPress } from '@/components/ui/press-feedback';
 
 type Props = {
   userId: string;
@@ -92,6 +93,8 @@ function MenuItem({
   danger?: boolean;
 }) {
   const { colors, layout, size, spacing } = useTheme();
+  // The menu takes a moment to close, so a second tap could open Report twice.
+  const guarded = useGuardedPress(onPress);
   let color = colors.textPrimary;
   if (danger) {
     color = colors.destructive;
@@ -106,7 +109,7 @@ function MenuItem({
   };
 
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={itemStyle}>
+    <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={guarded.onPress} style={itemStyle}>
       <Ionicons name={icon} size={size.iconLarge} color={color} />
       <AppText variant="bodyStrong" style={{ color }}>
         {label}

@@ -88,7 +88,7 @@ export default function PersonSheet() {
         <Button
           label="Say hi"
           icon="chatbubble-ellipses-outline"
-          onPress={() => void send()}
+          onPress={send}
           disabled={alreadyWaiting}
           haptic
         />

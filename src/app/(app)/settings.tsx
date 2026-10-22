@@ -14,7 +14,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TopBar } from '@/components/ui/top-bar';
 import { LINKS } from '@/config/links';
 import { errorMessage } from '@/lib/error-message';
-import { deleteAccount, signOut, useStore } from '@/state/store';
+import { signOut, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Settings() {
@@ -34,24 +34,6 @@ export default function Settings() {
       Alert.alert('Could not sign out', errorMessage(error, 'Try again.'));
     }
   };
-
-  const onDeleteAccount = async () => {
-    try {
-      await deleteAccount();
-    } catch (error) {
-      Alert.alert('Could not delete your account', errorMessage(error, 'Try again.'));
-    }
-  };
-
-  const confirmDelete = () =>
-    Alert.alert(
-      'Delete your account?',
-      'This permanently removes your profile, photo and everything linked to your account. It cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete account', style: 'destructive', onPress: onDeleteAccount },
-      ],
-    );
 
   return (
     <Screen scroll>
@@ -83,8 +65,9 @@ export default function Settings() {
       </SettingsSection>
 
       <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-        <Button label="Sign out" variant="secondary" onPress={() => void onSignOut()} />
-        <Button label="Delete account" variant="destructiveSoft" onPress={confirmDelete} />
+        <Button label="Sign out" variant="secondary" onPress={onSignOut} />
+        {/* A screen of its own: it lists what is deleted and asks you to type your first name. */}
+        <Button label="Delete account" variant="destructiveSoft" onPress={() => router.push('/delete-account')} />
       </View>
 
       <AppText variant="caption" color="textSecondary" align="center" style={{ marginTop: spacing.xs }}>
