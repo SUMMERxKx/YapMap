@@ -2,6 +2,7 @@
 --
 --   * "Cancel request" withdraws the request on the server too (cancel_request), and
 --     my_status also returns the request you're waiting on, so a restart restores it.
+--   * Getting off (go_offline) withdraws the request you're waiting on as well.
 --   * One chat at a time: send_request refuses while you're in a chat, and accepting refuses
 --     if you're already in one and withdraws the request you're waiting on.
 --   * block_user only puts people back on nearby lists when it ended a chat between the two.
@@ -479,6 +480,19 @@ from public, anon;
 grant execute on function
   public.go_green (double precision, double precision, double precision, integer, text)
 to authenticated;
+
+-- Getting off means you're no longer waiting on anyone, so the request you sent is withdrawn
+-- before your live session is deleted: nobody can accept you into a chat you'll never see.
+create or replace function public.go_offline()
+returns void
+language sql security definer set search_path = ''
+as $$
+  update public.chat_requests
+  set status = 'cancelled', ended_at = now()
+  where from_user = (select auth.uid()) and status = 'pending';
+
+  delete from public.availability where user_id = (select auth.uid());
+$$;
 
 -- messages ----------------------------------------------------------------------------
 
