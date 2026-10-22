@@ -26,6 +26,7 @@ or anywhere in the repository; the publishable key is public by design and is ke
   Storage bucket & \code{photos} (\cref{tab:storage}) \\
   Scheduled job & \code{yap-expire-stale}, every minute (\cref{tab:cron}) \\
   Extensions & \code{postgis} (schema \code{extensions}), \code{pg_cron} \\
+  Local stack & \code{supabase/config.toml}: project \code{yapmap}, Postgres 17, ports 54321 to 54324 (\cref{tab:local-stack}) \\
   Auth & email and password; confirm email on; minimum password 8; 8-digit codes in the confirm-sign-up and reset-password templates \\
   SMTP & Resend, sending domain \code{mail.samarxkx.dev} (dashboard setting) \\
   \midrule

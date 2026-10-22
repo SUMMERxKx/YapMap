@@ -23,10 +23,11 @@
      dashboard: Auth settings, email templates};
   \node[env, text width=46mm, dashed] (local) at (12.3,-6.6)
     {\textbf{\footnotesize Local Supabase stack (Docker)}\\[3pt]
-     created for one change, then torn down\\
-     every migration, plus a stand-in for the\\
-     \quad platform helper \texttt{rls\_auto\_enable}\\
-     used for behaviour proofs only};
+     \texttt{supabase start}\\
+     \texttt{supabase db reset}\\
+     every migration; \texttt{config.toml}\\
+     Postgres 17; local mail viewer\\
+     database changes and behaviour proofs};
   \node[env, text width=42mm] (gh) at (2.4,-4.4)
     {\textbf{\footnotesize GitHub repository}\\[3pt]
      pull requests through the review pipeline\\
@@ -35,8 +36,8 @@
   \draw[flow] (dev.east |- phones.west) -- node[lab, above=2pt] {app bundle over the local network} (phones.west);
   \draw[flow, <->] (phones.south) -- node[lab, right=2pt] {HTTPS and WebSocket} (hosted.north);
   \draw[flow] (dev.east |- 0,-1.75) -- (7.2,-1.75) |- (hosted.west |- 0,-3.9);
-  \node[lab, anchor=south west, align=left, fill=none] at (7.25,-3.85) {migrations, not\\applied with\\\texttt{supabase db push}};
+  \node[lab, anchor=south west, align=left, fill=none] at (7.25,-3.85) {migrations:\\\texttt{db push}};
   \draw[softflow] (dev.east |- 0,-2.15) -- (6.6,-2.15) |- (local.west |- 0,-7.5);
-  \node[lab, anchor=south west, align=left] at (6.7,-7.45) {migrations, for proofs};
+  \node[lab, anchor=south west, align=left] at (6.7,-7.45) {migrations};
   \draw[flow, <->] (dev.south) -- node[lab, left=2pt] {push; pull\\requests} (gh.north);
 \end{tikzpicture}

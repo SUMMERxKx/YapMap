@@ -42,7 +42,7 @@ implemented.
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Operations}}} \\
   No retention policy & Requests, messages and past events are kept until an account is deleted. How long to keep chats is an open product decision. \\
-  One environment & No staging project; the hosted migration history does not match the repository's file names, so \code{supabase db push} cannot be used. \\
+  One environment & No staging project: development uses the hosted project, and a local stack serves only development of the database and behaviour proofs. \\
   No automated tests or CI & See \cref{ch:testing}. \\
 \end{longtable}
 \endgroup
