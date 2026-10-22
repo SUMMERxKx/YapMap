@@ -24,7 +24,7 @@ Block and report are always two taps away.
 - Expo Router for navigation
 - Backend: Supabase — Postgres (+PostGIS) with row-level security, database functions for
   every write, Realtime for requests and chat, and private photo storage. The SQL lives in
-  `supabase/migrations/`.
+  `supabase/migrations/`; `supabase/README.md` explains how to change it.
 
 ## Run it
 
