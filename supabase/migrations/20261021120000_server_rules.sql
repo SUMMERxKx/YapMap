@@ -291,8 +291,9 @@ alter table public.profiles
     check (cardinality(photo_paths) <= 6);
 
 -- Whether the signed-in user may load this photo of someone else: only the photos on the
--- owner's profile right now (never older files left in their folder), never between people
--- who blocked each other, and only while one of these holds:
+-- owner's profile right now and the small copy of their profile picture that avatars use
+-- (<name>-small.jpg; never older files left in their folder), never between people who
+-- blocked each other, and only while one of these holds:
 --   * the owner is on your nearby list (both live, near each other, the owner open);
 --   * a request between you is waiting, or you chatted or met;
 --   * it's the owner's profile picture and they host an event on the map.
@@ -304,6 +305,7 @@ declare
   viewer uuid := (select auth.uid());
   folder text := (storage.foldername(object_name))[1];
   owner public.profiles;
+  is_picture boolean;  -- the profile picture or its small copy
 begin
   if viewer is null or folder is null or folder !~ '^[0-9a-f-]{36}$' then
     return false;
@@ -312,7 +314,11 @@ begin
   if not found then return false; end if;
   if owner.id = viewer then return true; end if;
 
-  if object_name is distinct from owner.photo_path and not (object_name = any (owner.photo_paths)) then
+  is_picture := coalesce(
+    object_name in (owner.photo_path, regexp_replace(owner.photo_path, '\.jpg$', '-small.jpg')),
+    false
+  );
+  if not is_picture and not (object_name = any (owner.photo_paths)) then
     return false;
   end if;
   if private.blocked_between(viewer, owner.id) then return false; end if;
@@ -338,7 +344,7 @@ begin
   end if;
 
   -- the host's picture on an event the map shows (the same rules as events_near())
-  if object_name = owner.photo_path
+  if is_picture
     and owner.status = 'active'
     and exists (
       select 1 from public.events e
