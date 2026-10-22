@@ -1,0 +1,248 @@
+\chapter{Data model}
+\label{ch:data-model}
+
+The database holds eight application tables in the \code{public} schema and one log table in the
+\code{private} schema. Every table references \code{profiles}, which has one row per account and itself
+references the Supabase Auth user. \Cref{fig:er} shows the tables, their columns and the foreign keys
+between them. Every foreign key to a user cascades on delete, so removing an Auth user removes everything
+that belongs to that user (\cref{sec:flow-delete}).
+
+\begin{figure}[p]
+  \centering
+  \input{figures/er}
+  \caption{Entity-relationship diagram. Each box lists a table's columns. Lines are foreign keys,
+    labelled with the referencing columns, with the cardinality at each end. The dashed box is the
+    Storage table that holds photos; it is linked to \code{profiles} by folder name, not by a foreign
+    key. The dashed table is in the \code{private} schema.}
+  \label{fig:er}
+\end{figure}
+
+\section{Tables}
+\label{sec:tables}
+
+\subsection{Profiles}
+
+\code{profiles} has one row per account, keyed by the Auth user's ID. It holds what the user entered
+during profile setup: first and last name (1 to 30 characters each), gender (one of \code{woman},
+\code{man}, \code{non-binary} and \code{prefer-not}), whether to show the gender, an introduction (1 to
+300 characters) and 3 to 5 interests. \code{photo_path} is the storage path of the profile picture and
+\code{photo_paths} the paths of up to six further photos. Check constraints require every path to name a
+file directly inside the owner's own folder (\cref{sec:photo-privacy}).
+
+Three columns are controlled by the server. \code{is_adult} records the 18+ confirmation and must be
+true when the row is inserted. \code{verified} is reserved for the selfie check; clients cannot write it.
+\code{status} is \code{active}, \code{hidden} or \code{suspended}; reports set it to \code{hidden}
+automatically (\cref{sec:blocking-reporting}), and only an \code{active} profile can go live, appear in
+lists, create or join events, or receive a request.
+
+Other users never read this table. What they may see of a profile is built by the helper
+\code{private.person_card} (\cref{sec:person-card}).
+
+\subsection{Availability}
+
+\code{availability} holds one row for each user who is live right now, and nothing else. The row stores
+the position as a PostGIS \code{geography(point, 4326)}, the accuracy the phone reported, the live note
+(up to 60 characters), a state of \code{open} or \code{chatting}, and the start and end of the session.
+Rows are deleted when the user goes offline and by the minute job when the session ends, so the table
+stays small however many accounts exist, and its spatial index stays fast. No client can read the table;
+the position is used only inside database functions and never returned.
+
+The state column distinguishes a user who can be found (\code{open}) from one who is in a chat
+(\code{chatting}) and is therefore left out of nearby lists. \Cref{fig:live-states} shows how the row
+moves between these states. \code{go_green} inserts the row as \code{open}, or as \code{chatting} if the
+user still has an accepted chat, which happens when a user goes offline during a chat and then goes live
+again. \code{respond} sets both users to \code{chatting} when a request is accepted. Every way a chat can
+end sets both users back to \code{open} if they are still live: \code{end_chat}, \code{cancel_request}
+after an accept, \code{block_user} when it ends a chat between the two, and \code{delete_account} for the
+partner of the deleted user. \code{go_offline} deletes the row, and \code{expire_stale} deletes it at the
+session's end time.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/live-states}
+  \caption{Live state of one user. ``Not live'' means the user has no \code{availability} row. Any chat
+    ending returns both users to \code{open} if they are still live.}
+  \label{fig:live-states}
+\end{figure}
+
+\subsection{Requests and chats}
+
+\code{chat_requests} records every say-hi request. A request names its sender (\code{from_user}) and
+recipient (\code{to_user}), which must differ, and has a status. It expires five minutes after it is
+created unless it is answered. When the recipient accepts, the same row becomes the chat: its ID is the
+chat's ID, its status stays \code{accepted} while the chat lasts, and \code{ended_at} records when it
+ended. \code{responded_at} records when the recipient answered. A partial unique index allows at most one
+\code{pending} request per sender.
+
+\Cref{fig:request-states} shows the lifecycle of the status column and \cref{tab:request-transitions}
+lists every transition with the code that performs it.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/request-states}
+  \caption{Lifecycle of a request. Grey states are final. The labels refer to
+    \cref{tab:request-transitions}.}
+  \label{fig:request-states}
+\end{figure}
+
+\begin{table}[ht]
+  \centering
+  \caption{Request transitions.}
+  \label{tab:request-transitions}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{8mm}L{44mm}Y@{}}
+    \toprule
+    & \textsf{\textbf{Transition}} & \textsf{\textbf{Performed by}} \\
+    \midrule
+    T1 & created as \code{pending} & \code{send_request}, called by the sender \\
+    T2 & \code{pending} to \code{accepted} & \code{respond} with \code{accept = true}, called by the recipient \\
+    T3 & \code{pending} to \code{declined} & \code{respond} with \code{accept = false}, called by the recipient \\
+    T4 & \code{pending} to \code{expired} & \code{expire_stale}, once five minutes have passed or the sender is no longer live; \code{send_request} also expires the sender's own request whose time is up before checking for one already waiting \\
+    T5 & \code{pending} to \code{cancelled} & \code{cancel_request} (the sender withdraws it); \code{go_offline} (the sender goes offline); \code{respond} when the sender accepts someone else's request; \code{block_user} by either person \\
+    T6 & \code{accepted} to \code{cancelled} & \code{end_chat} with outcome \code{cancelled}; \code{cancel_request} when the cancel arrives just after an accept; \code{block_user} by either person; \code{expire_stale} once neither person is live \\
+    T7 & \code{accepted} to \code{met} & \code{end_chat} with outcome \code{met} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The sender never learns why a request did not lead to a chat. The client treats every final status other
+than \code{accepted} as \ui{Not this time} (\cref{sec:flow-sayhi}).
+
+\subsection{Messages}
+
+\code{messages} holds the messages of both kinds of chat. A check constraint requires exactly one parent:
+\code{request_id} for a one-to-one chat or \code{event_id} for an event's group chat. The body is 1 to
+1000 characters. \code{sender_name} stores the sender's display name (first name and last initial) at the
+time of sending, because a message delivered over Realtime must be renderable on its own: the recipient
+cannot read the sender's profile row to look the name up.
+
+\subsection{Events and members}
+
+\code{events} holds the public events on the map. Each has a host, a category, a title (1 to 60
+characters), a description (up to 200 characters), a position and a start time. The position is a place
+the host chose on the map and is, by design, the one location in the system that other users are meant
+to see. The \code{emoji} column stores the category as one of twelve emoji values; the client maps each
+value to an icon and a name (\cref{tab:event-categories}). \code{event_members} records who has joined
+which event. The host is added as a member when the event is created.
+
+\subsection{Blocks and reports}
+
+\code{blocks} records that one user has blocked another; the pair is the primary key and a user cannot
+block themselves. Although each row has a direction, the server applies a block in both directions
+(\cref{sec:blocking-reporting}). \code{reports} records a report: who reported whom, an optional request
+the report relates to, one of six reasons (\code{inappropriate-photo}, \code{harassment}, \code{unsafe},
+\code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. The columns
+\code{reviewed_at} and \code{action} exist for a later human review; nothing in the repository writes
+them.
+
+\subsection{Location changes}
+
+\code{private.location_changes} records the time at which each user started a live session or moved more
+than 150 metres while live. It stores no position. \code{go_green} counts the rows from the last ten
+minutes to limit how often a location may change, and the minute job deletes rows older than that
+(\cref{sec:relocation-limits}).
+
+\subsection{Photos in Storage}
+
+Photo files are objects in the Storage bucket \code{photos}, which is private, accepts JPEG, PNG and
+WebP, and limits each file to 5\,MiB. The app names every object
+\code{<user-id>/<slot>-<milliseconds>.jpg}, where the slot is \code{profile} for the profile picture and
+\code{photo0} to \code{photo5} for the others. The profile picture also has a 320-pixel copy at the same
+path with the suffix \code{-small.jpg}, used for small avatars.
+
+\section{Indexes}
+
+\Cref{tab:indexes} lists the indexes beyond the primary keys and what each one serves.
+
+\begin{table}[ht]
+  \centering
+  \caption{Secondary indexes.}
+  \label{tab:indexes}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{78mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Index}} & \textsf{\textbf{Serves}} \\
+    \midrule
+    \code{availability (location)}, GiST & Distance queries in \code{nearby} and \code{near_each_other} \\
+    \code{availability (expires_at)} & The minute job's deletion of ended sessions \\
+    \code{chat_requests (from_user)} where \code{pending}, unique & At most one waiting request per sender \\
+    \code{chat_requests (to_user)} & Looking up a recipient's waiting requests \\
+    \code{chat_requests (from_user, created_at)} & The rate limit on sending requests \\
+    \code{chat_requests (expires_at)} where \code{pending} & Expiring unanswered requests \\
+    \code{chat_requests (from_user, to_user)} where \code{accepted} & One-chat checks, \code{my_status} and stale-chat cleanup \\
+    \code{events (location)}, GiST & Radius queries in \code{events_near} \\
+    \code{events (host)}, \code{events (starts_at)} & Rate limit on creating events; time filter \\
+    \code{event_members (user_id)} & Membership lookups by user \\
+    \code{messages (request_id, created_at)} & One-to-one chat history \\
+    \code{messages (event_id, created_at)} & Group chat history \\
+    \code{messages (sender, created_at)} & The rate limit on sending messages \\
+    \code{blocks (blocked)} & Block checks in the reverse direction \\
+    \code{reports (reported)}, \code{(reporter)}, \code{(request_id)} & Counting reporters; cascades \\
+    \code{private.location_changes (user_id, changed_at)} & The relocation limit in \code{go_green} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Data the client works with}
+\label{sec:client-types}
+
+The client does not mirror the tables. It works with a small set of shapes defined in
+\code{src/data/types.ts}, built by the API layer from what the server returns (\cref{tab:client-types}).
+
+\begin{table}[ht]
+  \centering
+  \caption{Client data shapes and their sources.}
+  \label{tab:client-types}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{32mm}L{48mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Type}} & \textsf{\textbf{Built from}} & \textsf{\textbf{Holds}} \\
+    \midrule
+    \code{Profile} & the user's own \code{profiles} row & All profile fields, with photos as signed URLs \\
+    \code{NearbyPerson} & a person card & What another user may see; photo URLs signed on demand \\
+    \code{Availability} & \code{go_green} or \code{my_status} & Duration, note, server start and end times \\
+    \code{OutgoingRequest} & \code{send_request} or \code{my_status} & Request ID, recipient, end time, status \code{pending}, \code{accepted} or \code{not-this-time} \\
+    \code{IncomingRequest} & a Realtime insert or a query, then \code{request_person} & Request ID, sender's card, end time \\
+    \code{ChatSession} & an accepted request & Chat ID, partner, status \code{active} or \code{other-cancelled}, messages \\
+    \code{Message} & a \code{messages} row & ID, sender (\code{me} for one's own), sender name, text, time \\
+    \code{MapEvent} & an event card & Event fields, host name and photo, member count, joined flag, loaded messages \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{The person card}
+\label{sec:person-card}
+
+A \term{person card} is the only form in which one user's profile reaches another user. The helper
+\code{private.person_card(target)} builds it as JSON with these fields: ID, first name, last initial,
+gender (only if the owner chose to show it and did not choose \code{prefer-not}), introduction,
+interests, the storage paths of the profile picture and other photos, the live note, and the
+\code{verified} flag. It contains no last name, no location and no distance. Every function that returns
+people (\code{nearby}, \code{request_person}, \code{my_status}) returns person cards, so this helper is the
+single definition of what a profile reveals.
+
+\subsection{Event categories}
+
+The category of an event is stored as an emoji value in \code{events.emoji}. The app shows an icon and a
+name instead; the table \code{EVENT_CATEGORIES} in \code{src/data/constants.ts} maps one to the other
+(\cref{tab:event-categories}). A value missing from the table, for example one written by a newer app,
+falls back to a calendar icon named \ui{Event}. The database default is the first value, Coffee.
+
+\begin{table}[ht]
+  \centering
+  \caption{Event categories. Stored values are given as Unicode code points.}
+  \label{tab:event-categories}
+  \tablefont
+  \begin{tabular}{@{}lll@{\hspace{12mm}}lll@{}}
+    \toprule
+    \textsf{\textbf{Name}} & \textsf{\textbf{Icon}} & \textsf{\textbf{Value}} & \textsf{\textbf{Name}} & \textsf{\textbf{Icon}} & \textsf{\textbf{Value}} \\
+    \midrule
+    Coffee & \code{cafe} & U+2615 & Sports & \code{basketball} & U+1F3C0 \\
+    Food & \code{pizza} & U+1F355 & Music & \code{musical-notes} & U+1F3B8 \\
+    Games & \code{dice} & U+1F3B2 & Walk & \code{walk} & U+1F6B6 \\
+    Study & \code{library} & U+1F4DA & Yoga & \code{flower} & U+1F9D8 \\
+    Coding & \code{laptop} & U+1F4BB & Movies & \code{film} & U+1F3AC \\
+    Art & \code{color-palette} & U+1F3A8 & Drinks & \code{beer} & U+1F37B \\
+    \bottomrule
+  \end{tabular}
+\end{table}

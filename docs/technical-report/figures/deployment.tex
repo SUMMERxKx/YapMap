@@ -1,0 +1,42 @@
+% Environments and how code and schema reach them (Figure: deployment).
+\begin{tikzpicture}[
+    env/.style={box, font=\sffamily\scriptsize, align=flush left, inner sep=6pt, anchor=north},
+    lab/.style={font=\sffamily\scriptsize, text=ink, fill=white, inner sep=1.2pt, align=center},
+  ]
+  \node[env, clientbox, text width=42mm] (dev) at (2.4,0)
+    {\textbf{\footnotesize Developer machine}\\[3pt]
+     repository: \texttt{src}, \texttt{supabase/migrations}, \texttt{scripts}\\
+     Node 22, \texttt{npm install}\\
+     \texttt{npx expo start}: development server\\
+     \texttt{npm run icons}, \texttt{npm run mascot}};
+  \node[env, clientbox, text width=46mm] (phones) at (12.3,0)
+    {\textbf{\footnotesize Phones}\\[3pt]
+     Expo Go on iPhone and Android\\
+     app bundle from the development server\\
+     session kept in AsyncStorage};
+  \node[env, serverbox, text width=46mm] (hosted) at (12.3,-3.0)
+    {\textbf{\footnotesize Hosted Supabase project}\\[3pt]
+     Auth: email and password, 8-digit codes\\
+     \quad custom SMTP: Resend, \texttt{mail.samarxkx.dev}\\
+     Postgres with PostGIS and \texttt{pg\_cron}\\
+     Realtime; Storage bucket \texttt{photos}\\
+     dashboard: Auth settings, email templates};
+  \node[env, text width=46mm, dashed] (local) at (12.3,-6.6)
+    {\textbf{\footnotesize Local Supabase stack (Docker)}\\[3pt]
+     created for one change, then torn down\\
+     every migration, plus a stand-in for the\\
+     \quad platform helper \texttt{rls\_auto\_enable}\\
+     used for behaviour proofs only};
+  \node[env, text width=42mm] (gh) at (2.4,-4.4)
+    {\textbf{\footnotesize GitHub repository}\\[3pt]
+     pull requests through the review pipeline\\
+     no continuous-integration workflows};
+
+  \draw[flow] (dev.east |- phones.west) -- node[lab, above=2pt] {app bundle over the local network} (phones.west);
+  \draw[flow, <->] (phones.south) -- node[lab, right=2pt] {HTTPS and WebSocket} (hosted.north);
+  \draw[flow] (dev.east |- 0,-1.75) -- (7.2,-1.75) |- (hosted.west |- 0,-3.9);
+  \node[lab, anchor=south west, align=left, fill=none] at (7.25,-3.85) {migrations, not\\applied with\\\texttt{supabase db push}};
+  \draw[softflow] (dev.east |- 0,-2.15) -- (6.6,-2.15) |- (local.west |- 0,-7.5);
+  \node[lab, anchor=south west, align=left] at (6.7,-7.45) {migrations, for proofs};
+  \draw[flow, <->] (dev.south) -- node[lab, left=2pt] {push; pull\\requests} (gh.north);
+\end{tikzpicture}

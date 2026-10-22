@@ -1,0 +1,317 @@
+\chapter{Server interface}
+\label{ch:server-interface}
+
+The client reaches the database in two ways: by calling database functions and by reading the few tables
+it is allowed to read. \Cref{fig:call-anatomy} follows one function call from the store to the tables and
+back. This chapter is the reference for the interface; \cref{app:db-functions,app:tables} give the exact
+signatures and table definitions.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/call-anatomy}
+  \caption{Anatomy of a database function call, with \code{send_request} as the example. The function
+    runs as its owner, takes the caller's identity from the token, and either writes after its checks or
+    raises a short refusal that the API layer turns into a sentence.}
+  \label{fig:call-anatomy}
+\end{figure}
+
+\section{Conventions}
+\label{sec:function-conventions}
+
+All database functions follow the same conventions, set out at the top of the migration that defines
+them.
+
+\begin{itemize}
+  \item Functions in \code{public} are the API. They are declared \code{SECURITY DEFINER}, so they run
+    as their owner and are not limited by row-level security, and \code{SET search_path = ''}, so every
+    name inside them is schema-qualified and cannot be redirected by the caller.
+  \item The caller is always \code{auth.uid()}, read from the session token. No function takes a user ID
+    that it trusts as the caller's identity.
+  \item Execution is revoked from the roles \code{public} and \code{anon}, so only a signed-in user
+    (role \code{authenticated}) can call them. Helpers in \code{private} cannot be called through the
+    Data API at all, because that schema is not exposed.
+  \item A function refuses a request by raising an exception with a short, fixed message, for example
+    \code{not nearby} or \code{too many requests}. The client translates each message into a sentence
+    (\cref{app:refusals}).
+  \item Functions that return people return person cards (\cref{sec:person-card}); functions that return
+    events return event cards. Both are JSON objects with camel-case keys that match the client's types.
+    Instants are returned as milliseconds since the Unix epoch.
+\end{itemize}
+
+\section{Database functions}
+\label{sec:functions}
+
+\Cref{tab:functions} lists every function the client calls, in the order of the user's journey. The
+\emph{Checks} column lists what the function verifies before it changes anything, with the refusal
+message in parentheses where one applies.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{38mm}L{\dimexpr\linewidth-38mm-2\tabcolsep\relax}@{}}
+  \caption{Database functions called by the client.}
+  \label{tab:functions}\\
+  \toprule
+  \textsf{\textbf{Function}} & \textsf{\textbf{Effect and checks}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Function}} & \textsf{\textbf{Effect and checks}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Going live}}} \\[2pt]
+  \code{go_green}\newline{\scriptsize lat, lng, accuracy, minutes, note}\newline{\scriptsize returns start and end times}
+  & Starts or updates the caller's live session and returns its server times.
+    Checks: signed in (\code{not signed in}); duration is 30, 60 or 120 (\code{invalid duration}); note of
+    at most 60 characters (\code{note too long}); latitude and longitude in range (\code{invalid location});
+    profile active and adult (\code{profile not ready}). Applies the relocation rules of
+    \cref{sec:relocation-limits}: a move of 150\,m or less keeps the stored position and start time; a
+    larger move while live must not exceed 150\,m plus 10\,km/h over the time since the position was set
+    (\code{moving too fast}); and at most three location changes are allowed in ten minutes
+    (\code{too many location changes}). Stores the session as \code{chatting} if the caller has an
+    accepted chat, otherwise \code{open}, ending \code{minutes} after now. \\
+  \code{update_note}\newline{\scriptsize note}
+  & Replaces the live note. Checks: at most 60 characters (\code{note too long}). Does nothing if the
+    caller is not live. \\
+  \code{go_offline}
+  & Withdraws the caller's waiting request (status \code{cancelled}), then deletes the caller's live
+    session. Always succeeds. \\
+  \code{nearby}\newline{\scriptsize returns person cards}
+  & Returns up to 50 person cards of users who are live, \code{open}, not expired and active, within
+    100\,m plus the caller's reported accuracy (at most 150\,m) of the caller, excluding the caller and
+    anyone blocked in either direction. Returns nothing if the caller is not live. Never returns a position
+    or a distance. \\[3pt]
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Say hi and chat}}} \\[2pt]
+  \code{send_request}\newline{\scriptsize target}\newline{\scriptsize returns ID and end time}
+  & Creates a request to \code{target} that expires in five minutes. Checks, in order: signed in; not the
+    caller (\code{cannot request yourself}); no block either way and target active (\code{not available});
+    caller not already in a chat (\code{already chatting}); target live, \code{open} and near the caller,
+    who must also be live (\code{not nearby}); fewer than five requests sent in ten minutes
+    (\code{too many requests}). It then marks the caller's own timed-out request as expired and refuses if
+    one is still waiting (\code{already waiting}). The partial unique index enforces the same rule if two
+    calls race. \\
+  \code{cancel_request}\newline{\scriptsize request\_id}
+  & The sender withdraws a request. Locks the caller's request if it is \code{pending} or
+    \code{accepted} and sets it to \code{cancelled}; if it had just been accepted, it also returns both
+    users to \code{open}. Returns silently if there is nothing left to cancel. \\
+  \code{respond}\newline{\scriptsize request\_id, accept}
+  & The recipient answers. Locks the request, which must be \code{pending} and addressed to the caller
+    (\code{no such pending request}) and not past its end time (\code{request expired}). A decline sets
+    \code{declined}. An accept requires the sender to be live (\code{not available}), withdraws the
+    caller's own waiting request, refuses if the caller (\code{already chatting}) or the sender
+    (\code{not available}) is already in a chat, then sets \code{accepted} and sets both users to
+    \code{chatting}. \\
+  \code{request_person}\newline{\scriptsize request\_id}\newline{\scriptsize returns a person card}
+  & Returns the other participant's card, or nothing. Nothing if either user has blocked the other. The
+    recipient may see the sender's card at any stage; the sender may see the recipient's card only once
+    the request was accepted (status \code{accepted} or \code{met}, or \code{cancelled} after an accept).
+    The live note is removed once the request or chat is over. \\
+  \code{end_chat}\newline{\scriptsize request\_id, outcome}
+  & Ends the caller's accepted chat with outcome \code{met} or \code{cancelled} (\code{invalid outcome}
+    otherwise; \code{no such chat} if it is not an accepted chat of the caller) and returns both users to
+    \code{open}. \\
+  \code{send_chat_message}\newline{\scriptsize request\_id, body}\newline{\scriptsize returns the message}
+  & Checks: body of 1 to 1000 characters (\code{invalid message}); an accepted chat of the caller
+    (\code{no such chat}); no block between the two (\code{not available}); fewer than 30 messages sent by
+    the caller in the last minute (\code{too many messages}). Stores the message with the sender's display
+    name and returns the saved row. \\
+  \code{my_status}\newline{\scriptsize returns live, chat and request}
+  & What the app needs after a restart: the caller's live session (note, start and end) if not expired;
+    the ID of the caller's newest accepted chat in which at least one person is still live; and the
+    caller's waiting request with the recipient's card, if one has not expired. \\[3pt]
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Safety and account}}} \\[2pt]
+  \code{block_user}\newline{\scriptsize target}
+  & Records the block (repeating it is harmless). Checks: signed in; not the caller
+    (\code{cannot block yourself}). Cancels any accepted chat and any waiting request between the two; if
+    it ended a chat, returns both users to \code{open}. A chat either user has with someone else is not
+    affected. \\
+  \code{blocked_list}\newline{\scriptsize returns names}
+  & The caller's blocked users, newest first, as ID, first name and last initial. \\
+  \code{report_user}\newline{\scriptsize target, reason, details, request\_id}
+  & Records a report; details are cut to 500 characters and the reason must be one of the six values.
+    Checks: signed in; not the caller (\code{cannot report yourself}). Sets the reported profile to
+    \code{hidden} once three different users have reported it. \\
+  \code{delete_account}
+  & Returns the caller's chat partner, if any, to \code{open}, then deletes the caller's Auth user, which
+    cascades through every table (\cref{sec:flow-delete}). The client removes the caller's photos through
+    the Storage API before calling it. \\[3pt]
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
+  \code{events_near}\newline{\scriptsize lat, lng, radius\_m}\newline{\scriptsize returns event cards}
+  & Returns up to 50 event cards within \code{radius_m} of the point (default 10\,km, never more than
+    50\,km), for events that started less than three hours ago or have not started, whose host is active
+    and not blocked in either direction, ordered by start time. \\
+  \code{create_event}\newline{\scriptsize emoji, title, description, lat, lng, starts\_at\_ms}\newline{\scriptsize returns an event card}
+  & Creates an event and adds the host as its first member. Checks: signed in; profile active and adult
+    (\code{profile not ready}); valid position (\code{invalid location}); start between five minutes ago and
+    seven days ahead (\code{invalid start time}); fewer than five events created by the caller in 24 hours
+    (\code{too many events}). Title and description lengths are enforced by check constraints. \\
+  \code{join_event}\newline{\scriptsize event\_id, lat, lng}
+  & Adds the caller as a member (repeating it is harmless). Checks: signed in; the event exists
+    (\code{no such event}); no block between the caller and the host (\code{not available}); profile active
+    and adult (\code{profile not ready}); valid position (\code{invalid location}); the caller's position
+    within 5\,km of the event (\code{too far away}). \\
+  \code{leave_event}\newline{\scriptsize event\_id}
+  & If the caller hosts the event, deletes it with its members and messages; otherwise removes the
+    caller's membership. \\
+  \code{send_event_message}\newline{\scriptsize event\_id, body}\newline{\scriptsize returns the message}
+  & Checks: body of 1 to 1000 characters (\code{invalid message}); the caller is a member
+    (\code{not a member}); fewer than 30 messages in the last minute (\code{too many messages}). Stores
+    the message with the sender's display name and returns the saved row. \\
+\end{longtable}
+\endgroup
+
+\Cref{tab:crud} shows which tables each function reads and writes. It is the quickest way to find every
+function that can change a given table.
+
+\begin{table}[ht]
+  \centering
+  \caption[Table access by function]{Table access by function: R read, I insert, U update, D delete. Columns: \code{profiles},
+    \code{availability}, \code{chat_requests}, \code{messages}, \code{events}, \code{event_members},
+    \code{blocks}, \code{reports}, \code{private.location_changes}.}
+  \label{tab:crud}
+  \tablefont
+  \newcommand{\h}[1]{\rotatebox{90}{\code{#1}}}
+  \setlength{\tabcolsep}{3pt}
+  \begin{tabular}{@{}l*{9}{>{\centering\arraybackslash}p{8.5mm}}@{}}
+    \toprule
+    & \h{profiles} & \h{availability} & \h{chat_requests} & \h{messages} & \h{events} & \h{event_members} & \h{blocks} & \h{reports} & \h{location_changes} \\
+    \midrule
+    \code{go_green} & R & RIU & R & & & & & & RI \\
+    \code{update_note} & & U & & & & & & & \\
+    \code{go_offline} & & D & U & & & & & & \\
+    \code{nearby} & R & R & & & & & R & & \\
+    \code{send_request} & R & R & RIU & & & & R & & \\
+    \code{cancel_request} & & U & RU & & & & & & \\
+    \code{respond} & & RU & RU & & & & & & \\
+    \code{request_person} & R & R & R & & & & R & & \\
+    \code{end_chat} & & U & RU & & & & & & \\
+    \code{send_chat_message} & R & & R & RI & & & R & & \\
+    \code{my_status} & R & R & R & & & & & & \\
+    \code{block_user} & & U & U & & & & I & & \\
+    \code{blocked_list} & R & & & & & & R & & \\
+    \code{report_user} & U & & & & & & & RI & \\
+    \code{delete_account} & D\textsuperscript{*} & U & R & & & & & & \\
+    \code{events_near} & R & & & & R & R & R & & \\
+    \code{create_event} & R & & & & RI & RI & & & \\
+    \code{join_event} & R & & & & R & I & R & & \\
+    \code{leave_event} & & & & & RD & D & & & \\
+    \code{send_event_message} & R & & & RI & & R & & & \\
+    \code{expire_stale} (job) & & RD & RU & & & & & & D \\
+    \midrule
+    Client, directly & RIU & & R & R & & & D & & \\
+    \bottomrule
+  \end{tabular}
+  \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
+  \code{auth.users} row; the cascade removes the profile and every row that references it.
+\end{table}
+
+Two details of these functions carry more weight than their size suggests. First, \code{respond},
+\code{cancel_request} and \code{end_chat} lock the request row with \code{SELECT \dots FOR UPDATE} before
+deciding, so a cancel and an accept that arrive together are applied one after the other, and the second
+sees the first one's result. Second, \code{respond} withdraws the caller's own waiting request
+\emph{before} it checks whether the caller is already chatting. If an answer to that request is being
+committed at the same moment, the update waits for it, and the check that follows sees the result.
+
+\section{Direct table access}
+\label{sec:direct-access}
+
+The client reads and writes a few tables directly through the Data API, always within the limits of
+row-level security and column grants (\cref{tab:direct-access}).
+
+\begin{table}[ht]
+  \centering
+  \caption{Direct table and storage access by the client.}
+  \label{tab:direct-access}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{30mm}L{40mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Table}} & \textsf{\textbf{Operation}} & \textsf{\textbf{Used for}} \\
+    \midrule
+    \code{profiles} & select, insert, update own row & Loading and saving the user's own profile (\code{fetchMyProfile}, \code{saveProfile}) \\
+    \code{chat_requests} & select rows the user takes part in & Missed incoming requests (\code{pendingIncoming}), the status of a request or chat (\code{requestStatus}), the answer poll in \code{waitForAnswer} \\
+    \code{messages} & select & Chat and group chat history, newest 200 (\code{fetchMessages}) \\
+    \code{blocks} & delete own row & Unblocking (\code{unblock}) \\
+    \code{storage.objects} & upload, list, remove, sign & Photos in the user's own folder; signed URLs for photos the user may see \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+A profile row is inserted the first time it is saved and updated after that, never upserted. An upsert
+would also try to set \code{id} and \code{is_adult} on conflict, and the column grants allow a client to
+update only the editable columns, so the database would refuse it.
+
+\section{Private helpers}
+\label{sec:helpers}
+
+The functions share a small set of helpers in the \code{private} schema (\cref{tab:helpers}). Four of
+them must be executable by signed-in users, because a row-level security policy, a storage policy or a
+check constraint runs them as the user. Each answers only for the caller, or reads no tables at all.
+
+\begin{table}[ht]
+  \centering
+  \caption{Private helpers.}
+  \label{tab:helpers}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{42mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Helper}} & \textsf{\textbf{Purpose}} \\
+    \midrule
+    \code{blocked_between(a, b)} & True if either user has blocked the other \\
+    \code{person_card(target)} & The JSON card that is all another user may see of a profile \\
+    \code{near_each_other(a, b)} & True if both users are live and within 100\,m plus \code{a}'s reported accuracy, at most 150\,m \\
+    \code{event_card(event, viewer)} & An event's fields, host name and photo path, member count, and whether the viewer has joined \\
+    \code{is_chat_participant(request)} & Used by the \code{messages} select policy; executable by signed-in users \\
+    \code{is_event_member(event)} & Used by the \code{messages} select policy; executable by signed-in users \\
+    \code{in_own_folder(paths, owner)} & Used by the photo check constraints; reads no tables \\
+    \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
+    \code{expire_stale()} & The minute job (\cref{sec:housekeeping}) \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The definition of \emph{near} is worth quoting, because it decides who appears in a nearby list, who can
+be sent a request and whose photos a user may load:
+
+\begin{lstlisting}[language=pgsql, caption={The proximity test in \code{private.near_each_other}.}, label={lst:near}]
+select exists (
+  select 1
+  from public.availability av_a
+  join public.availability av_b on av_b.user_id = b
+  where av_a.user_id = a
+    and av_a.expires_at > now()
+    and av_b.expires_at > now()
+    and extensions.st_dwithin(av_a.location, av_b.location,
+                              least(150, 100 + coalesce(av_a.accuracy_m, 0)))
+);
+\end{lstlisting}
+
+The radius starts at 100 metres and grows with the accuracy the first user's phone reported, up to 150
+metres, so a poor indoor fix does not hide people who are in the same room. Distances are computed on the
+geography type, in metres on the Earth's surface.
+
+\section{Scheduled housekeeping}
+\label{sec:housekeeping}
+
+The \code{pg_cron} job \code{yap-expire-stale} runs \code{private.expire_stale()} every minute. It makes
+time-based rules hold even when no app is open:
+
+\begin{enumerate}
+  \item It deletes every live session whose end time has passed.
+  \item It marks as \code{expired} every \code{pending} request whose five minutes are up or whose sender
+    is no longer live.
+  \item It marks as \code{cancelled} every \code{accepted} chat in which neither person is live any more.
+  \item It deletes entries older than ten minutes from \code{private.location_changes}.
+\end{enumerate}
+
+Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do
+not rely on the job for correctness: they compare end times with \code{now()} themselves, and
+\code{send_request} expires the caller's own timed-out request before it counts waiting requests.
+
+\section{Realtime publication}
+\label{sec:realtime-publication}
+
+The tables \code{chat_requests} and \code{messages} belong to the \code{supabase_realtime} publication,
+and both have \code{REPLICA IDENTITY FULL}, so Realtime can evaluate the select policies on updates as
+well as inserts. A client receives an insert or update on these tables only if it could select the row
+itself: requests it sends or receives, and messages of chats it takes part in or events it has joined,
+excluding messages from users it has blocked. \Cref{sec:realtime} describes the channels the client opens.

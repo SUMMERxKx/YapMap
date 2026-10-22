@@ -1,0 +1,95 @@
+\chapter{Repository file map}
+\label{app:file-map}
+
+Every tracked file outside \code{node_modules}, grouped by directory, with its role. \Cref{app:routes}
+describes the files in \code{src/app} individually.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{58mm}L{\dimexpr\linewidth-58mm-2\tabcolsep\relax}@{}}
+  \caption{Repository file map.}
+  \label{tab:file-map}\\
+  \toprule
+  \textsf{\textbf{Path}} & \textsf{\textbf{Role}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Path}} & \textsf{\textbf{Role}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Root}}} \\
+  \code{README.md} & Product summary, how to run, dashboard settings, code tour, checks \\
+  \code{LICENSE} & Proprietary notice: all rights reserved \\
+  \code{package.json}, \code{package-lock.json} & Dependencies and scripts \\
+  \code{app.json} & Expo app configuration \\
+  \code{tsconfig.json}, \code{eslint.config.js} & TypeScript and ESLint configuration \\
+  \code{.nvmrc}, \code{.gitignore} & Node 22; ignored files, including generated native folders \\
+  \code{.vscode/extensions.json}, \code{settings.json} & Editor recommendations and on-save actions \\
+  \code{docs/technical-report/} & This report: LaTeX sources, diagram sources and the compiled PDF \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Backend}}} \\
+  \code{supabase/migrations/*.sql} & The eight migrations (\cref{app:migrations}) \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Assets and scripts}}} \\
+  \code{assets/brand/yap-mark.svg} & The brand mark; source of every icon \\
+  \code{assets/expo.icon/} & iOS icon bundle (\code{icon.json} and a copy of the mark) \\
+  \code{assets/images/*.png} & Generated icon, Android icon layers, splash images and favicon \\
+  \code{assets/mascot/*.svg} & The Yap cat: \code{dizzy}, \code{happy}, \code{searching}, \code{sleepy}, \code{waiting} \\
+  \code{scripts/make-icons.sh} & \code{npm run icons}: images from the mark (ImageMagick 7) \\
+  \code{scripts/make-mascot.mjs} & \code{npm run mascot}: \code{mascot-art.ts} from the drawings \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/data}, \code{src/state}, \code{src/config}}}} \\
+  \code{data/api.ts} & Every backend call (\cref{app:api}) \\
+  \code{data/supabase-client.ts} & The single Supabase client and its session storage \\
+  \code{data/types.ts} & Client data shapes \\
+  \code{data/constants.ts} & Fixed lists, limits and timings \\
+  \code{data/database.types.ts} & Types generated from the schema \\
+  \code{state/store.ts} & The store (\cref{app:store}) \\
+  \code{state/profile-draft.tsx} & Profile setup draft context; \code{SETUP_STEPS} \\
+  \code{state/saved-prefs.ts} & Per-account preferences in AsyncStorage \\
+  \code{config/features.ts} & Feature flags \\
+  \code{config/supabase.ts} & Project URL and publishable key \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/hooks}}}} \\
+  \code{use-clock.ts} & Shared one-second clock as an external store \\
+  \code{use-countdown.ts} & Milliseconds left to a deadline, with a callback at zero \\
+  \code{use-foreground-location.ts} & Permission, fix with timeout, recent-position fallback \\
+  \code{use-nearby.ts} & \code{useNearbyPolling} (20\,s poll) and \code{useNearby} (list and pull-to-refresh) \\
+  \code{use-nearby-alerts.ts} & Nearby prompts, each person once per session \\
+  \code{use-person-photos.ts} & Lazy signing of a person's further photos \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/lib}}}} \\
+  \code{error-message.ts} & An error's message or a fallback \\
+  \code{event-category.ts} & Stored event value to name and icon \\
+  \code{format-person.ts} & \code{displayName}, \code{genderLabel}, \code{asSeenByOthers} \\
+  \code{format-time.ts} & \code{formatClock}, \code{formatMinutesLeft}, \code{formatEventTime}, \code{formatStartTime} \\
+  \code{password-problem.ts} & Length and confirmation check \\
+  \code{photo-source.ts} & Image source with a token-free cache key \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/theme}}}} \\
+  \code{tokens.ts} & Palettes (light, dark), spacing, layout, radius, size, type, elevation, motion \\
+  \code{index.ts} & \code{useTheme} \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{\code{src/components}}}} \\
+  \code{account/cant-load.tsx} & \ui{Can't reach Yap} retry screen \\
+  \code{account/switch-account-button.tsx} & \ui{Use a different account} \\
+  \code{chat/active-chat-bar.tsx} & Bar that reopens the open chat \\
+  \code{chat/chat-header.tsx} & Chat top bar \\
+  \code{chat/chat-thread.tsx} & Message list and composer for both chat kinds \\
+  \code{events/event-icon.tsx} & Category icon badge \\
+  \code{live/hero-button.tsx} & The \ui{YAP} and \ui{LIVE} button \\
+  \code{live/duration-chips.tsx} & 30, 60 and 120 minute choice \\
+  \code{live/nearby-toast.tsx} & The nearby prompt \\
+  \code{mascot/mascot.tsx}, \code{mascot-art.ts} & The Yap cat and its generated drawings \\
+  \code{profile/avatar.tsx} & Photo or initial, small copy at 64 points or less \\
+  \code{profile/person-card.tsx} & Nearby list card and its placeholder \\
+  \code{profile/person-details.tsx} & Full profile and its placeholder \\
+  \code{profile/photo-grid.tsx} & Further photo slots, three per row \\
+  \code{profile/profile-form.tsx} & Single-page profile form \\
+  \code{profile/setup-step.tsx} & One setup question per screen with progress \\
+  \code{profile/verified-badge.tsx} & \ui{Verified} badge \\
+  \code{safety/safety-menu.tsx} & \ui{Report} and \ui{Block} menu \\
+  \code{ui/*} & Shared primitives: \code{app-text}, \code{badge}, \code{button}, \code{card}, \code{checkbox}, \code{chip}, \code{empty-state}, \code{form-section}, \code{glass-backdrop}, \code{info-note}, \code{list-row}, \code{offline-banner}, \code{password-field}, \code{press-feedback}, \code{radio-option}, \code{screen}, \code{screen-header}, \code{skeleton}, \code{text-field}, \code{toggle-row}, \code{top-bar} \\
+\end{longtable}
+\endgroup

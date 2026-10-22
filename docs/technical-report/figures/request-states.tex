@@ -1,0 +1,21 @@
+% Lifecycle of a say-hi request: the status column of chat_requests (Figure: request states).
+% Labels are short; the table of request transitions gives every trigger.
+\begin{tikzpicture}
+  \node[startdot] (start) at (0,0) {};
+  \node[state] (pending) at (2.3,0) {pending};
+  \node[state] (accepted) at (8.4,0) {accepted};
+  \node[endstate] (met) at (13.2,0) {met};
+  \node[endstate] (declined) at (0.6,-3.4) {declined};
+  \node[endstate] (expired) at (3.9,-3.4) {expired};
+  \node[endstate] (cancelled) at (8.4,-3.4) {cancelled};
+
+  \draw[transition] (start) -- (pending);
+  \node[translabel, fill=none, above=3pt] at ($(start)!0.5!(pending.west)$) {T1};
+  \draw[transition] (pending) -- node[translabel, above=2pt, fill=none] {T2\enskip accept} (accepted);
+  \draw[transition] (accepted) -- node[translabel, above=2pt, fill=none] {T7\enskip ended, met} (met);
+  \draw[transition] ($(pending.south)+(-0.5,0)$) -- node[translabel, left=3pt, fill=none] {T3\enskip decline} (declined.north);
+  \draw[transition] ($(pending.south)+(0.4,0)$) -- node[translabel, right=3pt, fill=none] {T4\enskip expired} (expired.north);
+  \draw[transition] ($(pending.east)+(0,-0.22)$) -- (6.0,-0.22) |- (cancelled.west);
+  \node[translabel, fill=none, align=left, anchor=west] at (6.1,-1.75) {T5\enskip withdrawn\\\hphantom{T5\enskip}or blocked};
+  \draw[transition] (accepted.south) -- node[translabel, right=3pt, fill=none, align=left] {T6\enskip ended, not met;\\\hphantom{T6\enskip}blocked; or stale} (cancelled.north);
+\end{tikzpicture}

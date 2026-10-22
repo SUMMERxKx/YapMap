@@ -1,0 +1,21 @@
+% How a change is validated before it reaches main (Figure: validation).
+\begin{tikzpicture}[
+    stage/.style={box, font=\sffamily\scriptsize, text width=28mm, minimum height=24mm, align=flush left, anchor=north},
+    lab/.style={font=\sffamily\scriptsize, text=muted, fill=white, inner sep=1.2pt},
+  ]
+  \node[stage, clientbox, text width=20mm, align=center] (change) at (1.2,0) {\textbf{Change}\\[3pt]on a branch, with its intent};
+  \node[stage] (static) at (4.35,0) {\textbf{Static checks}\\[3pt]\texttt{tsc --noEmit}\\\texttt{expo lint}\\\texttt{expo-doctor}\\\texttt{expo export}, iOS and Android};
+  \node[stage, serverbox] (proofs) at (7.95,0) {\textbf{Behaviour proofs}\\[3pt]local Supabase stack\\before the change: fails\\after the change: passes};
+  \node[stage, accentbox] (pipeline) at (11.55,0) {\textbf{Review pipeline}\\[3pt]review against the intent; tests; documentation; lint; push; pull request};
+  \node[stage, clientbox, text width=14mm, align=center] (main) at (14.95,0) {\textbf{main}};
+
+  \draw[flow] (change.east |- 0,-1.2) -- (static.west |- 0,-1.2);
+  \draw[flow] (static.east |- 0,-1.2) -- (proofs.west |- 0,-1.2);
+  \draw[flow] (proofs.east |- 0,-1.2) -- (pipeline.west |- 0,-1.2);
+  \draw[flow] (pipeline.east |- 0,-1.2) -- (main.west |- 0,-1.2);
+  \node[lab, anchor=north, text width=32mm, align=center] at ($(proofs.south)+(0,-0.1)$) {for changes to behaviour or to the database};
+
+  \node[box, font=\sffamily\scriptsize, text width=58mm, align=center, anchor=north] (manual) at (4.35,-3.3)
+    {\textbf{Manual testing}: two phones in Expo Go, two accounts, within about 100\,m, both live};
+  \draw[softflow] (change.south) |- (manual.west);
+\end{tikzpicture}

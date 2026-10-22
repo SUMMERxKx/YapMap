@@ -1,0 +1,64 @@
+\chapter{Known limitations and future work}
+\label{ch:limitations}
+
+\Cref{tab:limitations} lists the known limitations of the current implementation and their effect.
+\Cref{tab:planned} lists the work the project's open issues plan. None of the planned work is
+implemented.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{38mm}L{\dimexpr\linewidth-38mm-2\tabcolsep\relax}@{}}
+  \caption{Known limitations.}
+  \label{tab:limitations}\\
+  \toprule
+  \textsf{\textbf{Limitation}} & \textsf{\textbf{Effect and context}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Limitation}} & \textsf{\textbf{Effect and context}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Product}}} \\
+  No push notifications & Requests and messages arrive only while the app is open, so the screen stays on while live. A request to a locked or closed phone is shown only if the app returns within its five minutes; otherwise it expires as \ui{Not this time}. Push was deferred; the routes it would open already exist. \\
+  One request and one chat at a time & By design. A request that arrives while another request or a chat is on screen is never shown and expires; its sender cannot tell it from a decline. \\
+  Verification and social sign-in off & Both are built behind flags (\cref{sec:feature-flags}). Verification has no face comparison, and neither Apple nor Google is configured in Supabase Auth. \\
+  Hosts cannot manage events & The app offers no way to edit or delete an event. Events leave the map three hours after they start. \\
+  Placeholder links & Community rules, privacy policy, terms and support point to placeholder addresses. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
+  Bounded lists & At most 50 people nearby, 50 events on the map and the newest 200 messages per chat. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Platform}}} \\
+  No web target & The template's web settings remain (\code{app.json}, \code{npm run web}, \code{react-native-web}, a web branch in the Supabase client), but \code{react-native-maps} has no web implementation, so the web build is not supported. \\
+  Foreground location only & Deliberate: the app never asks for background location, so it cannot notice a live user walking away; the session runs to its end or until the user goes offline. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Security and privacy}}} \\
+  Relocation across sessions & A modified client can reappear anywhere by going offline and live again, up to three times in ten minutes. Accepted to keep the delete-on-offline promise (\cref{sec:trade-off}). \\
+  Self-reported join position & \code{join_event} checks the distance to the position the phone sends and applies no relocation limit, so a modified client can join a distant event. \\
+  Signed URLs outlive visibility & A photo URL signed while its owner was visible works until it expires, up to an hour later. \\
+  Shared event chats & A block hides the blocked user's group messages from the blocker, but not the blocker's messages from the blocked user. \\
+  Self-declared age & The 18+ confirmation is not verified. \\
+  No moderation tooling & Three reports hide a profile, but nothing lets a person review reports, restore a profile or suspend one. \\
+  Session storage & The session is kept in AsyncStorage, which is not encrypted, because it is too large for the platform's secure store. \\
+  \midrule
+  \multicolumn{2}{@{}l}{\textsf{\textbf{Operations}}} \\
+  No retention policy & Requests, messages and past events are kept until an account is deleted. How long to keep chats is an open product decision. \\
+  One environment & No staging project; the hosted migration history does not match the repository's file names, so \code{supabase db push} cannot be used. \\
+  No automated tests or CI & See \cref{ch:testing}. \\
+\end{longtable}
+\endgroup
+
+\begin{table}[ht]
+  \centering
+  \caption{Planned work in open issues.}
+  \label{tab:planned}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{38mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Issue}} & \textsf{\textbf{Plan}} \\
+    \midrule
+    Backend and scaling plan (issue 25) & Expo push notifications sent from Supabase Edge Functions. For growth: Realtime Broadcast channels for chat instead of database change events, read replicas for the nearby query, image transformations or a CDN for thumbnails, separate production and staging projects, database backups and error monitoring. \\
+    Selfie verification (issue 17) & First a pose selfie reviewed by a person; then an automatic face comparison by a small self-hosted service behind an Edge Function; at larger scale, a managed service with liveness detection. Every phase treats the selfie as biometric data: explicit consent, deletion after the check, only the result kept. \\
+    Brand (issue 7) & A new logo, a background image for the welcome and sign-in screens, and a new app icon and splash screen, waiting on design. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

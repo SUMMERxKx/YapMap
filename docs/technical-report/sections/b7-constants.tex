@@ -1,0 +1,104 @@
+\chapter{Constants and limits}
+\label{app:constants}
+
+Every named constant in the client and every literal limit in the database functions. \Cref{tab:parameters}
+summarises the ones that shape behaviour; this appendix is the full list.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{50mm}L{44mm}L{\dimexpr\linewidth-94mm-4\tabcolsep\relax}@{}}
+  \caption{Client constants.}
+  \label{tab:client-constants}\\
+  \toprule
+  \textsf{\textbf{Name}} & \textsf{\textbf{Value}} & \textsf{\textbf{File and use}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Name}} & \textsf{\textbf{Value}} & \textsf{\textbf{File and use}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{3}{@{}l}{\textsf{\textbf{\code{src/data/constants.ts}}}} \\
+  \code{GENDERS} & woman, man, non-binary, prefer-not & Gender choices and labels \\
+  \code{INTERESTS} & 32 values & Coffee, Books, Music, Movies, TV shows, Gaming, Tech, Startups, Design, Art, Photography, Writing, Science, History, Philosophy, Languages, Travel, Food, Cooking, Fitness, Running, Hiking, Yoga, Sports, Board games, Anime, Podcasts, Fashion, Volunteering, Pets, Nature, Comedy \\
+  \code{EVENT_CATEGORIES} & 12 entries & Stored value, name and icon (\cref{tab:event-categories}) \\
+  \code{EVENT_CATEGORY_FALLBACK} & name \ui{Event}, icon \code{calendar} & Unknown stored values \\
+  \code{EVENT_MAX_AHEAD_MS} & 604\,800\,000 (7 days) & Latest event start in the form \\
+  \code{EVENT_RADIUS_KM} & min 1, max 50, default 10 & Map radius slider \\
+  \code{REPORT_REASONS} & 6 values & Report form \\
+  \code{DURATIONS} & 30, 60, 120 & Live durations, in minutes \\
+  \code{NEARBY_REFRESH_MS} & 20\,000 & Nearby poll period \\
+  \code{LIMITS} & intro 300; note 60; first and last name 30; message 1000; event title 60; event description 200 & Text field limits, in characters \\
+  \code{INTEREST_RANGE} & 3 to 5 & Interests per profile \\
+  \code{PHOTO_RANGE} & 4 to 6 & Further photos per profile \\
+  \code{PASSWORD_MIN_LENGTH} & 8 & New passwords \\
+  \code{VERIFICATION_POSES} & 4 poses & Selfie check \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{\code{src/data/api.ts}}}} \\
+  \code{SIGNED_URL_SECONDS} & 3600 & Lifetime of a signed photo URL \\
+  \code{SIGNED_URL_MIN_LEFT_MS} & 600\,000 (10 minutes) & Reuse a URL until this much remains \\
+  \code{UNSIGNED_RETRY_MS} & 60\,000 & Ask again for a photo that could not be signed \\
+  \code{PHOTO_MAX_WIDTH} & 1080 & Uploaded photo width, pixels \\
+  \code{THUMB_WIDTH} & 320 & Small copy width, pixels \\
+  JPEG quality & 0.8 & \code{uploadJpeg} \\
+  \code{HISTORY_LIMIT} & 200 & Messages loaded per chat \\
+  \code{PHOTO_LIST_PAGE_SIZE} & 100 & Folder listing page size \\
+  Answer poll & 7000\,ms & \code{waitForAnswer} \\
+  Answer grace & 3000\,ms after the end time & \code{waitForAnswer} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Elsewhere in \code{src}}}} \\
+  \code{FIX_TIMEOUT_MS} & 8000 & \code{hooks/use-foreground-location.ts}; also used by the map \\
+  \code{RECENT_POSITION_MS} & 300\,000 (5 minutes) & \code{hooks/use-foreground-location.ts}: fallback position age \\
+  \code{RECENT_POSITION_MS} & 120\,000 (2 minutes) & \code{app/(app)/(tabs)/map.tsx}: position reused without a new fix \\
+  \code{DEFAULT_REGION} & 49.2827, $-$123.1207; deltas 0.04 & \code{map.tsx}: Vancouver, the fallback centre \\
+  \code{KM_PER_DEGREE} & 111 & \code{map.tsx}: fitting the region to the radius \\
+  \code{PIN_ICON_SIZE}, \code{PIN_PADDING} & 24, 4 & \code{map.tsx}: event pins \\
+  \code{LENGTH} & 8 & \code{app/(auth)/verify.tsx}: code digits \\
+  \code{RESEND_SECONDS} & 60 & \code{verify.tsx}: resend cooldown \\
+  \code{SAFETY_TIP_TIMES} & 3 & \code{app/(app)/chat.tsx}: safety tip views \\
+  \code{SHOW_FOR_MS} & 8000 & \code{components/live/nearby-toast.tsx}: prompt duration \\
+  \code{THUMB_MAX_SIZE} & 64 & \code{components/profile/avatar.tsx}: largest avatar that uses the small copy, points \\
+  \code{SHORT_SCREEN_HEIGHT} & 700 & \code{app/(app)/tutorial.tsx}: smaller art below this height \\
+  \code{SETUP_STEPS} & 6 & \code{state/profile-draft.tsx} \\
+  Preferences key & \code{yap.prefs.<user-id>} & \code{state/saved-prefs.ts} \\
+  Keep-awake tag & \code{yap-live} & \code{app/(app)/_layout.tsx} \\
+\end{longtable}
+\endgroup
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{60mm}L{36mm}L{\dimexpr\linewidth-96mm-4\tabcolsep\relax}@{}}
+  \caption{Limits in the database functions.}
+  \label{tab:server-constants}\\
+  \toprule
+  \textsf{\textbf{Limit}} & \textsf{\textbf{Value}} & \textsf{\textbf{Where}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Limit}} & \textsf{\textbf{Value}} & \textsf{\textbf{Where}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Nearby radius & $\min(150, 100 + \mathrm{accuracy})$\,m & \code{nearby}, \code{near_each_other} \\
+  Nearby and event results & 50 rows & \code{nearby}, \code{events_near} \\
+  Live durations & 30, 60, 120 minutes & \code{go_green} \\
+  Note & 60 characters & \code{go_green}, \code{update_note}, check \\
+  GPS wobble & 150\,m & \code{go_green} \\
+  Speed & $150 + 10000/3600 \times t$\,m, $t$ in seconds & \code{go_green} \\
+  Location changes & 3 per 10 minutes & \code{go_green} \\
+  Request lifetime & 5 minutes & column default \\
+  Requests sent & 5 per 10 minutes & \code{send_request} \\
+  Messages sent & 30 per minute & both send functions \\
+  Message length & 1 to 1000 characters & send functions, check \\
+  Event radius & default 10\,000\,m, at most 50\,000\,m & \code{events_near} \\
+  Event visibility after start & 3 hours & \code{events_near}, \code{can_see_photo} \\
+  Event start & 5 minutes ago to 7 days ahead & \code{create_event} \\
+  Events created & 5 per 24 hours & \code{create_event} \\
+  Join distance & 5000\,m & \code{join_event} \\
+  Report details & 500 characters & \code{report_user}, check \\
+  Reporters before hiding & 3 distinct & \code{report_user} \\
+  Location-change log & 10 minutes & \code{expire_stale} \\
+  Photo object size & 5\,242\,880 bytes & bucket \\
+  Further photos & 6 & \code{profiles_photo_paths_max} \\
+\end{longtable}
+\endgroup

@@ -1,0 +1,46 @@
+% Yap technical report: architecture, data flow and features of the Yap mobile app.
+%
+% Build from this folder with Tectonic, which fetches the packages it needs:
+%
+%   tectonic yapmap-technical-report.tex
+%
+% Section text lives in sections/, diagram sources in figures/, shared styles in preamble.tex.
+
+\documentclass[11pt, openany]{report}
+\input{preamble}
+
+\begin{document}
+
+\pagenumbering{alph}
+\input{sections/00-front-matter}
+
+\clearpage
+\pagenumbering{arabic}
+\input{sections/01-introduction}
+\input{sections/02-architecture}
+\input{sections/03-data-model}
+\input{sections/04-server-interface}
+\input{sections/05-data-flows}
+\input{sections/06-features}
+\input{sections/07-security-privacy}
+\input{sections/08-reliability}
+\input{sections/09-performance}
+\input{sections/10-configuration}
+\input{sections/11-testing}
+\input{sections/12-limitations}
+\input{sections/13-glossary}
+
+\appendix
+\input{sections/b1-routes}
+\input{sections/b2-store}
+\input{sections/b3-api}
+\input{sections/b4-db-functions}
+\input{sections/b5-tables}
+\input{sections/b6-realtime-storage-cron}
+\input{sections/b7-constants}
+\input{sections/b8-config}
+\input{sections/b9-refusals}
+\input{sections/b10-migrations}
+\input{sections/b11-file-map}
+
+\end{document}

@@ -1,0 +1,40 @@
+% Anatomy of a database function call, with send_request as the example (Figure: call anatomy).
+\begin{tikzpicture}[
+    stage/.style={box, font=\sffamily\scriptsize, text width=25mm, minimum height=19mm, align=center},
+    lab/.style={font=\sffamily\scriptsize, text=muted, inner sep=1.2pt, align=center},
+  ]
+  \node[stage, clientbox] (store) at (1.45,0) {\textbf{Store action}\\[2pt]\texttt{sayHi(person)}};
+  \node[stage, accentbox] (api) at (4.65,0) {\textbf{API layer}\\[2pt]\texttt{supabase.rpc(}\\\texttt{'send\_request',}\\\texttt{\{target\})}};
+  \node[stage, serverbox] (rest) at (7.85,0) {\textbf{Data API}\\[2pt]verifies the token;\\runs as role\\\texttt{authenticated}};
+  \node[stage, serverbox, text width=27mm] (fn) at (11.15,0) {\textbf{\texttt{public.}}\\\textbf{\texttt{send\_request}}\\[2pt]\texttt{SECURITY DEFINER}\\\texttt{search\_path = ''}\\caller = \texttt{auth.uid()}};
+  \node[stage, serverbox] (tables) at (14.45,0) {\textbf{Tables}\\[2pt]read and written as the owner, past row-level security};
+
+  \draw[flow] (store) -- (api);
+  \draw[flow] (api) -- (rest);
+  \draw[flow] (rest) -- (fn);
+  \draw[flow] (fn) -- (tables);
+
+  \node[box, font=\sffamily\scriptsize, text width=40mm, align=flush left, anchor=north] (checks) at (12.65,-1.45)
+    {\textbf{Checks, in order}\\[2pt]
+     1. signed in; not the caller\\
+     2. no block either way; target active\\
+     3. caller not already chatting\\
+     4. both live, target open, near\\
+     5. under 5 requests in 10 minutes\\
+     6. no other request waiting\\[2pt]
+     then insert the \texttt{pending} row};
+  \draw[flow] (fn.south) |- ($(checks.north)+(0,0.25)$) -- (checks.north);
+
+  \node[stage, minimum height=12mm, text width=27mm, accentbox] (ok) at (7.85,-2.6) {success: JSON\\\texttt{\{id, expiresAt\}}};
+  \node[stage, minimum height=12mm, text width=27mm, draw=alert, fill=alertsoft] (no) at (7.85,-4.3) {refusal: exception\\\texttt{'not nearby'}};
+  \draw[flow] (checks.west |- ok) -- (ok);
+  \draw[flow] (checks.west |- no) -- (no);
+  \node[stage, minimum height=12mm, accentbox] (convert) at (4.65,-2.6) {typed result};
+  \node[stage, minimum height=12mm, accentbox] (sentence) at (4.65,-4.3) {sentence from\\\texttt{SERVER\_REFUSALS}};
+  \draw[flow] (ok) -- (convert);
+  \draw[flow] (no) -- (sentence);
+  \node[stage, minimum height=12mm, clientbox] (stateset) at (1.45,-2.6) {state updated;\\waiting screen};
+  \node[stage, minimum height=12mm, clientbox] (alert) at (1.45,-4.3) {alert: ``They're not\\nearby any more.''};
+  \draw[flow] (convert) -- (stateset);
+  \draw[flow] (sentence) -- (alert);
+\end{tikzpicture}

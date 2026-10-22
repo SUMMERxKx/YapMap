@@ -61,6 +61,7 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 
 ## Code tour
 
+- **Technical report:** [`docs/technical-report/yapmap-technical-report.pdf`](docs/technical-report/yapmap-technical-report.pdf) describes the architecture, data model, data flows and every feature in depth.
 - **Entry point:** `src/app/_layout.tsx` (Expo Router). It routes people through sign-in, profile
   setup and into the app with guarded stacks.
 - **Screens** live in `src/app/` — a file is a route, a `_layout.tsx` is a navigator. The signed-in

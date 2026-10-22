@@ -1,0 +1,67 @@
+\chapter{Realtime, storage and scheduled jobs}
+\label{app:realtime-storage-cron}
+
+\section{Realtime subscriptions}
+
+Every channel listens for Postgres changes in the \code{public} schema. The API layer subscribes each
+one through \code{subscribeAsMe}, which sets the Realtime token first, and the tables' select policies
+limit what each channel delivers.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{44mm}L{38mm}L{\dimexpr\linewidth-82mm-4\tabcolsep\relax}@{}}
+  \caption{Realtime subscriptions in full.}
+  \label{tab:subscriptions}\\
+  \toprule
+  \textsf{\textbf{Channel; created by}} & \textsf{\textbf{Event, table, filter}} & \textsf{\textbf{Opened, handled, closed}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Channel; created by}} & \textsf{\textbf{Event, table, filter}} & \textsf{\textbf{Opened, handled, closed}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \code{incoming-requests}; \code{subscribeIncoming} & \code{INSERT} on \code{chat_requests}, \code{to_user=eq.<user-id>} & Opened by \code{listenForRequests} after sign-in with a profile, or after the first profile save. A \code{pending} row calls \code{onIncoming}. First join: \code{checkForMissedRequest}; later joins: \code{catchUp}. Closed on sign-out. \\
+  \code{request-<id>}; \code{waitForAnswer} & \code{UPDATE} on \code{chat_requests}, \code{id=eq.<id>} & Opened when a request is sent or restored. \code{accepted} resolves the wait; any other non-pending status resolves it as \ui{Not this time}. Closed when the wait ends. \\
+  \code{chat-<id>}; \code{subscribeChat} & \code{INSERT} on \code{messages}, \code{request_id=eq.<id>}; \code{UPDATE} on \code{chat_requests}, \code{id=eq.<id>} & Opened by \code{openChat}. Messages are merged by ID; a status other than \code{accepted} marks the chat ended. Each join runs \code{resyncChat}. Closed when the chat ends, is blocked, or on sign-out. \\
+  \code{messages-event_id-<id>}; \code{subscribeEventMessages} & \code{INSERT} on \code{messages}, \code{event_id=eq.<id>} & Opened by \code{enterEventChat} when a group chat screen opens. Messages are merged into the event. Each join loads the history. Closed by \code{leaveEventChat}. \\
+\end{longtable}
+\endgroup
+
+\section{Storage}
+
+\begin{table}[ht]
+  \centering
+  \caption{The \code{photos} bucket and its policies on \code{storage.objects}.}
+  \label{tab:storage}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{44mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Item}} & \textsf{\textbf{Definition}} \\
+    \midrule
+    Bucket \code{photos} & private (\code{public = false}); file size limit 5\,242\,880 bytes; MIME types \code{image/jpeg}, \code{image/png}, \code{image/webp} \\
+    Object names & \code{<user-id>/<slot>-<milliseconds>.jpg}; slot \code{profile} or \code{photo0} to \code{photo5}; the profile picture's copy ends in \code{-small.jpg} \\
+    \code{photos_read_visible} & select, \code{authenticated}: bucket \code{photos} and (first folder is the user's ID, or \code{private.can_see_photo(name)}) \\
+    \code{photos_insert_own_folder} & insert, \code{authenticated}: bucket \code{photos} and first folder is the user's ID \\
+    \code{photos_update_own_folder} & update, \code{authenticated}: same condition \\
+    \code{photos_delete_own_folder} & delete, \code{authenticated}: same condition \\
+    Removed policy & \code{photos_read_signed_in}, which let any signed-in user read every photo, was dropped by the server-rules migration \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Scheduled jobs}
+
+\begin{table}[ht]
+  \centering
+  \caption{Scheduled jobs.}
+  \label{tab:cron}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{30mm}L{24mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Job}} & \textsf{\textbf{Schedule}} & \textsf{\textbf{Command and effect}} \\
+    \midrule
+    \code{yap-expire-stale} & \texttt{* * * * *} & \code{select private.expire_stale()}: delete ended live sessions; expire pending requests whose time is up or whose sender is not live; cancel accepted chats in which neither person is live; delete location changes older than 10 minutes \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

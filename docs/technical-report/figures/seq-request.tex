@@ -1,0 +1,34 @@
+% Sequence: a say-hi request and its answer (Figure: request sequence).
+\begin{tikzpicture}
+  \participant{a}{0}{Sender's app}
+  \participant[serveractor]{db}{3.9}{Postgres}
+  \participant[serveractor]{rt}{7.8}{Realtime}
+  \participant{b}{11.6}{Recipient's app}
+
+  \msg{a}{db}{0.8}{\code{send_request}(target)}
+  \seqnote{db}{db}{1.05}{checks; insert \code{pending},\\ends in 5 min}
+  \msg[reply]{db}{a}{2.1}{request ID and end time}
+  \selfmsg{a}{2.35}{wait: listen for updates,\\poll every 7\,s, give up 3\,s after the end}
+  \msg[push]{db}{rt}{3.4}{row inserted}
+  \msg[push]{rt}{b}{4.0}{insert where \code{to_user} = recipient}
+  \msg{b}{db}{4.6}{\code{request_person}}
+  \msg[reply]{db}{b}{5.2}{sender's person card}
+  \selfmsg{b}{5.45}{full-screen request,\\5-minute countdown}
+
+  \fragment{a}{b}{6.4}{14.0}{alt}
+  \fragguardat{a}{6.75}{[recipient accepts]}
+  \msg{b}{db}{7.35}{\code{respond}(accept)}
+  \seqnote{db}{db}{7.6}{\code{accepted}; both users \code{chatting}}
+  \msg[push]{db}{rt}{8.4}{row updated}
+  \msg[push]{rt}{a}{9.0}{status \code{accepted}}
+  \seqnote{a}{a}{9.25}{both apps open the chat}
+  \fragsep{a}{b}{10.0}{[recipient declines, or nobody answers in time]}
+  \msg{b}{db}{10.65}{\code{respond}(decline), or \code{expire_stale}}
+  \msg[push]{db}{rt}{11.25}{row updated}
+  \msg[push]{rt}{a}{11.85}{status \code{declined} or \code{expired}}
+  \seqnote{a}{a}{12.1}{``Not this time''}
+  \fragsep{a}{b}{12.85}{[sender cancels]}
+  \msg{a}{db}{13.7}{\code{cancel_request}: an accept now fails}
+
+  \lifelines{14.25}{a, db, rt, b}
+\end{tikzpicture}

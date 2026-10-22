@@ -1,0 +1,34 @@
+% Sequence: loading, creating and joining events, and the group chat (Figure: events sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Map and\\event screens}
+  \participant[actor]{loc}{3.2}{Phone location}
+  \participant[actor]{store}{6.5}{Store and\\API layer}
+  \participant[serveractor]{db}{10.1}{Postgres}
+  \participant[serveractor]{rt}{13.6}{Realtime}
+
+  \msg{ui}{loc}{0.8}{permission (asked once) and position}
+  \msg[reply]{loc}{ui}{1.4}{recent, fresh or last known position}
+  \msg{ui}{store}{2.0}{\code{loadEvents}(centre)}
+  \msg{store}{db}{2.6}{\code{events_near}(lat, lng, radius 1--50\,km)}
+  \msg[reply]{db}{store}{3.2}{up to 50 event cards}
+  \msg[reply]{store}{ui}{3.8}{pins and the radius circle}
+
+  \fragment{ui}{rt}{4.2}{6.8}{create: long-press the map, or ``Create event here''}
+  \msg{ui}{store}{5.05}{\code{createEvent}(category, title, details, place, start)}
+  \msg{store}{db}{5.65}{\code{create_event}: host becomes a member}
+  \msg[reply]{db}{store}{6.25}{event card; the group chat opens}
+
+  \fragment{ui}{rt}{7.2}{10.4}{join: tap a pin, then ``Join and open chat''}
+  \msg{ui}{loc}{8.05}{position}
+  \msg{ui}{store}{8.65}{\code{joinEvent}(id, position)}
+  \msg{store}{db}{9.25}{\code{join_event}: within 5\,km}
+  \msg[reply]{db}{store}{9.85}{member; the group chat opens}
+
+  \fragment{ui}{rt}{10.8}{13.9}{group chat, while its screen is open}
+  \msg{store}{rt}{11.65}{join \code{messages-event_id-<id>}}
+  \msg{store}{db}{12.25}{newest 200 messages; \code{send_event_message}}
+  \msg[push]{rt}{store}{12.85}{new messages from members}
+  \msg[reply]{store}{ui}{13.45}{thread, minus blocked senders}
+
+  \lifelines{14.15}{ui, loc, store, db, rt}
+\end{tikzpicture}

@@ -1,0 +1,93 @@
+% Shared TikZ styles and the small macro set used to draw sequence diagrams.
+
+\tikzset{
+  >={Stealth[length=2.1mm, width=1.6mm]},
+  every picture/.style={line cap=round, line join=round},
+  % boxes
+  box/.style={draw=rule, fill=white, rounded corners=1.5pt, font=\sffamily\small, align=center,
+    inner xsep=5pt, inner ysep=4pt, minimum height=7mm},
+  % colour variants: combine with box, or with a style built on it
+  clientbox/.style={fill=panel},
+  serverbox/.style={draw=serverline, fill=server},
+  accentbox/.style={draw=accent, fill=accentsoft},
+  layer/.style={draw=hairline, fill=white, rounded corners=3pt, inner sep=7pt},
+  layerlabel/.style={font=\sffamily\scriptsize\bfseries, text=muted, anchor=north west, inner sep=3pt},
+  % lines
+  flow/.style={->, draw=ink, line width=0.55pt},
+  softflow/.style={->, draw=muted, line width=0.5pt, dashed},
+  edgelabel/.style={font=\sffamily\scriptsize, fill=white, inner sep=1.5pt, text=ink},
+  % state machines
+  state/.style={draw=accent, fill=accentsoft, rounded corners=7pt, font=\sffamily\small\bfseries,
+    minimum height=8mm, minimum width=19mm, align=center, text=accentdark},
+  endstate/.style={state, draw=rule, fill=panel, text=ink},
+  startdot/.style={circle, fill=ink, inner sep=0pt, minimum size=2.2mm},
+  transition/.style={->, draw=ink, line width=0.55pt},
+  translabel/.style={font=\sffamily\scriptsize, fill=white, inner sep=1.5pt, align=center, text=ink},
+  % flowcharts
+  step/.style={box, text width=#1, inner ysep=5pt},
+  step/.default=34mm,
+  decision/.style={draw=accent, fill=accentsoft, diamond, aspect=2.2, inner sep=1pt,
+    font=\sffamily\scriptsize, align=center, text=accentdark},
+  terminal/.style={box, rounded corners=8pt, fill=panel},
+  % entity-relationship diagrams
+  entity/.style={rectangle split, rectangle split parts=2, draw=rule, fill=white,
+    rectangle split part fill={panel, white}, font=\ttfamily\scriptsize, align=flush left,
+    inner xsep=4pt, inner ysep=2.5pt, text width=#1, rounded corners=1pt},
+  entity/.default=36mm,
+  privateentity/.style={entity=#1, dashed},
+  privateentity/.default=36mm,
+  relation/.style={draw=muted, line width=0.5pt},
+  card/.style={font=\sffamily\scriptsize, text=muted, inner sep=1pt},
+  % sequence diagrams
+  actor/.style={draw=rule, fill=panel, rounded corners=1.5pt, font=\sffamily\scriptsize\bfseries,
+    align=center, minimum height=8mm, minimum width=19mm, inner xsep=3pt, anchor=south},
+  serveractor/.style={actor, draw=serverline, fill=server},
+  lifeline/.style={draw=hairline, line width=0.6pt},
+  call/.style={->, draw=ink, line width=0.5pt},
+  reply/.style={->, draw=muted, line width=0.5pt, dash pattern=on 2.2pt off 1.6pt},
+  push/.style={->, draw=accent, line width=0.6pt},
+  msglabel/.style={font=\sffamily\scriptsize, text=ink, above, inner sep=1.2pt, align=center, fill=white, fill opacity=0.9, text opacity=1},
+  seqnote/.style={draw=hairline, fill=white, font=\sffamily\scriptsize, align=center,
+    inner xsep=4pt, inner ysep=2.5pt, rounded corners=1pt, text=muted},
+  fragment/.style={draw=rule, line width=0.45pt, fill=panel!45},
+  fraglabel/.style={draw=rule, fill=white, font=\sffamily\scriptsize\bfseries, inner sep=2pt},
+  fragguard/.style={font=\sffamily\scriptsize\itshape, text=muted, inner sep=2pt},
+}
+
+% \participant[style]{node name}{x in cm}{label}
+\newcommand{\participant}[4][actor]{\node[#1] (#2) at (#3,0) {#4};}
+
+% \lifelines{y bottom in cm}{comma-separated node names}, drawn behind everything else.
+\newcommand{\lifelines}[2]{%
+  \begin{scope}[on background layer]
+    \foreach \p in {#2} {\draw[lifeline] (\p.south) -- (\p |- 0,-#1);}
+  \end{scope}}
+
+% \msg[style]{from}{to}{y in cm}{label}: a horizontal message between two lifelines.
+\newcommand{\msg}[5][call]{\draw[#1] (#2 |- 0,-#4) -- (#3 |- 0,-#4) node[msglabel, midway] {#5};}
+
+% \selfmsg{participant}{y in cm}{label}: a call a participant makes to itself.
+\newcommand{\selfmsg}[3]{%
+  \draw[call] (#1 |- 0,-#2) -- ++(0.32,0) -- ++(0,-0.3) -- ++(-0.32,0);
+  \node[font=\sffamily\scriptsize, anchor=west, align=left, inner sep=1pt, fill=white, fill opacity=0.9, text opacity=1] at ($(#1 |- 0,-#2)+(0.4,-0.15)$) {#3};}
+
+% \seqnote{left participant}{right participant}{y in cm}{text}: a note spanning lifelines.
+\newcommand{\seqnote}[4]{%
+  \path let \p1=(#1), \p2=(#2) in
+    node[seqnote, anchor=north, minimum width={\x2-\x1+12mm}] at ({(\x1+\x2)/2}, -#3 cm) {#4};}
+
+% \fragment{left participant}{right participant}{y top}{y bottom}{label}: a combined fragment.
+\newcommand{\fragment}[5]{%
+  \begin{scope}[on background layer]
+    \draw[fragment] ($(#1 |- 0,-#3)+(-1.05,0)$) rectangle ($(#2 |- 0,-#4)+(1.05,0)$);
+  \end{scope}
+  \node[fraglabel, anchor=north west] at ($(#1 |- 0,-#3)+(-1.05,0)$) {#5};}
+
+% \fragsep{left participant}{right participant}{y}{guard}: a dashed divider inside a fragment.
+\newcommand{\fragsep}[4]{%
+  \draw[rule, dash pattern=on 3pt off 2pt, line width=0.45pt]
+    ($(#1 |- 0,-#3)+(-1.05,0)$) -- ($(#2 |- 0,-#3)+(1.05,0)$);
+  \node[fragguard, anchor=north west] at ($(#1 |- 0,-#3)+(-1.0,0)$) {#4};}
+
+% \fragguardat{left participant}{y}{guard}: the guard of a fragment's first operand.
+\newcommand{\fragguardat}[3]{\node[fragguard, anchor=north west] at ($(#1 |- 0,-#2)+(-1.0,0)$) {#3};}

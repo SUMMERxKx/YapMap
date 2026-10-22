@@ -1,0 +1,86 @@
+\chapter{API layer reference}
+\label{app:api}
+
+Every exported function of \code{src/data/api.ts} and the backend calls it makes. \emph{rpc} is a database
+function call through \code{supabase.rpc}; \emph{select} and \emph{delete} are Data API table operations;
+\emph{storage} is the \code{photos} bucket. Every database or storage error is translated by
+\code{friendlyRpcError} and every Auth error by \code{friendlyAuthError} (\cref{app:refusals}).
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{56mm}L{52mm}L{\dimexpr\linewidth-108mm-4\tabcolsep\relax}@{}}
+  \caption{API functions.}
+  \label{tab:api}\\
+  \toprule
+  \textsf{\textbf{Function}} & \textsf{\textbf{Backend calls}} & \textsf{\textbf{Returns}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Function}} & \textsf{\textbf{Backend calls}} & \textsf{\textbf{Returns}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Auth}}} \\
+  \code{signUp(email, password)} & \code{auth.signUp} & true if a code was emailed; throws for an existing address \\
+  \code{verifySignUpCode(email, code)} & \code{auth.verifyOtp}, type \code{signup} & --- \\
+  \code{resendSignUpCode(email)} & \code{auth.resend}, type \code{signup} & --- \\
+  \code{signInWithPassword(email, password)} & \code{auth.signInWithPassword} & \code{'signed-in'} or \code{'unconfirmed'} \\
+  \code{setPassword(password)} & \code{auth.updateUser} & --- \\
+  \code{requestPasswordReset(email)} & \code{auth.resetPasswordForEmail} & --- \\
+  \code{resetPassword(email, code, password)} & \code{auth.verifyOtp}, type \code{recovery}; \code{auth.updateUser}; on failure \code{auth.signOut}, local scope & --- \\
+  \code{getSessionUser()} & \code{auth.getSession} & the user or null; throws when offline with an expired token \\
+  \code{onAuthStateChange(fn)} & \code{auth.onAuthStateChange} & unsubscribe function \\
+  \code{signOut()} & \code{auth.signOut} & --- \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Profile and photos}}} \\
+  \code{fetchMyProfile()} & select own \code{profiles} row; storage \code{createSignedUrls} & \code{Profile} or null \\
+  \code{saveProfile(values)} & storage \code{upload} for new photos and the 320\,px copy; select own row; insert or update; storage \code{list} and \code{remove} unused files; then \code{fetchMyProfile} & \code{Profile} \\
+  \code{signPhotos(paths)} & storage \code{createSignedUrls} for uncached paths & display URLs \\
+  \code{forgetSignedUrls()} & none; clears the URL cache & --- \\
+  \code{verifySelfie(selfie, photo)} & none; placeholder & always \texttt{\{matched: true\}} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Going live}}} \\
+  \code{goGreen(args)} & rpc \code{go_green}; throws first if there is no position & \texttt{\{startedAt, expiresAt\}} \\
+  \code{updateNote(note)} & rpc \code{update_note} & --- \\
+  \code{goOffline()} & rpc \code{go_offline} & --- \\
+  \code{nearby()} & rpc \code{nearby}; storage \code{createSignedUrls} for pictures and small copies & \code{NearbyPerson[]} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Requests}}} \\
+  \code{sendRequest(person)} & rpc \code{send_request} & \texttt{\{id, expiresAt\}} \\
+  \code{waitForAnswer(id, expiresAt)} & channel \code{request-<id>} (updates); select \code{status} every 7\,s; timer at \code{expiresAt} plus 3\,s & \code{'accepted'} or \code{'not-this-time'} \\
+  \code{cancelRequest(id)} & rpc \code{cancel_request} & --- \\
+  \code{respond(id, accept)} & rpc \code{respond} & --- \\
+  \code{requestPerson(id)} & rpc \code{request_person}; storage \code{createSignedUrls} & \code{NearbyPerson} or null \\
+  \code{pendingIncoming()} & select newest \code{chat_requests} row to the user, \code{pending}, not expired & \texttt{\{id, expiresAt\}} or null \\
+  \code{requestStatus(id)} & select \code{status} of one request & status or null if gone \\
+  \code{subscribeIncoming(userId, onRequest, onSubscribed)} & channel \code{incoming-requests} (inserts) & unsubscribe function \\
+  \code{myStatus()} & rpc \code{my_status}; signs the waiting request's card & \texttt{\{live, chatId, outgoing\}} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Chats}}} \\
+  \code{endChat(id, outcome)} & rpc \code{end_chat} & --- \\
+  \code{sendMessage(id, text)} & rpc \code{send_chat_message} & \code{Message}, or \code{'chat-ended'} on \code{no such chat} \\
+  \code{fetchChatMessages(id)} & select \code{messages} by \code{request_id}, newest 200 & \code{Message[]}, oldest first \\
+  \code{subscribeChat(id, myId, handlers)} & channel \code{chat-<id>} (message inserts, request updates) & unsubscribe function \\
+  \code{sendEventMessage(id, text)} & rpc \code{send_event_message} & \code{Message} \\
+  \code{fetchEventMessages(id)} & select \code{messages} by \code{event_id}, newest 200 & \code{Message[]}, oldest first \\
+  \code{subscribeEventMessages(id, myId, onMessage, onSubscribed)} & channel \code{messages-event_id-<id>} (inserts) & unsubscribe function \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Safety and account}}} \\
+  \code{block(userId)} & rpc \code{block_user} & --- \\
+  \code{unblock(userId)} & delete own \code{blocks} row & --- \\
+  \code{blockedList()} & rpc \code{blocked_list} & \texttt{\{id, firstName, lastInitial\}[]} \\
+  \code{report(userId, reason, details)} & rpc \code{report_user} (no request ID) & --- \\
+  \code{deleteAccount()} & storage \code{list} (pages of 100) and \code{remove}; rpc \code{delete_account}; \code{auth.signOut} & --- \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
+  \code{eventsNear(centre, radiusM?)} & rpc \code{events_near}; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
+  \code{createEvent(input)} & rpc \code{create_event} & \code{MapEvent} \\
+  \code{joinEvent(id, position)} & rpc \code{join_event}; throws first if there is no position & --- \\
+  \code{leaveEvent(id)} & rpc \code{leave_event} & --- \\
+\end{longtable}
+\endgroup
+
+{\raggedright Internal helpers: \code{subscribeAsMe} (sets the Realtime token, then subscribes), \code{signPaths} (the
+signed-URL cache), \code{uploadJpeg}, \code{ensureUploaded}, \code{removeUnusedPhotos},
+\code{listMyPhotoPaths}, \code{thumbPathFor}, \code{pathFromSignedUrl}, \code{toPeople}, \code{toEvents},
+\code{toMessage}, \code{requireUserId}, \code{friendlyAuthError} and \code{friendlyRpcError}.\par}

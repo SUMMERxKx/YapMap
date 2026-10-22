@@ -1,0 +1,34 @@
+% Security boundaries: every path from the phone to the data and the rule on it (Figure: security).
+\begin{tikzpicture}[
+    svc/.style={box, serverbox, font=\sffamily\scriptsize, text width=24mm, minimum height=10mm, align=center},
+    dbbox/.style={box, font=\sffamily\scriptsize, align=center},
+    gate/.style={font=\sffamily\tiny, text=accentdark, inner sep=1.2pt, align=center},
+  ]
+  \node[box, clientbox, font=\sffamily\scriptsize, text width=24mm, minimum height=62mm, align=center] (phone) at (1.25,-2.5)
+    {\textbf{\footnotesize Phone}\\[4pt]the app, or any client built with the public key\\[4pt]session token: role \texttt{authenticated}\\[4pt]{\color{alert}no token: role \texttt{anon}, which has no privileges on the app's tables or functions}};
+
+  \node[svc] (rpc) at (5.1,0.5) {Data API: \texttt{rpc}};
+  \node[svc] (rest) at (5.1,-1.6) {Data API: tables};
+  \node[svc] (storage) at (5.1,-3.4) {Storage API};
+  \node[svc] (rt) at (5.1,-5.2) {Realtime};
+
+  \begin{scope}[on background layer]
+    \node[layer, fit={(7.3,1.7) (15.75,-6.0)}, inner sep=0pt] (db) {};
+  \end{scope}
+  \node[layerlabel, anchor=north east] at (db.north east) {POSTGRES};
+
+  \node[dbbox, accentbox, text width=30mm] (fns) at (9.65,0.5) {\textbf{\texttt{public} functions}\\\texttt{SECURITY DEFINER}\\\texttt{search\_path = ''}\\check, then write as owner\\{\color{muted}helpers in \texttt{private}, not exposed}};
+  \node[dbbox, text width=28mm, minimum height=27mm] (tables) at (13.95,-0.8) {\textbf{\texttt{public} tables}\\[3pt]row-level security on every table, deny by default\\[3pt]column grants on \texttt{profiles}};
+  \node[dbbox, text width=24mm] (objects) at (13.7,-3.4) {\textbf{\texttt{storage.objects}}\\bucket \texttt{photos}, private};
+
+  \foreach \s in {rpc, rest, storage} {\draw[flow] (phone.east |- \s) -- (\s);}
+  \draw[flow] (rt) -- (phone.east |- rt);
+
+  \draw[flow] (rpc) -- node[gate, above=2pt] {\texttt{EXECUTE}:\\signed in} (fns);
+  \draw[flow] (fns.east |- 0,0.2) -- node[gate, above=2pt] {as owner} (tables.west |- 0,0.2);
+  \draw[flow] (rest) -- (tables.west |- rest);
+  \node[gate, anchor=south west, text width=40mm, align=flush left] at (6.75,-1.55) {policies: own profile; requests and messages the user takes part in; own blocks (delete)};
+  \draw[flow] (storage) -- (objects);
+  \node[gate, anchor=south west, text width=44mm, align=flush left] at (6.75,-3.35) {write: own folder only; read: own folder, or \texttt{private.can\_see\_photo}};
+  \draw[flow] (15.45,0 |- tables.south) -- (15.45,-5.2) -- node[gate, above=2pt] {changes to requests and messages, only rows the subscriber may select} (rt.east);
+\end{tikzpicture}

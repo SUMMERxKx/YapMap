@@ -1,0 +1,265 @@
+\chapter{System architecture}
+\label{ch:architecture}
+
+Yap has two tiers: a native mobile client and a hosted Supabase project. There is no application server
+of Yap's own. Business rules live in the database, as row-level security policies and as database
+functions; Supabase provides authentication, a REST interface to the database, Realtime delivery,
+file storage and scheduled jobs around it. This chapter describes both tiers and the boundary between
+them. \Cref{fig:architecture} gives the overall picture.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/architecture}
+  \caption{System architecture. Arrows inside the client show the direction of calls between layers.
+    The client reaches four Supabase services; each service reaches Postgres, where the rules are
+    enforced.}
+  \label{fig:architecture}
+\end{figure}
+
+\section{Technology stack}
+
+\Cref{tab:stack} lists the main technologies and the role each plays. Versions are those pinned in
+\code{package.json}.
+
+\begin{table}[ht]
+  \centering
+  \caption{Technology stack.}
+  \label{tab:stack}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{34mm}L{48mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Concern}} & \textsf{\textbf{Technology}} & \textsf{\textbf{Role in Yap}} \\
+    \midrule
+    App runtime & Expo SDK 57, React Native 0.86.3, React 19.2.3 & One code base for iOS and Android \\
+    Language & TypeScript 6.0 in strict mode & All client code; path alias \code{@/} for \code{src/} \\
+    Navigation & Expo Router 57 with typed routes & File-based routes, guarded stacks, tabs, sheets and modals \\
+    Compilation & React Compiler (Expo experiment) & Automatic memoisation of components \\
+    Maps & \code{react-native-maps} 1.27.2 & The \ui{Map} tab, event pins and the radius circle \\
+    Animation & Reanimated 4.5, Worklets 0.10 & Press feedback, the pulsing \ui{YAP} button, the mascot \\
+    Images & \code{expo-image}, \code{expo-image-picker}, \code{expo-image-manipulator} & Cached display, photo picking and camera, re-encoding before upload \\
+    Device & \code{expo-location}, \code{expo-haptics}, \code{expo-keep-awake}, \code{expo-network} & Foreground location, haptics, screen-on while live, connectivity \\
+    Local storage & AsyncStorage 2.2 & The Supabase session and per-account preferences \\
+    Backend client & \code{@supabase/supabase-js} 2.117 & Auth, database calls, Realtime and Storage \\
+    Database & Postgres with PostGIS and \code{pg_cron} & Tables, row-level security, functions, spatial queries, housekeeping \\
+    Backend services & Supabase Auth, Realtime, Storage & Sign-in and email codes, live delivery, private photos \\
+    Email delivery & Custom SMTP through Resend & Sends the 8-digit confirmation and reset codes \\
+    Tooling & ESLint 9 with \code{eslint-config-expo}; ImageMagick 7 & Linting; generating icons and splash images \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Client architecture}
+\label{sec:client-architecture}
+
+The client is organised in layers, each in its own directory under \code{src/}
+(\cref{tab:client-layers}). Calls flow downward: screens use components, hooks and store actions; the
+store calls the API layer; the API layer is the only code that uses the Supabase client.
+
+\begin{table}[ht]
+  \centering
+  \caption{Client layers.}
+  \label{tab:client-layers}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{36mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Directory}} & \textsf{\textbf{Responsibility}} \\
+    \midrule
+    \code{src/app} & Routes and screens. A file is a route; a \code{_layout.tsx} file is a navigator. Screens hold form state locally and read shared state through \code{useStore}. \\
+    \code{src/components} & Shared components grouped by purpose: \code{ui} (buttons, cards, fields, lists, skeletons), \code{profile}, \code{live}, \code{chat}, \code{safety}, \code{events}, \code{account} and \code{mascot}. \\
+    \code{src/hooks} & The shared one-second clock and countdowns, foreground location, nearby polling and nearby prompts, and lazy signing of a person's extra photos. \\
+    \code{src/state} & The store (\code{store.ts}), the profile-setup draft (\code{profile-draft.tsx}) and per-account preferences saved on the phone (\code{saved-prefs.ts}). \\
+    \code{src/data} & The API layer (\code{api.ts}), the single Supabase client (\code{supabase-client.ts}), the data shapes (\code{types.ts}), fixed lists and limits (\code{constants.ts}) and the types generated from the database schema (\code{database.types.ts}). \\
+    \code{src/lib} & Pure helpers with no React: wording for names, genders and times, event categories, password checks, error text and image cache keys. \\
+    \code{src/theme} & Design tokens (colours for light and dark mode, spacing, radii, sizes, type, elevation, motion) and the \code{useTheme} hook. \\
+    \code{src/config} & Feature flags (\code{features.ts}) and the Supabase project address and publishable key (\code{supabase.ts}). \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\paragraph{Layering rule} No screen or component imports the Supabase client. Most screens change
+state only through store actions. A few screens that need no shared state call the API layer directly:
+the code entry screen (to resend a code), \ui{Sign in} (to resend a confirmation code), \ui{Forgot
+password} and \ui{Change password}. The hook \code{usePersonPhotos} also calls the API layer, to sign a
+person's extra photos when their profile opens.
+
+\section{Navigation and route guards}
+\label{sec:navigation}
+
+Expo Router turns the files under \code{src/app} into a navigation tree (\cref{fig:routes}). The root
+layout, \code{src/app/_layout.tsx}, renders one stack with four \term{guarded} children. A guard is a
+Boolean computed from the store; Expo Router allows a protected stack only while its guard is true, so
+the app always lands on the correct step without explicit redirects (\cref{tab:guards}).
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/routes}
+  \caption{The route tree. The four children of the root stack are mutually exclusive; the guard under
+    each name states when it is allowed.}
+  \label{fig:routes}
+\end{figure}
+
+\begin{table}[ht]
+  \centering
+  \caption{Root guards. \emph{Verified} is true when the profile is verified or the selfie check is
+    switched off, which is the current setting.}
+  \label{tab:guards}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{30mm}L{58mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Stack}} & \textsf{\textbf{Guard}} & \textsf{\textbf{Purpose}} \\
+    \midrule
+    \code{(auth)} & not signed in & Welcome, sign-up, sign-in, emailed codes, password reset \\
+    \code{profile-setup} & signed in and no profile row & The 18+ confirmation and six setup steps \\
+    \code{verify-face} & signed in, profile, not verified & Selfie check (switched off) \\
+    \code{(app)} & signed in, profile, verified & The app itself \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Before the store has restored the session (\code{booted} is false), the root layout renders an empty
+view in the background colour. If the user is signed in but the profile could not be loaded
+(\code{loadFailed}), it renders the \ui{Can't reach Yap} screen instead of any stack, so an existing user
+is never sent into profile setup by a network failure (\cref{sec:offline}). An offline banner is drawn
+over every screen while the phone has no connection.
+
+The \code{(app)} layout hosts the four tabs (\ui{Go live}, \ui{Nearby}, \ui{Map}, \ui{Profile}) and every
+screen opened from them. It also runs the behaviour that must apply whichever screen is open:
+
+\begin{itemize}
+  \item It starts nearby polling and nearby prompts while the user is live (\cref{sec:feature-nearby}).
+  \item It sets a timer that takes the user offline when the live session reaches its end time.
+  \item It pushes the \ui{incoming} screen when a new request arrives, and the \ui{chat} screen when a
+    chat opens, each only once per request or chat.
+  \item It opens the tutorial once after a new account saves its first profile.
+  \item It shows the nearby prompt (a toast) and keeps the screen awake while the user is live.
+\end{itemize}
+
+\Cref{tab:presentations} lists how each screen in \code{(app)} is presented.
+
+\begin{table}[ht]
+  \centering
+  \caption{Presentation of the screens in the \code{(app)} stack.}
+  \label{tab:presentations}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{40mm}L{40mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Route}} & \textsf{\textbf{Presentation}} & \textsf{\textbf{Notes}} \\
+    \midrule
+    \code{go-available}, \code{person/[id]} & Form sheet, 85\,\% height & Grabber visible \\
+    \code{event/[id]} & Form sheet, 75\,\% height & Event details and \ui{Join} \\
+    \code{waiting}, \code{report/[id]} & Modal, slides from the bottom & \\
+    \code{incoming} & Full-screen modal & Swipe to dismiss disabled; the user must answer or let it expire \\
+    \code{tutorial} & Pushed, fades in & Swipe back disabled \\
+    \code{chat}, \code{event/new}, \code{group/[id]}, \code{edit-profile}, \code{settings}, \code{blocked}, \code{password} & Pushed screen & Slides from the right on both platforms \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{State management}
+\label{sec:state}
+
+\subsection{The store}
+
+All shared state lives in one module, \code{src/state/store.ts} (\cref{fig:store-flow}). The module holds
+a single immutable state object and a set of listeners. A private function, \code{set(patch)}, replaces
+the object with a merged copy and notifies every listener. Components read state with
+\code{useStore(selector)}, built on React's \code{useSyncExternalStore}, so a component re-renders only
+when the slice it selects changes. Nothing outside the module writes state: screens call exported actions,
+and the store's own listeners, timers and Realtime handlers call the same actions.
+\Cref{app:store} lists every state field and action.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/store-flow}
+  \caption{Data flow through the store. Five kinds of trigger call actions; actions call the API layer and
+    update the one state object; screens re-render from the slices they select. Realtime changes arrive
+    as handler calls, like any other trigger.}
+  \label{fig:store-flow}
+\end{figure}
+
+\subsection{State outside the render tree}
+
+Some state never needs to re-render anything and is kept in module variables inside the store. It
+records work in progress and guards against races (\cref{sec:ordering}):
+
+\begin{itemize}
+  \item the unsubscribe functions of the three Realtime channels the store may hold open: incoming
+    requests, the one-to-one chat, and the open group chat;
+  \item \code{handledRequestIds} and \code{closedChatIds}, which stop a catch-up from bringing back a
+    request already answered or a chat already closed on this phone;
+  \item three counters, \code{nearbyRefreshes}, \code{eventLoads} and \code{eventChatVisits}, which let
+    the store discard an answer that arrives after a newer request has started;
+  \item flags that coalesce or order work: \code{catchUpRunning}, \code{catchUpAgain},
+    \code{offlineRetry}, \code{watchingId}, \code{openingChatId}, \code{extrasLoaded} and
+    \code{initStarted}.
+\end{itemize}
+
+\subsection{Other client state}
+
+Profile setup keeps its answers in a React context, \code{ProfileDraftProvider}, so the user can move
+back and forth between the six steps without losing input. Two preferences are saved on the phone per
+account under the AsyncStorage key \code{yap.prefs.<user id>}: how many times the chat safety tip has
+been shown, and the map's event radius. Forms keep their field values in component state until they
+are submitted.
+
+\section{The API layer}
+\label{sec:api-layer}
+
+\code{src/data/api.ts} is the client's only route to the backend. It has four responsibilities.
+
+\begin{description}
+  \item[Wrapping calls.] Each exported function wraps one Supabase call or a short sequence of them:
+    an Auth method, a database function through \code{supabase.rpc}, a read of a table the user may
+    see, or a Storage operation. It converts the JSON the server returns into the client's types in
+    \code{types.ts}.
+  \item[Translating errors.] A database function refuses a request by raising an exception with a short
+    fixed message such as \code{not nearby}. The API layer maps every such message to a sentence for
+    the screen through the \code{SERVER_REFUSALS} table, maps Auth error codes in the same way, and
+    replaces anything else with a generic sentence, so raw database text never reaches the user
+    (\cref{app:refusals}).
+  \item[Realtime.] It builds the Realtime channels and subscribes them as the signed-in user
+    (\cref{sec:realtime}).
+  \item[Photos.] It re-encodes and uploads photos, removes unused files, and turns storage paths into
+    signed URLs through a cache (\cref{sec:flow-photos}).
+\end{description}
+
+\section{Backend architecture}
+\label{sec:backend-architecture}
+
+The backend is one hosted Supabase project. The client knows its URL and its publishable key, both of
+which are public by design: the key grants only what row-level security and the database functions
+allow. No secret key ships in the app.
+
+\paragraph{Schemas} Yap's database objects span six schemas. \code{public} holds the app's tables and the
+database functions the client calls; it is the schema the Data API exposes. \code{private} holds helper
+functions and the table \code{location_changes}; it is not exposed. \code{auth} and \code{storage} are
+managed by Supabase and hold accounts and file metadata. \code{extensions} holds PostGIS, and
+\code{cron} holds the \code{pg_cron} schedule.
+
+\paragraph{Access model} Row-level security is enabled on every application table and denies by default:
+a table without a policy cannot be read or written by a client at all. Direct access is granted only
+where the client must read rows itself (its own profile, the requests and messages it takes part in, its
+own block list) and where a write is trivially safe (its own profile, removing its own block). Every
+other write is a \code{SECURITY DEFINER} function: it runs with the privileges of its owner, reads the
+caller's identity from \code{auth.uid()}, and checks the rules before changing anything. \Cref{ch:server-interface}
+lists the functions and \cref{ch:security} the policies.
+
+\paragraph{Realtime} The tables \code{chat_requests} and \code{messages} are in the
+\code{supabase_realtime} publication with full replica identity. Realtime delivers a change to a
+subscriber only if the subscriber's token may read the row under the table's select policy, so each user
+receives only the requests and messages they take part in.
+
+\paragraph{Storage} Photos live in a private bucket, \code{photos}, under a folder named after the
+owner's user ID. Clients write only inside their own folder. Reading, and with it signing a URL, is
+allowed only for photos of someone the reader can currently see (\cref{sec:photo-privacy}).
+
+\paragraph{Scheduled work} A \code{pg_cron} job named \code{yap-expire-stale} runs
+\code{private.expire_stale()} every minute. It ends live sessions whose time is up, expires unanswered
+requests, ends chats in which neither person is live, and prunes the location-change log
+(\cref{sec:housekeeping}).
+
+\paragraph{Authentication and email} Supabase Auth provides email and password accounts. \ui{Confirm
+email} is switched on, the minimum password length is 8, and the email templates for sign-up
+confirmation and password reset show an 8-digit code instead of a link, because the app does not open
+email links. Auth sends these emails through a custom SMTP sender, Resend, on the domain
+\code{mail.samarxkx.dev}. These settings are made in the Supabase dashboard (\cref{sec:dashboard}).

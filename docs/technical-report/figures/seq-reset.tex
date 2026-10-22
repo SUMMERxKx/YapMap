@@ -1,0 +1,23 @@
+% Sequence: resetting a forgotten password with an emailed code (Figure: reset sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Forgot password,\\code, new password}
+  \participant[actor]{store}{4.2}{Store and\\API layer}
+  \participant[serveractor]{auth}{8.6}{Supabase Auth}
+  \participant[serveractor]{mail}{12.8}{SMTP sender\\(Resend)}
+
+  \msg{ui}{store}{0.8}{\code{requestPasswordReset}(email)}
+  \msg{store}{auth}{1.4}{\code{resetPasswordForEmail}}
+  \msg{auth}{mail}{2.0}{reset email with an 8-digit code}
+  \seqnote{ui}{ui}{2.35}{the code screen keeps the code;\\it is not checked yet}
+  \msg{ui}{store}{3.6}{\code{finishPasswordReset}(email, code, password)}
+  \msg{store}{auth}{4.2}{\code{verifyOtp}, type recovery}
+  \msg[reply]{auth}{store}{4.8}{session (signed in)}
+  \msg{store}{auth}{5.4}{\code{updateUser}(password)}
+  \msg[reply]{auth}{store}{6.0}{saved}
+  \msg[reply]{store}{ui}{6.6}{load profile; guard opens the app}
+  \fragment{ui}{auth}{7.0}{8.5}{if saving fails}
+  \selfmsg{store}{7.55}{\code{signOut}, local scope}
+  \msg[reply]{store}{ui}{8.2}{``the code is used up''}
+
+  \lifelines{8.75}{ui, store, auth, mail}
+\end{tikzpicture}

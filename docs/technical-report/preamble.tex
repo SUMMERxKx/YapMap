@@ -1,0 +1,208 @@
+% Packages, page design, colours and the macros used throughout the report.
+
+% Inline code keeps its spaces and may break at them.
+\PassOptionsToPackage{obeyspaces, spaces}{url}
+
+% ---------------------------------------------------------------- fonts
+\usepackage{fontspec}
+\setmainfont{texgyrepagella}[
+  Extension = .otf,
+  UprightFont = *-regular,
+  BoldFont = *-bold,
+  ItalicFont = *-italic,
+  BoldItalicFont = *-bolditalic,
+]
+\setsansfont{texgyreheros}[
+  Extension = .otf,
+  UprightFont = *-regular,
+  BoldFont = *-bold,
+  ItalicFont = *-italic,
+  BoldItalicFont = *-bolditalic,
+  Scale = MatchLowercase,
+]
+\setmonofont{lmmono10-regular.otf}[
+  BoldFont = lmmonolt10-bold.otf,
+  ItalicFont = lmmono10-italic.otf,
+  Scale = MatchLowercase,
+]
+\linespread{1.06}
+\usepackage{microtype}
+
+% ---------------------------------------------------------------- page
+\usepackage[letterpaper, top=26mm, bottom=28mm, inner=28mm, outer=28mm, headsep=9mm, footskip=12mm]{geometry}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55\baselineskip plus 2pt minus 1pt}
+\clubpenalty=10000
+\widowpenalty=10000
+\tolerance=1500
+\emergencystretch=3em
+
+% ---------------------------------------------------------------- colour
+\usepackage{xcolor}
+\definecolor{ink}{HTML}{1C1917}
+\definecolor{muted}{HTML}{57534E}
+\definecolor{rule}{HTML}{A8A29E}
+\definecolor{hairline}{HTML}{D6D3D1}
+\definecolor{panel}{HTML}{F5F2EE}
+\definecolor{accent}{HTML}{15803D}
+\definecolor{accentsoft}{HTML}{DCFCE7}
+\definecolor{accentdark}{HTML}{166534}
+\definecolor{alert}{HTML}{B91C1C}
+\definecolor{alertsoft}{HTML}{FEE2E2}
+\definecolor{server}{HTML}{E7EEF7}
+\definecolor{serverline}{HTML}{3B5B7F}
+\color{ink}
+
+% ---------------------------------------------------------------- headings
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\sffamily\bfseries\color{ink}}
+  {\large\color{accent}Chapter \thechapter}
+  {6pt}
+  {\LARGE}
+  [\vspace{4pt}{\color{hairline}\titlerule[0.6pt]}]
+\titleformat{name=\chapter, numberless}[display]
+  {\sffamily\bfseries\color{ink}}
+  {}
+  {0pt}
+  {\LARGE}
+  [\vspace{4pt}{\color{hairline}\titlerule[0.6pt]}]
+\titlespacing*{\chapter}{0pt}{0pt}{22pt}
+\titleformat{\section}
+  {\sffamily\bfseries\large\color{ink}}{\color{accent}\thesection}{0.8em}{}
+\titlespacing*{\section}{0pt}{18pt plus 4pt minus 2pt}{6pt}
+\titleformat{\subsection}
+  {\sffamily\bfseries\normalsize\color{ink}}{\color{accent}\thesubsection}{0.8em}{}
+\titlespacing*{\subsection}{0pt}{12pt plus 3pt minus 2pt}{4pt}
+\titleformat{\paragraph}[runin]
+  {\sffamily\bfseries\small\color{ink}}{}{0pt}{}[.]
+\titlespacing*{\paragraph}{0pt}{6pt plus 2pt}{0.6em}
+\setcounter{secnumdepth}{2}
+\setcounter{tocdepth}{1}
+
+% ---------------------------------------------------------------- running heads
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\chaptermark}[1]{\markboth{#1}{}}
+\fancyhead[L]{\sffamily\footnotesize\color{muted}Yap technical report}
+\fancyhead[R]{\sffamily\footnotesize\color{muted}\leftmark}
+\fancyfoot[C]{\sffamily\footnotesize\color{muted}\thepage}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\sffamily\footnotesize\color{muted}\thepage}}
+
+% ---------------------------------------------------------------- lists, tables, floats
+\usepackage{enumitem}
+\setlist{itemsep=2pt, topsep=2pt, parsep=0pt, leftmargin=1.4em}
+\setlist[description]{font=\normalfont\bfseries, itemsep=3pt, leftmargin=1.4em}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{longtable}
+\renewcommand{\arraystretch}{1.18}
+\setlength{\tabcolsep}{5pt}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\usepackage{caption}
+\captionsetup{font={small,sf}, labelfont={bf,color=ink}, labelsep=period, justification=raggedright, singlelinecheck=false, skip=6pt}
+\captionsetup[table]{position=top}
+\usepackage{float}
+\setlength{\textfloatsep}{14pt plus 3pt minus 3pt}
+\setlength{\floatsep}{12pt plus 3pt minus 3pt}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.7}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.8}
+
+% Smaller table text, used inside every table environment.
+\newcommand{\tablefont}{\small}
+
+% ---------------------------------------------------------------- code
+\usepackage{listings}
+\lstdefinelanguage{pgsql}{
+  language=SQL,
+  morekeywords={returns,language,security,definer,plpgsql,declare,begin,end,raise,exception,
+    if,then,elsif,else,found,returning,conflict,do,nothing,coalesce,least,exists,interval,
+    jsonb_build_object,perform,using,policy,for,to,with,check,replace,function,stable,immutable,
+    true,false,null,not,and,or,in,is,set,search_path,new,old},
+  sensitive=false,
+}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{accentdark}\bfseries,
+  commentstyle=\color{muted}\itshape,
+  stringstyle=\color{serverline},
+  columns=fullflexible,
+  keepspaces=true,
+  breaklines=true,
+  breakatwhitespace=true,
+  frame=single,
+  framerule=0pt,
+  backgroundcolor=\color{panel},
+  xleftmargin=6pt,
+  xrightmargin=6pt,
+  framexleftmargin=6pt,
+  framexrightmargin=6pt,
+  framextopmargin=4pt,
+  framexbottommargin=4pt,
+  aboveskip=8pt,
+  belowskip=8pt,
+  showstringspaces=false,
+  upquote=true,
+}
+
+% ---------------------------------------------------------------- diagrams
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, calc, fit, backgrounds, shapes.geometric, shapes.multipart, matrix}
+\input{figures/tikz-styles}
+
+% ---------------------------------------------------------------- boxes
+\usepackage[skins, breakable]{tcolorbox}
+
+% ---------------------------------------------------------------- links and references
+\usepackage[hidelinks, bookmarksnumbered, pdfusetitle]{hyperref}
+\hypersetup{
+  pdftitle={Yap technical report},
+  pdfsubject={Architecture, data flow and features of the Yap mobile app},
+  pdfkeywords={Yap, YapMap, Expo, React Native, Supabase, PostGIS, row-level security},
+}
+\usepackage[nameinlink, capitalise, noabbrev]{cleveref}
+\crefname{lstlisting}{Listing}{Listings}
+\Crefname{lstlisting}{Listing}{Listings}
+
+% Inline code: identifiers, file paths and values. Breaks are allowed after underscores,
+% slashes, dots and hyphens, so long names never run into the margin.
+\DeclareUrlCommand\codeurl{\urlstyle{tt}}
+\DeclareRobustCommand{\code}{\codeurl}
+\makeatletter
+\g@addto@macro\UrlBreaks{\do\_\do\-\do\.\do\/\do\(\do\)}
+\makeatother
+
+% Screen and interface labels, as the app shows them.
+\newcommand{\ui}[1]{\textsf{#1}}
+
+% A defined term at the point where it is introduced.
+\newcommand{\term}[1]{\emph{#1}}
+
+% A short remark set off from the text, with a lead-in label: \begin{remark}{Label} ... \end{remark}.
+\newtcolorbox{remark}[1]{
+  enhanced, breakable,
+  colback=panel, colframe=panel, boxrule=0pt, arc=0pt,
+  left=8pt, right=8pt, top=5pt, bottom=5pt,
+  borderline west={2pt}{0pt}{accent},
+  before skip=8pt, after skip=8pt,
+  fontupper=\small,
+  before upper={\textsf{\textbf{#1.}}\enskip},
+}
+
+% Where a feature lives: \implemented{screens}{client functions}{server rules}.
+\newcommand{\implemented}[3]{%
+  \par\vspace{2pt}\begingroup\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.12}%
+  \noindent\begin{tabularx}{\linewidth}{@{}>{\sffamily\bfseries\footnotesize\color{muted}}L{15mm}Y@{}}
+    \arrayrulecolor{hairline}\hline
+    Screens & #1 \\
+    Client & #2 \\
+    Server & #3 \\
+    \hline
+  \end{tabularx}\endgroup\par\vspace{2pt}}

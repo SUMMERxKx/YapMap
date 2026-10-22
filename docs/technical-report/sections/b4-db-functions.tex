@@ -1,0 +1,94 @@
+\chapter{Database function reference}
+\label{app:db-functions}
+
+The signature, return type and security properties of every function in the current schema, as left by
+the latest migration that defines it. \Cref{tab:functions} describes what each public function checks
+and does; \cref{app:refusals} lists the refusals.
+
+\paragraph{Common properties} All of these functions set an empty \code{search_path}, and all of them are
+\code{SECURITY DEFINER} except \code{private.in_own_folder}. For every function in \code{public}, the
+roles \code{public} and \code{anon} have no \code{EXECUTE} privilege and the role \code{authenticated}
+has it. Instants in returned JSON are milliseconds since the Unix epoch.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{58mm}L{24mm}L{\dimexpr\linewidth-82mm-4\tabcolsep\relax}@{}}
+  \caption{Public functions: parameters, return type, language and volatility.}
+  \label{tab:function-signatures}\\
+  \toprule
+  \textsf{\textbf{Signature}} & \textsf{\textbf{Returns}} & \textsf{\textbf{Language; returned JSON}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Signature}} & \textsf{\textbf{Returns}} & \textsf{\textbf{Language; returned JSON}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \code{go_green(lat double precision, lng double precision, accuracy double precision, minutes integer, note text default '')} & \code{jsonb} & plpgsql; \texttt{\{startedAt, expiresAt\}} \\
+  \code{update_note(note text)} & \code{void} & plpgsql \\
+  \code{go_offline()} & \code{void} & sql \\
+  \code{nearby()} & \code{setof jsonb} & sql, stable; person cards \\
+  \code{send_request(target uuid)} & \code{jsonb} & plpgsql; \texttt{\{id, expiresAt\}} \\
+  \code{cancel_request(request_id uuid)} & \code{void} & plpgsql \\
+  \code{respond(request_id uuid, accept boolean)} & \code{void} & plpgsql \\
+  \code{request_person(request_id uuid)} & \code{jsonb} & plpgsql, stable; a person card or null \\
+  \code{end_chat(request_id uuid, outcome text)} & \code{void} & plpgsql; outcome \code{met} or \code{cancelled} \\
+  \code{send_chat_message(request_id uuid, body text)} & \code{jsonb} & plpgsql; the saved \code{messages} row \\
+  \code{my_status()} & \code{jsonb} & sql, stable; \texttt{\{live: \{note, startedAt, expiresAt\} | null, chatId, outgoing: \{id, expiresAt, to\} | null\}} \\
+  \code{block_user(target uuid)} & \code{void} & plpgsql \\
+  \code{blocked_list()} & \code{setof jsonb} & sql, stable; \texttt{\{id, firstName, lastInitial\}} \\
+  \code{report_user(target uuid, reason text, details text default '', request_id uuid default null)} & \code{void} & plpgsql \\
+  \code{delete_account()} & \code{void} & plpgsql \\
+  \code{events_near(lat double precision, lng double precision, radius_m double precision default 10000)} & \code{setof jsonb} & sql, stable; event cards \\
+  \code{create_event(emoji text, title text, description text, lat double precision, lng double precision, starts_at_ms bigint)} & \code{jsonb} & plpgsql; an event card \\
+  \code{join_event(event_id uuid, lat double precision, lng double precision)} & \code{void} & plpgsql \\
+  \code{leave_event(event_id uuid)} & \code{void} & plpgsql \\
+  \code{send_event_message(event_id uuid, body text)} & \code{jsonb} & plpgsql; the saved \code{messages} row \\
+\end{longtable}
+\endgroup
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{58mm}L{24mm}L{\dimexpr\linewidth-82mm-4\tabcolsep\relax}@{}}
+  \caption{Private helpers: signature, return type and who may execute them.}
+  \label{tab:helper-signatures}\\
+  \toprule
+  \textsf{\textbf{Signature}} & \textsf{\textbf{Returns}} & \textsf{\textbf{Properties; execute}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Signature}} & \textsf{\textbf{Returns}} & \textsf{\textbf{Properties; execute}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \code{private.blocked_between(a uuid, b uuid)} & \code{boolean} & sql, stable, definer; no API role \\
+  \code{private.person_card(target uuid)} & \code{jsonb} & sql, stable, definer; no API role \\
+  \code{private.near_each_other(a uuid, b uuid)} & \code{boolean} & sql, stable, definer; no API role \\
+  \code{private.event_card(ev uuid, viewer uuid)} & \code{jsonb} & sql, stable, definer; no API role \\
+  \code{private.is_chat_participant(req uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\
+  \code{private.is_event_member(ev uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\
+  \code{private.in_own_folder(paths text[], owner uuid)} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by check constraints) \\
+  \code{private.can_see_photo(object_name text)} & \code{boolean} & plpgsql, stable, definer; \code{authenticated} (used by a storage policy) \\
+  \code{private.expire_stale()} & \code{void} & sql, definer; no API role; run by \code{pg_cron} \\
+\end{longtable}
+\endgroup
+
+The schema \code{private} grants \code{USAGE} to \code{authenticated} so that policies and constraints can run
+the helpers marked as used by them; it is still not exposed through the Data API. The
+platform function \code{public.rls_auto_enable()} has \code{EXECUTE} revoked from \code{public},
+\code{anon} and \code{authenticated}.
+
+\section{JSON shapes}
+
+\begin{description}
+  \item[Person card] \texttt{id}, \texttt{firstName}, \texttt{lastInitial} (upper case), \texttt{gender}
+    (null unless shown and not \code{prefer-not}), \texttt{intro}, \texttt{interests},
+    \texttt{photoPath}, \texttt{photoPaths}, \texttt{note} (empty when not live), \texttt{verified}.
+  \item[Event card] \texttt{id}, \texttt{emoji}, \texttt{title}, \texttt{description}, \texttt{latitude},
+    \texttt{longitude}, \texttt{startsAt}, \texttt{host} (\texttt{id}, \texttt{firstName},
+    \texttt{lastInitial}, \texttt{photoPath}), \texttt{memberCount}, \texttt{joined} (whether the viewer is
+    a member).
+  \item[Message row] \texttt{id}, \texttt{request\_id}, \texttt{event\_id}, \texttt{sender},
+    \texttt{sender\_name} (first name, space, last initial, full stop), \texttt{body},
+    \texttt{created\_at}.
+\end{description}
