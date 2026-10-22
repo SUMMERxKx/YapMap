@@ -2,7 +2,9 @@
 
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { Linking } from 'react-native';
 
+import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
 import { InfoNote } from '@/components/ui/info-note';
 import { PasswordField } from '@/components/ui/password-field';
@@ -10,6 +12,7 @@ import { Screen } from '@/components/ui/screen';
 import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
+import { LINKS } from '@/config/links';
 import { PASSWORD_MIN_LENGTH } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
 import { passwordProblem } from '@/lib/password-problem';
@@ -52,6 +55,21 @@ export default function SignUp() {
       scroll
       footer={
         <>
+          <AppText variant="caption" color="textSecondary" align="center">
+            By creating an account, you agree to Yap's{' '}
+            <AppText variant="caption" color="greenText" accessibilityRole="link" onPress={() => Linking.openURL(LINKS.terms)}>
+              Terms of Service
+            </AppText>{' '}
+            and{' '}
+            <AppText variant="caption" color="greenText" accessibilityRole="link" onPress={() => router.push('/guidelines')}>
+              Community Guidelines
+            </AppText>
+            , and confirm you've read the{' '}
+            <AppText variant="caption" color="greenText" accessibilityRole="link" onPress={() => Linking.openURL(LINKS.privacy)}>
+              Privacy Policy
+            </AppText>
+            , which explains what Yap keeps about you.
+          </AppText>
           <Button label="Create account" onPress={create} loading={creating} disabled={!canCreate} />
           <Button label="Already have an account? Sign in" variant="ghost" onPress={() => router.replace('/sign-in')} />
         </>
