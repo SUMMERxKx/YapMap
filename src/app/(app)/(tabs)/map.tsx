@@ -1,7 +1,8 @@
 import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
-import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { router, useNavigation } from 'expo-router';
+import type { BottomTabNavigationProp } from 'expo-router/js-tabs';
+import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -92,6 +93,7 @@ export default function EventsMap() {
   const { colors, layout, radius, spacing, elevation } = useTheme();
   const events = useStore((state) => state.events);
   const radiusKm = useStore((state) => state.eventRadiusKm);
+  const navigation = useNavigation<BottomTabNavigationProp<{ map: undefined }>>();
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [location, setLocation] = useState<LocationState>({ status: 'checking' });
@@ -140,19 +142,23 @@ export default function EventsMap() {
     showResult(result);
   };
 
-  // Every time the Map tab opens: find the user and centre on them. findUser only shows the
-  // permission prompt the first time, so someone who said no isn't asked again and again.
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
+  // On open, and every time the Map tab is pressed: find the user and centre on them. Coming back
+  // from an event leaves the map where it was. findUser only shows the permission prompt the
+  // first time, so someone who said no isn't asked again and again.
+  useEffect(() => {
+    let cancelled = false;
+    const find = () => {
       findUser().then((result) => {
         if (!cancelled) showResult(result);
       });
-      return () => {
-        cancelled = true;
-      };
-    }, []),
-  );
+    };
+    find();
+    const unsubscribe = navigation.addListener('tabPress', find);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [navigation]);
 
   // Letting go of the slider: remember the distance, reload the pins and fit the map to it.
   const changeRadius = (km: number) => {
