@@ -2,7 +2,9 @@ import { Image } from 'expo-image';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import type { NearbyPerson } from '@/data/types';
+import { usePersonPhotos } from '@/hooks/use-person-photos';
 import { displayName, genderLabel } from '@/lib/format-person';
+import { photoSource } from '@/lib/photo-source';
 import { FEATURES } from '@/config/features';
 import { useTheme } from '@/theme';
 
@@ -19,6 +21,7 @@ export function PersonDetails({ person, subtitle }: Props) {
   const { colors, layout, radius, size, spacing } = useTheme();
   const gender = genderLabel(person.gender);
   const showVerified = FEATURES.selfieVerification && person.verified;
+  const photos = usePersonPhotos(person);
 
   return (
     <View style={{ gap: layout.sectionGap }}>
@@ -41,16 +44,16 @@ export function PersonDetails({ person, subtitle }: Props) {
         )}
       </View>
 
-      {person.photos.length > 0 && (
+      {photos.length > 0 && (
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ gap: spacing.sm }}
-          accessibilityLabel={`${person.photos.length} photos of ${person.firstName}`}>
-          {person.photos.map((uri, index) => (
+          accessibilityLabel={`${photos.length} photos of ${person.firstName}`}>
+          {photos.map((uri, index) => (
             <Image
               key={uri}
-              source={{ uri }}
+              source={photoSource(uri)}
               accessibilityLabel={`Photo ${index + 1} of ${person.firstName}`}
               style={[styles.photo, { borderRadius: radius.lg, backgroundColor: colors.surfaceMuted }]}
               contentFit="cover"

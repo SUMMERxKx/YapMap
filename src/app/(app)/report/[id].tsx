@@ -2,7 +2,7 @@
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
-import { View } from 'react-native';
+import { Alert, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { TopBar } from '@/components/ui/top-bar';
 import { TextField } from '@/components/ui/text-field';
 import { REPORT_REASONS } from '@/data/constants';
 import type { ReportReason } from '@/data/types';
+import { errorMessage } from '@/lib/error-message';
 import { blockUser, reportUser } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -29,8 +30,22 @@ export default function Report() {
   const submit = async () => {
     if (!reason) return;
     setSending(true);
-    await reportUser(id, reason, details.trim());
-    if (alsoBlock) await blockUser(id, name);
+    try {
+      await reportUser(id, reason, details.trim());
+    } catch (error) {
+      Alert.alert("Couldn't send the report", errorMessage(error, 'Try again.'));
+      setSending(false);
+      return;
+    }
+    if (alsoBlock) {
+      try {
+        await blockUser(id, name);
+      } catch (error) {
+        // The report went through; say so, and that the block didn't.
+        Alert.alert(`Report sent, but we couldn't block ${name}`, errorMessage(error, 'Try blocking them again.'));
+        setAlsoBlock(false);
+      }
+    }
     setSending(false);
     setSent(true);
   };

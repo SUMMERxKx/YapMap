@@ -1,55 +1,35 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import * as api from '@/data/api';
 import { NEARBY_REFRESH_MS } from '@/data/constants';
-import type { NearbyPerson } from '@/data/types';
-import { useStore } from '@/state/store';
+import { refreshNearby, useStore } from '@/state/store';
 
-/** Nearby available people, refreshed every 20 seconds while `enabled`. */
-export function useNearby(enabled: boolean) {
-  const blockedIds = useStore((state) => state.blockedIds);
-  const [people, setPeople] = useState<NearbyPerson[] | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState(false);
+/**
+ * Keeps the shared nearby list fresh: one refresh every 20 seconds while you're live and
+ * the app is on screen. Used once, in the app layout; everything else reads the list.
+ */
+export function useNearbyPolling() {
+  const live = useStore((state) => state.availability !== null);
+  const appActive = useStore((state) => state.appActive);
 
   useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    const load = async () => {
-      try {
-        const result = await api.nearby(blockedIds);
-        if (cancelled) return;
-        setPeople(result);
-        setError(false);
-      } catch {
-        if (cancelled) return;
-        setError(true);
-      }
-    };
-    load();
-    const timer = setInterval(load, NEARBY_REFRESH_MS);
-    return () => {
-      cancelled = true; // ignore answers that arrive after the screen closes
-      clearInterval(timer);
-    };
-  }, [enabled, blockedIds]);
+    if (!live || !appActive) return;
+    void refreshNearby();
+    const timer = setInterval(() => void refreshNearby(), NEARBY_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [live, appActive]);
+}
+
+/** Nearby available people from the shared list, with pull-to-refresh. */
+export function useNearby() {
+  const people = useStore((state) => state.nearby);
+  const error = useStore((state) => state.nearbyFailed);
+  const [refreshing, setRefreshing] = useState(false);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
-    try {
-      setPeople(await api.nearby(blockedIds));
-      setError(false);
-    } catch {
-      setError(true);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [blockedIds]);
+    await refreshNearby();
+    setRefreshing(false);
+  }, []);
 
-  // While disabled, report no list at all rather than a stale one.
-  let visiblePeople: NearbyPerson[] | null = null;
-  if (enabled) {
-    visiblePeople = people;
-  }
-  return { people: visiblePeople, refreshing, refresh, error };
+  return { people, refreshing, refresh, error };
 }

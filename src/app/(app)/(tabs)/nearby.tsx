@@ -51,7 +51,7 @@ function NearbyList() {
   const { colors, layout, spacing } = useTheme();
   const expiresAt = useStore((state) => state.availability?.expiresAt);
   const left = useCountdown(expiresAt);
-  const { people, refreshing, refresh } = useNearby(true);
+  const { people, refreshing, refresh } = useNearby();
 
   // Shown when the list is empty: placeholders while the first load runs, then a friendly note.
   let emptyContent;

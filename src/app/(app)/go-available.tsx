@@ -27,8 +27,15 @@ export default function GoAvailable() {
 
   const confirm = async () => {
     if (editing) {
-      updateNote(note.trim());
-      router.back();
+      setBusy(true);
+      try {
+        await updateNote(note.trim());
+        router.back();
+      } catch (error) {
+        Alert.alert("Couldn't save your note", errorMessage(error, 'Try again.'));
+      } finally {
+        setBusy(false);
+      }
       return;
     }
     setBusy(true);

@@ -25,8 +25,10 @@ export type NearbyPerson = {
   gender: Gender | null; // null when hidden ("Prefer not to say" or the toggle is off)
   intro: string;
   interests: string[];
-  photoUri: string | null;
-  photos: string[];
+  photoUri: string | null; // profile picture
+  thumbUri: string | null; // a small copy of it for small avatars; null for older photos
+  photos: string[]; // more photos as display URLs; empty until signed from photoPaths
+  photoPaths: string[]; // storage paths of those photos, signed when the profile is opened
   note: string; // their optional note while live
   verified: boolean;
 };

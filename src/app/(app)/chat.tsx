@@ -11,7 +11,7 @@ import { ChatThread } from '@/components/chat/chat-thread';
 import { InfoNote } from '@/components/ui/info-note';
 import { SafetyMenu } from '@/components/safety/safety-menu';
 import { displayName } from '@/lib/format-person';
-import { endChat, markSafetyTipSeen, sendMessage, startChat, useStore } from '@/state/store';
+import { endChat, markSafetyTipSeen, sendMessage, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 const SAFETY_TIP_TIMES = 3;
@@ -23,10 +23,6 @@ export default function Chat() {
   const tipViews = useStore((state) => state.safetyTipViews);
   const [showTip, setShowTip] = useState(() => tipViews < SAFETY_TIP_TIMES); // decided once per chat
 
-  useEffect(() => {
-    startChat();
-  }, []);
-
   // The chat ended (by either side, or a block): close this screen.
   useEffect(() => {
     if (!chat && router.canGoBack()) router.back();
@@ -35,17 +31,32 @@ export default function Chat() {
   if (!chat) return <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} />;
   const { other } = chat;
 
-  const end = () =>
+  const ended = chat.status === 'other-cancelled';
+
+  const end = () => {
+    // They already ended it: just close it here.
+    if (ended) {
+      finish('cancelled');
+      return;
+    }
     Alert.alert('End chat?', `Did you meet ${other.firstName}?`, [
       { text: 'Keep chatting', style: 'cancel' },
       { text: 'We met', onPress: () => finish('met') },
       { text: 'End chat', style: 'destructive', onPress: () => finish('cancelled') },
     ]);
+  };
 
   const finish = (outcome: 'met' | 'cancelled') => {
     if (showTip) markSafetyTipSeen();
-    endChat(outcome);
+    void endChat(outcome);
   };
+
+  let endLabel = 'End';
+  let partnerLine = 'Your yap partner — go say hi';
+  if (ended) {
+    endLabel = 'Close';
+    partnerLine = 'This chat has ended';
+  }
 
   const dismissTip = () => {
     markSafetyTipSeen();
@@ -70,7 +81,7 @@ export default function Chat() {
         trailing={
           <>
             <SafetyMenu userId={other.id} firstName={displayName(other)} />
-            <Button label="End" variant="secondary" size="compact" onPress={end} />
+            <Button label={endLabel} variant="secondary" size="compact" onPress={end} />
           </>
         }>
         <Pressable
@@ -78,13 +89,13 @@ export default function Chat() {
           accessibilityLabel={`${displayName(other)}. View profile`}
           onPress={() => router.push({ pathname: '/person/[id]', params: { id: other.id } })}
           style={[styles.who, { gap: spacing.sm }]}>
-          <Avatar name={other.firstName} photoUri={other.photoUri} size={size.avatarSmall} />
+          <Avatar name={other.firstName} photoUri={other.photoUri} thumbUri={other.thumbUri} size={size.avatarSmall} />
           <View style={styles.flex}>
             <AppText variant="bodyStrong" numberOfLines={1}>
               {displayName(other)}
             </AppText>
             <AppText variant="caption" color="greenText" numberOfLines={1}>
-              Your yap partner — go say hi
+              {partnerLine}
             </AppText>
           </View>
         </Pressable>
@@ -94,7 +105,7 @@ export default function Chat() {
         messages={chat.messages}
         onSend={sendMessage}
         placeholder={`Message ${other.firstName}`}
-        disabled={chat.status === 'other-cancelled'}
+        disabled={ended}
         disabledText={`${other.firstName} ended the chat`}
         header={safetyTip}
       />

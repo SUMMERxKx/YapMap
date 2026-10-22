@@ -22,7 +22,7 @@ type Values = Omit<Profile, 'id' | 'verified'>;
 type Props = {
   initial?: Values;
   submitLabel: string;
-  onSubmit: (values: Values) => void;
+  onSubmit: (values: Values) => Promise<void>;
   showAgeCheck?: boolean;
 };
 
@@ -38,6 +38,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
   const [interests, setInterests] = useState<string[]>(initial?.interests ?? []);
   const [isAdult, setIsAdult] = useState(initial?.isAdult ?? false);
   const [tried, setTried] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   // Everything still needed before the form can be submitted, in the order shown to the user.
   const missing: string[] = [];
@@ -73,20 +74,27 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
     });
   };
 
-  const submit = () => {
+  const submit = async () => {
     setTried(true);
+    // One save at a time: a second tap would upload every photo again.
+    if (saving) return;
     if (missing.length === 0 && gender) {
-      onSubmit({
-        photoUri,
-        photos,
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        gender,
-        showGender,
-        intro: intro.trim(),
-        interests,
-        isAdult,
-      });
+      setSaving(true);
+      try {
+        await onSubmit({
+          photoUri,
+          photos,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          gender,
+          showGender,
+          intro: intro.trim(),
+          interests,
+          isAdult,
+        });
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -230,7 +238,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
         </InfoNote>
       )}
 
-      <Button label={submitLabel} onPress={submit} />
+      <Button label={submitLabel} onPress={() => void submit()} loading={saving} />
     </View>
   );
 }

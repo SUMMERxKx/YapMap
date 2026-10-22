@@ -26,7 +26,7 @@ export function PersonCard({ person, onPress }: Props) {
       accessibilityLabel={accessibilityLabel}
       accessibilityHint="Opens their profile so you can say hi"
       style={{ ...styles.row, gap: spacing.md }}>
-      <Avatar name={person.firstName} photoUri={person.photoUri} size={size.avatarLarge} />
+      <Avatar name={person.firstName} photoUri={person.photoUri} thumbUri={person.thumbUri} size={size.avatarLarge} />
       <View style={{ flex: 1, gap: spacing.xs }}>
         <View style={[styles.titleRow, { gap: spacing.sm }]}>
           <AppText variant="bodyStrong" numberOfLines={1} style={styles.name}>
