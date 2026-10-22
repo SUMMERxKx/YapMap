@@ -1,0 +1,36 @@
+# Settings for the AI review in .github/workflows/pr-agent.yml.
+# Every option: https://github.com/the-pr-agent/pr-agent/blob/main/pr_agent/settings/configuration.toml
+
+[config]
+# This repository has no AGENTS.md; the README is the project overview.
+repo_context_files = ["README.md", "supabase/README.md"]
+
+[ignore]
+# Generated and binary files say nothing a reviewer can act on.
+glob = ["package-lock.json", "src/data/database.types.ts", "src/components/mascot/mascot-art.ts", "docs/technical-report/*.pdf"]
+
+[pr_reviewer]
+num_max_findings = 5
+require_security_review = true
+require_tests_review = false
+extra_instructions = """
+Yap is an Expo (React Native, TypeScript) app on Supabase. Focus on:
+- Supabase security: every table has row-level security; writes go through SECURITY DEFINER
+  functions that check auth.uid() and set search_path. Flag any policy, grant or function
+  that lets one user read or change another user's data.
+- Migrations in supabase/migrations are append-only. Flag edits to an existing migration and
+  destructive changes (DROP, data-losing ALTER) without a note in the PR.
+- Backend calls belong in src/data/api.ts; screens must not call Supabase directly.
+- Privacy: no exact location, email or photo URL should reach another user unless the
+  feature needs it.
+- React Native: effects that never clean up (timers, Realtime channels), unhandled promise
+  rejections, and UI that breaks on small screens or with large text.
+Keep comments short and concrete. Do not comment on formatting.
+"""
+
+[pr_code_suggestions]
+num_code_suggestions_per_chunk = 3
+extra_instructions = """
+Prefer plain, readable code over clever one-liners; this codebase favours if/else a junior
+developer can follow.
+"""

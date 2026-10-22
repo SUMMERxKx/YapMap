@@ -1,15 +1,9 @@
-// Generated from the Supabase project's schema (supabase/migrations). Regenerate with the
-// Supabase MCP `generate_typescript_types` tool (or `supabase gen types typescript`)
-// whenever a migration changes tables or functions.
+// Generated from the local database by `npm run db:types`. Do not edit by hand:
+// change a migration in supabase/migrations, then run the command again.
 
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: '14.18';
-  };
   public: {
     Tables: {
       availability: {
@@ -22,6 +16,7 @@ export type Database = {
           state: string;
           user_id: string;
         };
+        ComputedFields: never;
         Insert: {
           accuracy_m?: number | null;
           expires_at: string;
@@ -51,9 +46,22 @@ export type Database = {
         ];
       };
       blocks: {
-        Row: { blocked: string; blocker: string; created_at: string };
-        Insert: { blocked: string; blocker: string; created_at?: string };
-        Update: { blocked?: string; blocker?: string; created_at?: string };
+        Row: {
+          blocked: string;
+          blocker: string;
+          created_at: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          blocked: string;
+          blocker: string;
+          created_at?: string;
+        };
+        Update: {
+          blocked?: string;
+          blocker?: string;
+          created_at?: string;
+        };
         Relationships: [
           {
             foreignKeyName: 'blocks_blocked_fkey';
@@ -82,6 +90,7 @@ export type Database = {
           status: string;
           to_user: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           ended_at?: string | null;
@@ -120,9 +129,22 @@ export type Database = {
         ];
       };
       event_members: {
-        Row: { event_id: string; joined_at: string; user_id: string };
-        Insert: { event_id: string; joined_at?: string; user_id: string };
-        Update: { event_id?: string; joined_at?: string; user_id?: string };
+        Row: {
+          event_id: string;
+          joined_at: string;
+          user_id: string;
+        };
+        ComputedFields: never;
+        Insert: {
+          event_id: string;
+          joined_at?: string;
+          user_id: string;
+        };
+        Update: {
+          event_id?: string;
+          joined_at?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
             foreignKeyName: 'event_members_event_id_fkey';
@@ -151,6 +173,7 @@ export type Database = {
           starts_at: string;
           title: string;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           description?: string;
@@ -191,6 +214,7 @@ export type Database = {
           sender: string;
           sender_name: string;
         };
+        ComputedFields: never;
         Insert: {
           body: string;
           created_at?: string;
@@ -249,6 +273,7 @@ export type Database = {
           status: string;
           verified: boolean;
         };
+        ComputedFields: never;
         Insert: {
           created_at?: string;
           first_name: string;
@@ -293,6 +318,7 @@ export type Database = {
           request_id: string | null;
           reviewed_at: string | null;
         };
+        ComputedFields: never;
         Insert: {
           action?: string | null;
           created_at?: string;
@@ -345,32 +371,22 @@ export type Database = {
     };
     Functions: {
       block_user: { Args: { target: string }; Returns: undefined };
-      blocked_list: { Args: never; Returns: Json[] };
+      blocked_list: { Args: Record<PropertyKey, never>; Returns: Json[] };
       cancel_request: { Args: { request_id: string }; Returns: undefined };
       create_event: {
-        Args: {
-          description: string;
-          emoji: string;
-          lat: number;
-          lng: number;
-          starts_at_ms: number;
-          title: string;
-        };
+        Args: { description: string; emoji: string; lat: number; lng: number; starts_at_ms: number; title: string };
         Returns: Json;
       };
-      delete_account: { Args: never; Returns: undefined };
+      delete_account: { Args: Record<PropertyKey, never>; Returns: undefined };
       delete_event: { Args: { event_id: string }; Returns: undefined };
       end_chat: { Args: { outcome: string; request_id: string }; Returns: undefined };
       events_near: { Args: { lat: number; lng: number; radius_m?: number }; Returns: Json[] };
-      go_green: {
-        Args: { accuracy: number; lat: number; lng: number; minutes: number; note?: string };
-        Returns: Json;
-      };
-      go_offline: { Args: never; Returns: undefined };
+      go_green: { Args: { accuracy: number; lat: number; lng: number; minutes: number; note?: string }; Returns: Json };
+      go_offline: { Args: Record<PropertyKey, never>; Returns: undefined };
       join_event: { Args: { event_id: string; lat: number; lng: number }; Returns: undefined };
       leave_event: { Args: { event_id: string }; Returns: undefined };
-      my_status: { Args: never; Returns: Json };
-      nearby: { Args: never; Returns: Json[] };
+      my_status: { Args: Record<PropertyKey, never>; Returns: Json };
+      nearby: { Args: Record<PropertyKey, never>; Returns: Json[] };
       report_user: {
         Args: { details?: string; reason: string; request_id?: string; target: string };
         Returns: undefined;
@@ -391,7 +407,105 @@ export type Database = {
   };
 };
 
-type DefaultSchema = Database['public'];
+type DatabaseWithoutInternals = Omit<Database, '__InternalSupabase'>;
 
-/** Row type for a table, e.g. `Tables<'messages'>`. */
-export type Tables<Name extends keyof DefaultSchema['Tables']> = DefaultSchema['Tables'][Name]['Row'];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, 'public'>];
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    keyof (DefaultSchema['Tables'] & DefaultSchema['Views']) | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Views'])[TableName] extends {
+      Row: infer R;
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema['Tables'] & DefaultSchema['Views'])
+    ? (DefaultSchema['Tables'] & DefaultSchema['Views'])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
+      }
+      ? R
+      : never
+    : never;
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Insert: infer I;
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I;
+      }
+      ? I
+      : never
+    : never;
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables'] | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables']
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions['schema']]['Tables'][TableName] extends {
+      Update: infer U;
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema['Tables']
+    ? DefaultSchema['Tables'][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U;
+      }
+      ? U
+      : never
+    : never;
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums'] | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums']
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions['schema']]['Enums'][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema['Enums']
+    ? DefaultSchema['Enums'][DefaultSchemaEnumNameOrOptions]
+    : never;
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    keyof DefaultSchema['CompositeTypes'] | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals;
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes']
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions['schema']]['CompositeTypes'][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
+    ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
+    : never;
+
+export const Constants = {
+  public: {
+    Enums: {},
+  },
+} as const;

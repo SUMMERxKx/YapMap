@@ -49,9 +49,10 @@ or anywhere in the repository; the publishable key is public by design and is ke
   Node & 22 (\code{.nvmrc}) \\
   Expo SDK & \code{expo} \textasciitilde57.0.31; React Native 0.86.3; React 19.2.3 \\
   TypeScript & \textasciitilde6.0.3, \code{strict}; extends \code{expo/tsconfig.base}; paths \code{@/*} to \code{./src/*}, \code{@/assets/*} to \code{./assets/*} \\
-  ESLint & 9, \code{eslint-config-expo} flat config; \code{react/no-unescaped-entities} off; ignores \code{dist/*}, \code{.expo/*} \\
+  ESLint & 9, \code{eslint-config-expo} flat config plus \code{eslint-plugin-security}; \code{react/no-unescaped-entities} and \code{security/detect-object-injection} off; ignores \code{dist/*}, \code{.expo/*} \\
   Supabase client & \code{@supabase/supabase-js} \textasciicircum2.117.2 \\
-  Generated types & \code{src/data/database.types.ts}; PostgREST version 14.18 \\
+  Generated types & \code{src/data/database.types.ts}, written by \code{npm run db:types} (Supabase CLI 2.121.0, formatted with Prettier) \\
+  CI & GitHub Actions, \code{.github/workflows/ci.yml}; Dependabot, \code{.github/dependabot.yml} \\
   Package licence & \code{UNLICENSED}, \code{private: true}; proprietary (\code{LICENSE}) \\
   Editor & VS Code recommends \code{expo.vscode-expo-tools}; fix-all, organise imports and sort members on save \\
 \end{longtable}
