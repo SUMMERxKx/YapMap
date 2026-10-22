@@ -1,0 +1,116 @@
+\chapter{Table reference}
+\label{app:tables}
+
+Every table with its columns, types, defaults, constraints, row-level security policies and indexes, as
+defined by the migrations. All columns are \code{NOT NULL} unless marked \emph{nullable}. Every foreign key
+to \code{profiles} or \code{auth.users} cascades on delete. Row-level security is enabled on every table
+listed. The role \code{anon} has no privileges on any of them, and \code{authenticated} has no
+\code{INSERT}, \code{UPDATE} or \code{DELETE} privilege except where stated. One such exception is
+\code{profiles}: its \code{INSERT} and \code{UPDATE} are limited to listed columns, but its default
+\code{DELETE} privilege is not revoked, so what stops a client deleting a profile is row-level security,
+which has no delete policy on that table.
+
+\newcommand{\tablehead}[1]{%
+  \multicolumn{2}{@{}l}{\textsf{\textbf{#1}}}\\[1pt]}
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{44mm}L{\dimexpr\linewidth-44mm-2\tabcolsep\relax}@{}}
+  \caption{Tables, columns and constraints.}
+  \label{tab:tables}\\
+  \toprule
+  \textsf{\textbf{Column}} & \textsf{\textbf{Type, default and constraints}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Column}} & \textsf{\textbf{Type, default and constraints}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \tablehead{public.profiles: one row per account}
+  \code{id} & \code{uuid}, primary key, references \code{auth.users(id)} \\
+  \code{first_name}, \code{last_name} & \code{text}, 1 to 30 characters \\
+  \code{gender} & \code{text}, one of \code{woman}, \code{man}, \code{non-binary}, \code{prefer-not} \\
+  \code{show_gender} & \code{boolean}, default true \\
+  \code{intro} & \code{text}, 1 to 300 characters \\
+  \code{interests} & \code{text[]}, 3 to 5 elements \\
+  \code{photo_path} & \code{text}, nullable; must be a file directly in the owner's folder \\
+  \code{photo_paths} & \code{text[]}, default empty; every element in the owner's folder; at most 6 \\
+  \code{is_adult} & \code{boolean} \\
+  \code{verified} & \code{boolean}, default false; server only \\
+  \code{status} & \code{text}, default \code{active}; one of \code{active}, \code{hidden}, \code{suspended} \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \emph{Named constraints} & \code{profiles_photo_path_own_folder}, \code{profiles_photo_paths_own_folder}, \code{profiles_photo_paths_max} \\
+  \emph{Policies} & \code{profiles_select_own} (select where \code{id = auth.uid()}); \code{profiles_insert_own} (insert with \code{id = auth.uid()} and \code{is_adult}); \code{profiles_update_own} (update own row); no delete policy, so row-level security refuses every delete despite the default \code{DELETE} grant \\
+  \emph{Grants} & insert on \code{id}, the name, gender, intro, interest and photo columns and \code{is_adult}; update on the same columns except \code{id} and \code{is_adult} \\[3pt]
+  \tablehead{public.availability: one row per live user}
+  \code{user_id} & \code{uuid}, primary key, references \code{profiles} \\
+  \code{location} & \code{geography(point, 4326)}; never returned to clients \\
+  \code{accuracy_m} & \code{double precision}, nullable \\
+  \code{note} & \code{text}, default empty, at most 60 characters \\
+  \code{state} & \code{text}, default \code{open}; \code{open} or \code{chatting} \\
+  \code{started_at} & \code{timestamptz}, default \code{now()}; when the live position was set \\
+  \code{expires_at} & \code{timestamptz} \\
+  \emph{Indexes} & \code{availability_location_idx} (GiST on \code{location}); \code{availability_expires_idx} \\
+  \emph{Policies} & none: no direct access \\[3pt]
+  \tablehead{public.chat\_requests: say-hi requests and the chats they become}
+  \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
+  \code{from_user}, \code{to_user} & \code{uuid}, reference \code{profiles}; must differ \\
+  \code{status} & \code{text}, default \code{pending}; one of \code{pending}, \code{accepted}, \code{declined}, \code{expired}, \code{cancelled}, \code{met} \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \code{expires_at} & \code{timestamptz}, default \code{now()} plus 5 minutes \\
+  \code{responded_at}, \code{ended_at} & \code{timestamptz}, nullable \\
+  \emph{Indexes} & \code{chat_requests_one_pending_idx} (unique on \code{from_user} where \code{pending}); \code{chat_requests_to_user_idx}; \code{chat_requests_from_user_created_idx} (\code{from_user}, \code{created_at}); \code{chat_requests_expires_idx} (\code{expires_at} where \code{pending}); \code{chat_requests_accepted_idx} (\code{from_user}, \code{to_user} where \code{accepted}) \\
+  \emph{Policies} & \code{chat_requests_select_own} (select where the user is sender or recipient) \\
+  \emph{Realtime} & in \code{supabase_realtime}; replica identity full \\[3pt]
+  \tablehead{public.events: events on the map}
+  \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
+  \code{host} & \code{uuid}, references \code{profiles} \\
+  \code{emoji} & \code{text}, default U+2615, at most 8 characters; the category \\
+  \code{title} & \code{text}, 1 to 60 characters \\
+  \code{description} & \code{text}, default empty, at most 200 characters \\
+  \code{location} & \code{geography(point, 4326)}; the place the host chose \\
+  \code{starts_at} & \code{timestamptz} \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \emph{Indexes} & \code{events_location_idx} (GiST); \code{events_host_idx}; \code{events_starts_idx} \\
+  \emph{Policies} & none: no direct access \\[3pt]
+  \tablehead{public.event\_members: who joined which event}
+  \code{event_id} & \code{uuid}, references \code{events}, cascades \\
+  \code{user_id} & \code{uuid}, references \code{profiles} \\
+  \code{joined_at} & \code{timestamptz}, default \code{now()} \\
+  \emph{Keys and indexes} & primary key (\code{event_id}, \code{user_id}); \code{event_members_user_idx} \\
+  \emph{Policies} & none: no direct access \\[3pt]
+  \tablehead{public.messages: one-to-one and group messages}
+  \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
+  \code{request_id} & \code{uuid}, nullable, references \code{chat_requests}, cascades \\
+  \code{event_id} & \code{uuid}, nullable, references \code{events}, cascades \\
+  \code{sender} & \code{uuid}, references \code{profiles} \\
+  \code{sender_name} & \code{text}, default empty; set by the send functions \\
+  \code{body} & \code{text}, 1 to 1000 characters \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \emph{Check} & exactly one of \code{request_id} and \code{event_id} is set \\
+  \emph{Indexes} & \code{messages_request_idx} (\code{request_id}, \code{created_at}); \code{messages_event_idx} (\code{event_id}, \code{created_at}); \code{messages_sender_created_idx} (\code{sender}, \code{created_at}) \\
+  \emph{Policies} & \code{messages_select_participant}: select when the reader has not blocked the sender, and the reader takes part in the chat (\code{is_chat_participant}) or is a member of the event (\code{is_event_member}) \\
+  \emph{Realtime} & in \code{supabase_realtime}; replica identity full \\[3pt]
+  \tablehead{public.blocks: who blocked whom}
+  \code{blocker}, \code{blocked} & \code{uuid}, reference \code{profiles}; must differ; together the primary key \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \emph{Indexes} & \code{blocks_blocked_idx} \\
+  \emph{Policies} & \code{blocks_select_own} and \code{blocks_delete_own} (where \code{blocker = auth.uid()}); \code{DELETE} granted to \code{authenticated} \\[3pt]
+  \tablehead{public.reports: reports for review}
+  \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
+  \code{reporter}, \code{reported} & \code{uuid}, reference \code{profiles} \\
+  \code{request_id} & \code{uuid}, nullable, references \code{chat_requests}, set to null on delete \\
+  \code{reason} & \code{text}; one of \code{inappropriate-photo}, \code{harassment}, \code{unsafe}, \code{spam-or-fake}, \code{under-18}, \code{other} \\
+  \code{details} & \code{text}, default empty, at most 500 characters \\
+  \code{created_at} & \code{timestamptz}, default \code{now()} \\
+  \code{reviewed_at}, \code{action} & \code{timestamptz}, \code{text}; nullable; not written by any code \\
+  \emph{Indexes} & \code{reports_reported_idx}; \code{reports_reporter_idx}; \code{reports_request_idx} \\
+  \emph{Policies} & none: no direct access \\[3pt]
+  \tablehead{private.location\_changes: times of location changes}
+  \code{user_id} & \code{uuid}, references \code{profiles} \\
+  \code{changed_at} & \code{timestamptz}, default \code{now()}; rows older than 10 minutes are deleted \\
+  \emph{Indexes} & \code{location_changes_user_idx} (\code{user_id}, \code{changed_at}); no primary key \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\
+\end{longtable}
+\endgroup

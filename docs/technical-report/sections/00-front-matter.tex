@@ -1,0 +1,70 @@
+% Title page, summary, contents and lists of figures and tables.
+
+\begin{titlepage}
+  \thispagestyle{empty}
+  \vspace*{30mm}
+  {\sffamily\bfseries\fontsize{40}{44}\selectfont\color{accent}Yap\par}
+  \vspace{6mm}
+  {\sffamily\bfseries\LARGE Technical report\par}
+  \vspace{4mm}
+  {\sffamily\large\color{muted}Architecture, data flow and features of the Yap mobile app\\and its Supabase backend\par}
+  \vspace{10mm}
+  {\color{accent}\rule{28mm}{1.2pt}\par}
+  \vspace{10mm}
+  {\small
+  \begin{tabular}{@{}L{34mm}L{100mm}@{}}
+    \textsf{\textbf{Subject}} & The YapMap repository, branch \code{main} at commit \code{2b1f996} (22 October 2026) \\
+    \textsf{\textbf{Platforms}} & iOS and Android (Expo SDK 57, React Native 0.86) \\
+    \textsf{\textbf{Backend}} & Supabase: Postgres with PostGIS, Auth, Realtime, Storage and \code{pg_cron} \\
+    \textsf{\textbf{Course}} & COMP 2160 (Section 01), Mobile App Development 1, final project \\
+    \textsf{\textbf{Team}} & Samar Khajuria and Manik Singh \\
+    \textsf{\textbf{Date}} & October 2026 \\
+  \end{tabular}\par}
+  \vfill
+  {\footnotesize\color{muted}
+  Copyright \textcopyright{} 2026 Samar Khajuria. All rights reserved. The software described here and its
+  source code are proprietary and may not be used, copied, modified or distributed without the written
+  permission of the copyright holder.\par}
+\end{titlepage}
+\pagenumbering{roman}
+
+\chapter*{Summary}
+\addcontentsline{toc}{chapter}{Summary}
+\markboth{Summary}{}
+
+Yap is a mobile app that helps people who share a physical space, such as a café or a campus lounge,
+start a conversation in person. A user goes live for 30, 60 or 120 minutes, sees the other live users
+within about 100 metres, and sends one of them a request to talk. If the request is accepted within five
+minutes, the two users enter a private chat that exists to help them find each other and meet. Users can
+also place small public events on a map, which anyone within 5 kilometres can join, each with its own
+group chat.
+
+The client is a single Expo and React Native code base written in TypeScript. Expo Router maps files to
+screens; one store in \code{src/state/store.ts} holds all shared state and owns every Realtime
+subscription; and one module, \code{src/data/api.ts}, makes every call to the backend. The backend is a
+Supabase project with no application server. Postgres row-level security denies direct access by default,
+and every write other than the user's own profile columns, an unblock and the user's own photo files
+goes through a \code{SECURITY DEFINER} database function that derives the caller from the session and
+checks what that action needs: identity, state, proximity, blocks or rate limits. PostGIS answers the proximity
+questions, Realtime delivers requests and messages, a private Storage bucket holds photos behind
+short-lived signed URLs, and a \code{pg_cron} job ends expired sessions, requests and stale chats every
+minute.
+
+Privacy shapes the design throughout. Live positions are written once per session, are never returned to
+any client, and are deleted the moment a user goes offline. Other users see a person card that carries a
+first name and last initial but no location or distance. A photo can be loaded only by someone who can
+currently see its owner. The project accepted one deliberate trade-off to keep the promise that a location
+is deleted on going offline: the server cannot rate-limit the distance between two separate live
+sessions, so it limits how often a location may change instead.
+
+This report describes the architecture (\cref{ch:architecture}), the data model (\cref{ch:data-model})
+and the server interface (\cref{ch:server-interface}); traces each major flow with sequence diagrams
+(\cref{ch:flows}); catalogues every feature with the screens, functions and server rules that implement
+it (\cref{ch:features}); and covers security and privacy, reliability, performance, configuration,
+validation, and known limitations in the chapters that follow.
+
+\clearpage
+{\hypersetup{linkcolor=ink}\tableofcontents}
+\clearpage
+\listoffigures
+\listoftables

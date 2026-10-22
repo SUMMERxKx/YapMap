@@ -1,0 +1,353 @@
+\chapter{Data flow and sequences}
+\label{ch:flows}
+
+This chapter follows the data through each major flow, in the order a user meets them. Each section
+states what triggers the flow, what the client and the server do, and what the user sees. Sequence
+diagrams use one lifeline per component; solid arrows are calls, dashed arrows are replies, and green
+arrows are changes pushed by Realtime.
+
+\section{Start-up and session restore}
+\label{sec:flow-boot}
+
+When the app starts, the root layout calls the store's \code{init()} once (\cref{fig:boot}). It registers
+three listeners that last for the life of the process: an Auth listener that resets the app on sign-out,
+an app-state listener that runs a catch-up when the app returns to the foreground, and a network listener
+that runs a catch-up when the connection returns (\cref{sec:catch-up}).
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/boot}
+  \caption{Start-up. The store restores the session and the profile before any screen is shown, then the
+    root guards choose the first stack.}
+  \label{fig:boot}
+\end{figure}
+
+\code{init()} then restores the session that Supabase keeps in AsyncStorage. Without a session, the
+guards show the welcome screen. With one, the store loads the user's profile row, signs its photo URLs
+and loads the preferences saved on the phone. The profile is loaded before the session is published to
+the screens, because a session without a profile means ``new account'' to the root layout, which would
+otherwise flash profile setup. If the profile cannot be loaded, typically because the phone is offline at
+launch, the store sets \code{loadFailed} and the root layout shows a retry screen instead.
+
+For a user with a profile, the store loads the block list and calls \code{my_status} to restore the
+state the app was in when it last closed: a live session (unless a request to go offline is still
+waiting to reach the server), an open chat, or a request still waiting for its answer, which it starts
+watching again. A failure in this step is tolerated and retried by the next catch-up. Finally the store
+subscribes to incoming requests; when that channel first joins, it also looks for a request that arrived
+before it was listening.
+
+\section{Account creation, sign-in and password reset}
+\label{sec:flow-account}
+
+Yap uses Supabase Auth with email and password. Because the app does not open links, every email the
+project sends carries an 8-digit code that the user types into the app (\cref{fig:seq-account}).
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-account}
+  \caption{Creating an account, confirming it with the emailed code, and signing in.}
+  \label{fig:seq-account}
+\end{figure}
+
+\paragraph{Creating an account} The sign-up screen checks that the password has at least eight
+characters and matches its confirmation, then calls \code{signUp}. Supabase creates the user and emails a
+confirmation code. If the email already belongs to an account, Supabase may return a user with no
+identities and send nothing; the API layer detects this and tells the user to sign in or use
+\ui{Forgot password} instead of waiting for a code that will not arrive. If \ui{Confirm email} were
+switched off in the dashboard, sign-up would return a session at once and the code screen would be
+skipped.
+
+\paragraph{Confirming the email} The code screen accepts exactly eight digits through one hidden input
+behind eight boxes, which keeps pasting and the operating system's one-time-code autofill working. It
+submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
+session; the store then loads the (missing) profile and the guards open profile setup. \ui{Resend code}
+is disabled for 60 seconds after each send, matching the hosted project's limit of one code per address
+per minute (\cref{tab:dashboard}). The local stack allows one per second, so the button's wait is the
+only limit there.
+
+\paragraph{Signing in} Sign-in calls \code{signInWithPassword}. If the password is correct but the
+account was never confirmed, Supabase answers \code{email_not_confirmed}; the screen then requests a new
+code and opens the code screen. Errors are reported as sentences: a wrong password, for example, suggests
+\ui{Forgot password}, because accounts created before passwords existed have none.
+
+\paragraph{Resetting a password} \Cref{fig:seq-reset} shows the reset flow. \ui{Forgot password} emails
+an 8-digit reset code. The code screen, opened with purpose \code{reset}, only collects the code: it is
+checked when the new password is saved, because verifying a recovery code signs the user in. On
+\ui{Save and sign in}, the store verifies the code with type \code{recovery}, which creates a session, and
+saves the new password with \code{updateUser}. If saving fails, the store signs out locally, so the
+recovery session cannot sign the user in on the next launch without a password, and says that the code
+has been used up. A signed-in user can also change the password from Settings, which calls
+\code{updateUser} directly.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-reset}
+  \caption{Resetting a forgotten password. The emailed code is checked only together with the new
+    password.}
+  \label{fig:seq-reset}
+\end{figure}
+
+\section{Profile setup and saving}
+\label{sec:flow-profile}
+
+A signed-in user without a profile row goes through seven screens: a greeting with the 18+ confirmation,
+then six numbered steps for the name, gender, introduction, interests, profile picture and further
+photos. The answers are kept in the profile draft until the last step, \ui{Finish}, calls the store's
+\code{saveProfile}. Editing the profile later uses the same action from a single-page form.
+\Cref{fig:seq-profile} shows what saving does.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-profile}
+  \caption{Saving a profile. Photos are uploaded before the row is written, so the row only ever points
+    at files that exist.}
+  \label{fig:seq-profile}
+\end{figure}
+
+For each photo, the API layer decides whether it is new. A \code{file://} address comes from the picker
+or the camera: it is re-encoded as a JPEG at most 1080 pixels wide (never enlarged) at quality 0.8 and
+uploaded to \code{<user-id>/<slot>-<milliseconds>.jpg}. The profile picture is also uploaded as a
+320-pixel copy for avatars; if that upload fails, avatars fall back to the full photo. An
+\code{https://} address is a signed URL of a photo already stored, so its storage path is recovered from
+the URL and kept.
+
+The API layer then inserts the row on the first save, or updates only the editable columns afterwards.
+It lists the user's folder and removes any file the saved profile no longer uses, such as replaced photos
+or uploads from a failed attempt; this tidy-up is best-effort and is retried by the next successful save.
+Finally it reloads the row and signs its photo URLs. On the first save, the store marks the tutorial as
+due, starts listening for incoming requests, and the guards open the app.
+
+\section{Going live and the nearby list}
+\label{sec:flow-live}
+
+\Cref{fig:seq-live} shows the life of a live session from the client's point of view.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-live}
+  \caption{Going live, keeping the nearby list fresh, and going offline.}
+  \label{fig:seq-live}
+\end{figure}
+
+\paragraph{Going live} Tapping the green \ui{YAP} button opens the go-live sheet, where the user chooses
+30, 60 or 120 minutes and may write a note. On \ui{Go live}, the app asks for foreground location
+permission. It never asks for background location. It requests a position with balanced accuracy and
+waits up to eight seconds; if no fix arrives, it uses a position the phone recorded in the last five
+minutes. The store sends the position, its accuracy, the duration and the note to \code{go_green}, which
+applies the relocation rules and writes the session (\cref{sec:relocation-limits}). The function returns
+the session's start and end times as the server set them, so the countdown on the button ends when the
+session really does, whatever the phone's clock says.
+
+While the user is live, the \code{(app)} layout keeps the screen awake, sets a timer that takes the user
+offline at the end time, and polls the nearby list. The button turns red, reads \ui{LIVE} with the
+minutes left, and a tap takes the user offline.
+
+\paragraph{The nearby list} One shared list in the store serves the \ui{Nearby} tab, the person sheet and
+the nearby prompts. A single poll refreshes it every 20 seconds while the user is live and the app is in
+the foreground, and pulling the list down refreshes it at once. Each refresh calls \code{nearby}, which
+returns person cards and nothing about where anyone is. The API layer signs the profile pictures and their
+small copies in one batch; a person's further photos are signed only when their profile is opened. A
+counter discards an answer that arrives after a newer refresh has started.
+
+\paragraph{Nearby prompts} The hook \code{useNearbyAlerts} compares each new list with the people already
+announced in this live session. On the first list, if more than one person is there, it shows a summary
+(``3 people near you are up for a chat''); after that it announces a newly arrived person by name, the
+most recent one if several arrive in the same refresh. Each prompt plays a haptic and disappears after
+eight seconds, and each person is announced at most once per session.
+
+\paragraph{Going offline} A tap on the red button, or the end-time timer, calls \code{goOffline}. The store
+clears the live state at once and then calls \code{go_offline}, which withdraws the user's waiting request
+and deletes the session row. If the call fails when the user chose to go offline, the store records that
+the request is pending, shows \ui{Almost offline}, and retries at the next catch-up. If a retry is in
+progress when the user goes live again, \code{goGreen} waits for it to finish, so the retry cannot delete
+the new session. A session that simply runs out is
+also removed by the server's minute job, so a failed call at the end time needs no retry.
+
+\section{Saying hi, answering and chatting}
+\label{sec:flow-sayhi}
+
+\subsection{Sending a request and receiving the answer}
+
+A user opens a person from the nearby list or a prompt and taps \ui{Say hi}. The store refuses locally
+while the user is in a chat or already has a request waiting; the server applies the same rules and more
+(\cref{tab:functions}). \Cref{fig:seq-request} shows the exchange that follows.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-request}
+  \caption{A say-hi request. The sender learns the outcome from Realtime, from a slow poll, or from its
+    own timer, whichever comes first. The server refuses an acceptance after the end time; the timer's
+    three seconds of grace only wait for news of an earlier acceptance that is still on its way.}
+  \label{fig:seq-request}
+\end{figure}
+
+\code{send_request} returns the request's ID and end time, and the sender's app opens the waiting
+screen with a five-minute countdown. The store then waits for the answer in three ways at once, so that
+one of them always works: a Realtime channel for updates to that request row, a query of its status every
+seven seconds, and a timer that gives up three seconds after the end time. The first of these to report
+an outcome settles the wait: \code{accepted} opens the chat; any other final status, or the timer, shows
+\ui{Not this time}, which reads the same whether the recipient declined or never answered. Separately,
+the waiting screen's own countdown shows \ui{Not this time} as soon as the end time arrives. The recipient
+cannot accept after the end time: \code{respond} then refuses with \code{request expired}. The three
+seconds of grace only wait for news of an acceptance made just before the end time, whose Realtime update
+or poll result is still on its way; if it arrives in that window, the chat replaces \ui{Not this time}.
+If the sender has already tapped \ui{Back to nearby list}, the store has dropped the request, so the
+wait ignores the answer and the next catch-up opens the chat instead.
+
+On the recipient's phone, the insert reaches the app through the incoming-requests channel, which
+filters on \code{to_user}. The store fetches the sender's card with \code{request_person} and the
+\code{(app)} layout opens a full-screen request with the sender's profile, a countdown, and two buttons of
+equal size: \ui{Not now} and \ui{Accept}. While a request is already on screen or the user is in a chat,
+later requests are not shown; they expire on the server, and their senders see \ui{Not this time}. If the
+recipient's app was in the background or offline when the request arrived, the catch-up finds it by
+querying for the newest waiting request addressed to the user.
+
+\paragraph{Accepting} \code{respond} with \code{accept = true} sets the request to \code{accepted} and both
+users to \code{chatting}, which removes them from everyone else's nearby list. If the recipient had a
+request of their own waiting, the server withdraws it and the app stops showing it. The recipient's app
+opens the chat; the sender's app opens it when the update arrives. If the accept fails, for example
+because the sender cancelled a moment earlier or is no longer live, the recipient sees a short
+explanation.
+
+\paragraph{Cancelling} \ui{Cancel request} on the waiting screen removes the request from the screen at
+once and calls \code{cancel_request}. If that call fails, the request reappears, the app resumes watching
+for the answer, and an alert explains that the user is still waiting. If the cancel reaches the server
+just after an accept, the server ends that chat too, so nobody is left in a chat the other person never
+sees.
+
+\subsection{The one-to-one chat}
+
+Both apps open the chat in the same way (\cref{fig:seq-chat}): the store subscribes to the chat's
+channel first and loads the newest 200 messages each time the channel joins, so a message sent between
+the two steps is not lost. The chat screen shows the partner's photo and name, a safety tip during the user's first few chats, and
+a message composer. Tapping the partner's name opens their profile, including the live note that often
+says where to find them.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-chat}
+  \caption{The one-to-one chat. Messages are merged by ID, so the copy that Realtime delivers to the
+    sender is ignored.}
+  \label{fig:seq-chat}
+\end{figure}
+
+\code{send_chat_message} returns the saved row, which the sender's app shows immediately; when Realtime
+delivers the same row a moment later it is recognised by its ID and skipped. Messages are kept sorted by
+the time the server stored them.
+
+\paragraph{Ending the chat} \ui{End} asks \ui{Did you meet?} with three choices: \ui{Keep chatting},
+\ui{We met} and \ui{End chat}. The two ending choices close the chat on this phone at once and call
+\code{end_chat} with outcome \code{met} or \code{cancelled}; both users return to the nearby lists if they
+are still live. The other phone learns of the end through the chat channel, which also listens for
+updates to the request row: when the status leaves \code{accepted}, the chat stays on screen with the
+notice that the partner ended it and the composer replaced by that notice. Leaving the chat screen without
+ending it keeps the chat open; a bar on the \ui{Go live} and \ui{Nearby} tabs reopens it.
+
+\paragraph{Chats nobody ends} If both users simply stop using the app, the minute job ends the chat once
+neither of them is live (\cref{sec:housekeeping}), and \code{my_status} no longer offers it after a
+restart.
+
+\section{Events and group chats}
+\label{sec:flow-events}
+
+\Cref{fig:seq-events} traces the event features.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-events}
+  \caption{Loading events around the user, creating, joining and deleting an event, and the group chat.}
+  \label{fig:seq-events}
+\end{figure}
+
+\paragraph{Finding events} When the \ui{Map} tab opens, and each time its tab button is pressed, the
+screen finds the user. It asks for location permission only if the user has never decided, uses a
+position the phone recorded in the last two minutes if there is one, otherwise waits up to eight seconds
+for a fresh fix, and otherwise uses the last position the phone knows, however old. It then centres the
+map and loads the events within the chosen radius of that point. Without a position, the map shows the
+events around Vancouver, the default centre, with a note and a button to turn location on; when the user
+returns from the phone's settings, the map tries again.
+
+The radius is chosen with a slider from 1 to 50 kilometres (default 10) and drawn on the map as a circle.
+Releasing the slider saves the value for the account, fits the map to the circle, and reloads the events
+for the same centre. \code{events_near} applies the radius on the server and never searches beyond 50
+kilometres. Each event becomes a pin showing its category icon and title; events the user has joined are
+drawn in green. If none are in range, a note suggests widening the distance or creating an event.
+
+\paragraph{Creating an event} A long press on the map, or \ui{Create event here} for the centre of the
+current view, opens the event form at that place. The host picks one of twelve categories, writes a title
+and optional details, and picks a start time from now to seven days ahead; on Android the picker asks for
+the date and then the time. \code{create_event} stores the event, adds the host as a member and returns
+the event card, and the app opens the event's group chat.
+
+\paragraph{Joining} Tapping a pin opens the event sheet with the category, title, start time
+(\ui{Starts in 25 min}, \ui{Started 10 min ago}), number of members, details and host. \ui{Join and open
+chat} requests the phone's position and calls \code{join_event}, which accepts the user only within five
+kilometres of the event. Anyone may therefore see events up to 50 kilometres away, but only someone
+nearby can join one and read its chat. If the host has deleted the event in the meantime, the server
+answers \code{no such event}; the app takes the event off the map and the sheet shows \ui{This event was
+deleted}.
+
+\paragraph{The group chat} The group chat subscribes to the event's messages while its screen is open and
+loads the newest 200 messages each time the channel joins. Messages show the sender's name. Messages from
+users the reader has blocked are excluded by row-level security and filtered again on screen. A long press
+on someone else's message offers \ui{Report} and \ui{Block}; blocking the host also removes the event from
+the map and closes the chat. A guest can leave the event, which removes their membership and their access
+to its chat. The host has no \ui{Leave} button, because on the server a host leaving deletes the event;
+the host deletes it deliberately instead. Sending to the chat of an event that no longer exists, or that
+the user has left, is refused with \code{not a member}, shown as \ui{You can't post here. The event may
+have ended or been deleted.}
+
+\paragraph{Deleting an event} The event sheet shows the host a \ui{Delete event} button. After a
+confirmation (\ui{Delete this event?} \ui{Everyone who joined will lose the group chat.}), the store
+calls \code{delete_event}, which accepts only the host. Deleting the row removes the event's members and
+its group-chat messages through their cascading foreign keys. The app takes the event off the map at once;
+other phones stop showing it at their next load of events. An event already deleted, for example from
+another phone, counts as deleted.
+
+\section{Photos}
+\label{sec:flow-photos}
+
+Uploading photos is part of saving a profile (\cref{sec:flow-profile}). Showing another user's photo
+takes a signed URL, because the bucket is private (\cref{fig:seq-photos}).
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-photos}
+  \caption{Showing another user's photo. Storage signs a URL only if the read policy allows the signed-in
+    user to see the file.}
+  \label{fig:seq-photos}
+\end{figure}
+
+The API layer keeps a cache from storage path to signed URL. A URL is created for one hour and reused
+until fewer than ten minutes remain, so the same photo keeps the same URL across refreshes. A path that
+could not be signed, because the file does not exist or its owner is not visible to the user, is
+remembered for one minute and then asked for again, so the photo appears soon after its owner becomes
+visible. Expired entries are dropped whenever new URLs are signed, and the whole cache is cleared on
+sign-out. All the paths a screen needs are signed in one request.
+
+Storage signs a URL only if the user may read the object. The read policy calls
+\code{private.can_see_photo}, which allows a photo only while its owner is visible to the user
+(\cref{sec:photo-privacy}). On the device, \code{expo-image} caches the downloaded image under the URL
+without its token, so re-signing a URL does not cause the image to be downloaded again.
+
+\section{Account deletion}
+\label{sec:flow-delete}
+
+\ui{Delete account} in Settings asks for confirmation and then runs the sequence in
+\cref{fig:seq-delete}. The photos are removed first, through the Storage API, because once the account is
+gone the session can no longer reach Storage, and Supabase does not allow deleting rows from the storage
+tables directly.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/seq-delete}
+  \caption{Deleting an account. Removing the Auth user removes every row that belongs to the user.}
+  \label{fig:seq-delete}
+\end{figure}
+
+\code{delete_account} first returns the user's chat partner, if any, to \code{open}, so the partner can
+be found and can say hi again; then it deletes the Auth user. Every user foreign key cascades, so the
+delete removes the profile, the live session, every request sent or received with its messages, every
+event hosted with its members and messages, every membership, every message sent, every block made or
+received, every report made or received, and the location-change log. The app then signs out, and the
+Auth listener resets the store to its initial state and closes every channel.

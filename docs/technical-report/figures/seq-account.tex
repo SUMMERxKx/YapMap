@@ -1,0 +1,33 @@
+% Sequence: creating an account, confirming it and signing in (Figure: account sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Auth screens}
+  \participant[actor]{store}{3.5}{Store and\\API layer}
+  \participant[serveractor]{auth}{7.0}{Supabase Auth}
+  \participant[serveractor]{mail}{10.3}{SMTP sender\\(Resend)}
+  \participant[serveractor]{db}{13.5}{Postgres}
+
+  \fragment{ui}{db}{0.35}{7.35}{create an account}
+  \msg{ui}{store}{1.0}{\code{signUp}(email, password)}
+  \msg{store}{auth}{1.6}{\code{auth.signUp}}
+  \msg{auth}{mail}{2.2}{confirmation email}
+  \node[font=\sffamily\scriptsize, anchor=west, text=muted] at ($(mail |- 0,-2.2)+(0.15,0.12)$) {8-digit code};
+  \msg[reply]{auth}{store}{2.8}{user, no session}
+  \msg[reply]{store}{ui}{3.4}{open the code screen}
+  \msg{ui}{store}{4.1}{\code{confirmSignUp}(email, code)}
+  \msg{store}{auth}{4.7}{\code{verifyOtp}, type signup}
+  \msg[reply]{auth}{store}{5.3}{session}
+  \msg{store}{db}{5.9}{select own \code{profiles} row}
+  \msg[reply]{db}{store}{6.5}{no row}
+  \msg[reply]{store}{ui}{7.0}{guard opens profile setup}
+
+  \fragment{ui}{db}{7.75}{12.55}{sign in}
+  \msg{ui}{store}{8.4}{\code{signInWithPassword}}
+  \msg{store}{auth}{9.0}{\code{auth.signInWithPassword}}
+  \msg[reply]{auth}{store}{9.6}{session, or \code{email_not_confirmed}}
+  \msg{store}{db}{10.2}{profile, block list, \code{my_status}}
+  \msg[reply]{db}{store}{10.8}{rows}
+  \msg[reply]{store}{ui}{11.4}{guard opens the app}
+  \seqnote{ui}{store}{11.75}{unconfirmed: send a new code, open the code screen}
+
+  \lifelines{12.9}{ui, store, auth, mail, db}
+\end{tikzpicture}

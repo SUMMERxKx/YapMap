@@ -1,0 +1,308 @@
+\chapter{Features}
+\label{ch:features}
+
+This chapter describes every feature of the app: what the user sees, what happens, and where it is
+implemented. Each feature ends with a summary of its screens (under \code{src/app}), the client functions
+that carry it, and the server rules that enforce it. The data flows behind the larger features are traced
+in \cref{ch:flows}; this chapter refers to them rather than repeating them. \Cref{fig:screen-map} shows
+how the signed-in screens connect, and \cref{app:routes} lists every route.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/screen-map}
+  \caption{Screen map of the signed-in app. Green boxes along the top are the four tabs; arrows carry the
+    action that opens the next screen. The incoming request and the chat can open over any screen.}
+  \label{fig:screen-map}
+\end{figure}
+
+\section{Welcome and account creation}
+\label{sec:feature-signup}
+
+The welcome screen shows the name \ui{Yap}, the line \ui{The app that gets you off the app}, and two
+buttons: \ui{Create account} and \ui{Sign in}. A note states that continuing means agreeing to the
+community rules and privacy policy. \ui{Create account} asks for an email address, a password and its
+confirmation, then opens the code screen (\cref{sec:flow-account}). The code screen shows eight boxes,
+fills them as digits are typed or pasted, submits on the eighth digit, and offers \ui{Resend code} after
+a 60-second countdown.
+
+\implemented
+  {\code{(auth)/welcome}, \code{(auth)/sign-up}, \code{(auth)/verify}}
+  {\code{signUp}, \code{confirmSignUp}; \code{api.resendSignUpCode}; \code{passwordProblem}}
+  {Supabase Auth: email confirmation on, minimum password length 8, 8-digit code in the confirmation template}
+
+\section{Signing in and passwords}
+
+\ui{Sign in} takes an email and a password. An unconfirmed account is sent a new code and taken to the
+code screen. \ui{Forgot password?} carries the typed email to the reset screen, which emails a reset code;
+the code screen then leads to \ui{Choose a new password}, and saving signs the user in
+(\cref{sec:flow-account}). A note on the sign-in screen tells users who signed up with an emailed code
+alone, before passwords existed, to set a password this way. Signed-in users change their password from
+\ui{Settings}, \ui{Change password}; a success alert confirms the change. A new password must have
+at least eight characters and match its confirmation before anything is sent.
+
+\implemented
+  {\code{(auth)/sign-in}, \code{(auth)/forgot-password}, \code{(auth)/verify}, \code{(auth)/new-password}, \code{(app)/password}}
+  {\code{signInWithPassword}, \code{finishPasswordReset}; \code{api.requestPasswordReset}, \code{api.setPassword}}
+  {Supabase Auth: password sign-in, recovery codes, at most one code per address per minute on the hosted project (\cref{tab:dashboard})}
+
+\section{Profile setup}
+\label{sec:feature-setup}
+
+A new account first sees a greeting and must tick \ui{I'm 18 or older} before continuing. Six numbered
+steps follow, one question per screen, each with a progress bar and its number:
+
+\begin{enumerate}
+  \item first and last name; the screen notes that others see only the first name and last initial;
+  \item gender (woman, man, non-binary or prefer not to say) and a switch to show it on the profile, which
+    is disabled for \ui{Prefer not to say};
+  \item an introduction of up to 300 characters;
+  \item three to five interests from a list of 32;
+  \item a profile picture, chosen from the library or taken with the front camera, cropped square;
+  \item four to six further photos, picked several at a time, each of which can be replaced or removed.
+\end{enumerate}
+
+\ui{Finish} saves the profile (\cref{sec:flow-profile}). The greeting and the selfie screen also offer
+\ui{Use a different account}, which signs out, for someone who signed up with the wrong address.
+
+\implemented
+  {\code{profile-setup/index}, \code{name}, \code{gender}, \code{about}, \code{interests}, \code{photo}, \code{photos}}
+  {\code{ProfileDraftProvider}, \code{saveProfile}, \code{api.saveProfile}; \code{PhotoGrid}, \code{SetupStep}}
+  {\code{profiles} check constraints (lengths, 3 to 5 interests, own-folder photo paths, at most 6 extra photos); insert policy requires \code{is_adult}}
+
+\section{Profile tab and editing}
+
+The \ui{Profile} tab shows the user's profile exactly as other people see it, built by
+\code{asSeenByOthers} from the stored profile: first name and last initial, gender only if shown, the live
+note while the user is live, the further photos, the introduction and the interests. A gear opens
+\ui{Settings} and \ui{Edit profile} opens a single-page form with every setup field except the 18+
+confirmation, which keeps its original answer. The form lists anything still missing (\ui{Add at least 4
+more photos, \dots{} to continue}) and saves through the same action as setup.
+
+\implemented
+  {\code{(app)/(tabs)/profile}, \code{(app)/edit-profile}}
+  {\code{ProfileForm}, \code{PersonDetails}, \code{asSeenByOthers}, \code{saveProfile}}
+  {Column grants: a client may update only the editable profile columns}
+
+\section{Going live}
+\label{sec:feature-live}
+
+The \ui{Go live} tab holds one large round button. Green, it reads \ui{YAP}; tapping it opens the go-live
+sheet. There the user picks 30, 60 or 120 minutes (60 is preselected) and may add a note of up to 60
+characters, with a counter. A notice explains that the location is used only to find people in the same
+place while the user is available, that nobody sees it, and that it is deleted on stopping. If location
+permission is refused, the notice changes to a warning and the button to \ui{Open Settings}.
+
+While the user is live the button is red and reads \ui{LIVE}, the minutes left and \ui{Tap to get off};
+its pulsing ring speeds up. Below it the note appears with \ui{Edit} (or \ui{Add} when empty), which opens
+the same sheet in edit mode; saving the note updates the screen at once and restores the old note if the
+server refuses. A caption reminds the user to keep Yap open to receive requests, and the screen stays on.
+When the time runs out, the user goes offline and a dismissible \ui{Your time's up} notice appears.
+
+\implemented
+  {\code{(app)/(tabs)/index}, \code{(app)/go-available}}
+  {\code{HeroButton}, \code{DurationChips}, \code{useForegroundLocation}, \code{goGreen}, \code{updateNote}, \code{goOffline}; keep-awake and the end timer in \code{(app)/_layout}}
+  {\code{go_green} (durations, note length, relocation limits), \code{update_note}, \code{go_offline}; \code{expire_stale} ends sessions on time}
+
+\section{Nearby list and prompts}
+\label{sec:feature-nearby}
+
+The \ui{Nearby} tab requires the user to be live, because only people who can see each other appear to
+each other; otherwise it shows the Yap cat and a \ui{Go live} button. While live, it shows \ui{You're live,
+47 min left} and a card for each nearby person: photo, first name and last initial, a \ui{here now} badge,
+the note, two lines of introduction and up to three interests. Placeholder cards pulse while the first
+list loads; an empty list shows \ui{Nobody else is green here yet}. Above the list, a bar shows a chat in
+progress and another the request the user is waiting on, with its countdown, or \ui{Not this time} once
+it has ended. While live, a prompt slides in at the top of any screen when someone new is nearby, with
+\ui{Say hi} or \ui{See them} (\cref{sec:flow-live}).
+
+\implemented
+  {\code{(app)/(tabs)/nearby}; prompts in \code{(app)/_layout}}
+  {\code{useNearbyPolling}, \code{useNearby}, \code{refreshNearby}, \code{useNearbyAlerts}, \code{NearbyToast}, \code{PersonCard}}
+  {\code{nearby}: live, open, active users within 100 to 150\,m, no blocks, at most 50, cards only}
+
+\section{Person sheet and saying hi}
+
+Opening a person shows a sheet with their full profile: large photo, name, gender if shown, note, further
+photos (signed only now), introduction and interests, with the safety menu in the corner. The sheet looks
+the person up in the shared nearby list, the current chat partner or the sender of the request on screen;
+if they have gone, it says \ui{They're not live any more}. The footer offers \ui{Say hi}, unless the user is
+already chatting (with this person or anyone else) or has a request waiting, in which case it explains
+why. A sent request replaces the sheet with the waiting screen.
+
+\implemented
+  {\code{(app)/person/[id]}}
+  {\code{PersonDetails}, \code{usePersonPhotos}, \code{sayHi}, \code{api.sendRequest}}
+  {\code{send_request}: proximity, blocks, one request waiting, one chat, 5 requests per 10 minutes}
+
+\section{Waiting for an answer}
+
+The waiting screen shows the recipient's photo with the Yap cat beside it, \ui{Waiting for Sam\dots},
+\ui{They have 5 minutes to answer} and a countdown, with a reassurance that \ui{Not this time} carries no
+score. \ui{Back to nearby list} leaves it open in the background, where the bar on the Nearby tab tracks
+it. \ui{Cancel request} withdraws it on the server. When the answer is no, or time runs out, the screen
+changes to \ui{Not this time} (\cref{sec:flow-sayhi}).
+
+\implemented
+  {\code{(app)/waiting}}
+  {\code{watchAnswer}, \code{api.waitForAnswer}, \code{cancelRequest}, \code{expireOutgoing}, \code{clearOutgoing}}
+  {\code{cancel_request}; \code{expire_stale} expires the request after five minutes or when the sender stops being live}
+
+\section{Answering a request}
+
+An incoming request takes over the screen wherever the user is, with a haptic. It shows \ui{Someone wants
+to chat}, the sender's full profile and the time left to answer, and offers \ui{Not now} and \ui{Accept}
+with equal size and weight. The safety menu is in the corner. The screen cannot be swiped away; it closes
+when the user answers, when the time runs out, or when the user blocks the sender.
+
+\implemented
+  {\code{(app)/incoming}; opened by \code{(app)/_layout}}
+  {\code{listenForRequests}, \code{onIncoming}, \code{respondToIncoming}, \code{expireIncoming}}
+  {\code{respond}: one chat per user, the sender still live; \code{request_person}: card hidden after a block}
+
+\section{One-to-one chat}
+
+An accepted request opens the chat for both users. The header shows the partner's photo and name with
+\ui{Your yap partner --- go say hi}; tapping it opens their profile. A new chat shows the happy Yap cat
+above the first message, and in a user's first chats a safety tip, shown until it has been seen three
+times, advises meeting in the public place both are in. Messages up to 1000 characters are sent with the arrow button; the user's own messages
+are green and on the right. \ui{End} asks whether the two met. If the partner ends the chat, the
+composer is replaced by \ui{Sam ended the chat} and \ui{End} becomes \ui{Close}. The chat survives leaving
+the screen, and a bar on the \ui{Go live} and \ui{Nearby} tabs reopens it (\cref{sec:flow-sayhi}).
+
+\implemented
+  {\code{(app)/chat}}
+  {\code{openChat}, \code{api.subscribeChat}, \code{sendMessage}, \code{endChat}, \code{markChatEnded}; \code{ChatThread}, \code{ActiveChatBar}}
+  {\code{send_chat_message} (length, membership, blocks, 30 per minute), \code{end_chat}; Realtime delivery limited by the \code{messages} policy}
+
+\section{Map and events}
+\label{sec:feature-events}
+
+The \ui{Map} tab shows events around the user. A banner explains that pins show events and never people,
+and holds the distance slider (1 to 50\,km). A button above \ui{Create event here} recentres the map on
+the user. Pins show the event's category icon and title; joined events are green. The event form, the
+event sheet and the group chat behave as described in \cref{sec:flow-events}. \Cref{tab:event-rules}
+summarises who may do what.
+
+\begin{table}[ht]
+  \centering
+  \caption{Event rules.}
+  \label{tab:event-rules}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{34mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Action}} & \textsf{\textbf{Rule}} \\
+    \midrule
+    See an event & Within the chosen radius of the map's centre, at most 50\,km; until three hours after its start; host active and not blocked either way \\
+    Create an event & Active adult profile; start from five minutes ago to seven days ahead; at most five per host in 24 hours \\
+    Join an event & Active adult profile; within 5\,km of the event; not blocked by or blocking the host \\
+    Read and write its chat & Members only; 1 to 1000 characters; at most 30 messages a minute \\
+    Leave & A guest's membership ends; the app offers no \ui{Leave} to the host \\
+    Delete & Host only, from the event sheet, after a confirmation; members and the group chat go with the event \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\implemented
+  {\code{(app)/(tabs)/map}, \code{(app)/event/new}, \code{(app)/event/[id]}, \code{(app)/group/[id]}}
+  {\code{loadEvents}, \code{setEventRadius}, \code{createEvent}, \code{joinEvent}, \code{leaveEvent}, \code{deleteEvent}, \code{enterEventChat}, \code{sendGroupMessage}; \code{EventIcon}, \code{eventCategory}}
+  {\code{events_near}, \code{create_event}, \code{join_event}, \code{leave_event}, \code{delete_event}, \code{send_event_message}}
+
+\section{Blocking and reporting}
+\label{sec:feature-safety}
+
+Every surface that shows another person (the person sheet, the incoming request, the chat and the event
+sheet) has a menu with \ui{Report} and \ui{Block}; in a group chat, a long press on a message offers the
+same. Blocking asks for confirmation, then takes effect on the server first: the block is recorded and any
+request or chat between the two is ended. The app then drops the person from the nearby list, the map and
+any request or chat on screen. \ui{Report} offers six reasons, an optional comment of up to 500 characters
+and \ui{Also block}, which is ticked by default. The form says that every report is reviewed and that the
+reported person will not know who reported them. \ui{Settings}, \ui{Blocked people} lists blocked
+users by first name and last initial, with \ui{Unblock}. The server semantics are in
+\cref{sec:blocking-reporting}.
+
+\implemented
+  {\code{SafetyMenu}, \code{(app)/report/[id]}, \code{(app)/blocked}, long press in \code{(app)/group/[id]}}
+  {\code{blockUser}, \code{unblockUser}, \code{reportUser}; \code{api.block}, \code{api.unblock}, \code{api.blockedList}, \code{api.report}}
+  {\code{block_user}, \code{blocked_list}, \code{report_user}; delete policy on \code{blocks}; block checks in every function that involves two users}
+
+\section{Settings, signing out and deleting the account}
+
+\ui{Settings} groups its rows like the phone's own settings. \textsf{Account} holds \ui{Change password},
+\ui{Blocked people} (with the count) and \ui{Notification settings}, which opens the app's page in the
+phone's settings. \textsf{Help} holds \ui{View tutorial}. \textsf{Safety and legal} links to the community
+rules, privacy policy, terms of service and support address; these are placeholder addresses until the
+real pages are published. Below are \ui{Sign out}, \ui{Delete account} and the app version.
+
+Signing out requires a connection; offline, it explains why and does nothing, because ending the chat and
+the live session must reach the server or the other person would be left waiting. Online, it ends any chat,
+goes offline, then signs out, and the Auth listener resets the app. Deleting the account follows
+\cref{sec:flow-delete}.
+
+\implemented
+  {\code{(app)/settings}, \code{(app)/password}, \code{(app)/blocked}}
+  {\code{signOut}, \code{deleteAccount}; \code{api.deleteAccount}}
+  {\code{delete_account}; Storage delete policy on the user's own folder}
+
+\section{Tutorial}
+
+A new account sees a five-page tutorial once, right after saving its first profile: going live, seeing who
+is around, saying hi and meeting, making plans on the map, and staying in control. It counts as seen as
+soon as it opens, so leaving it by any route never brings it back. \ui{Settings}, \ui{View tutorial} shows it
+again.
+
+\implemented
+  {\code{(app)/tutorial}; opened by \code{(app)/_layout}}
+  {\code{tutorialDue}, \code{markTutorialSeen}}
+  {None}
+
+\section{Offline and error states}
+\label{sec:feature-offline}
+
+A banner, \ui{No internet connection. Trying to reconnect}, appears at the top of every screen whenever
+the phone reports no connection. If a signed-in user's profile cannot be loaded, the app shows \ui{Can't
+reach Yap} with \ui{Try again} instead of sending them to profile setup, and recovers by itself when a
+later catch-up succeeds. Every refused or failed action shows a sentence, never database text
+(\cref{app:refusals}). \Cref{sec:offline} describes the offline behaviour of each action.
+
+\implemented
+  {\code{OfflineBanner}, \code{CantLoad} (both in the root layout)}
+  {\code{retryLoad}, \code{catchUp}; \code{SERVER_REFUSALS}, \code{friendlyRpcError}, \code{friendlyAuthError}}
+  {Fixed refusal messages in every database function}
+
+\section{Visual design and accessibility}
+
+The theme in \code{src/theme/tokens.ts} defines a light and a dark palette, chosen to follow the phone's
+setting, in which every text and background pair meets WCAG AA contrast (4.5:1 for text, 3:1 for
+interface parts). Spacing, radii, sizes, type styles and two elevations come from shared scales. Text
+uses the system fonts, so the phone's text-size setting applies; the largest display words cap their
+scaling. Tappable surfaces share one press animation that shrinks and darkens them slightly; loading lists
+show pulsing placeholders instead of spinners; tab changes and key actions play light haptics.
+
+The Yap cat appears on empty, waiting and error screens in five poses (dizzy, waiting, searching,
+sleepy and happy), each with a slow loop of movement. The cat, the pulsing button ring and the press
+animation all stop moving when the phone's reduced-motion setting is on, and the cat is hidden from screen
+readers because the text beside it always says what it means. Interactive elements carry accessibility
+roles, labels and states, the code boxes announce how many digits are entered, and minimum touch targets
+are 44 points.
+
+\implemented
+  {All}
+  {\code{useTheme}, \code{usePressFeedback}, \code{Skeleton}, \code{Mascot}, \code{GlassBackdrop}}
+  {None}
+
+\section{Features built but switched off}
+\label{sec:feature-flags}
+
+Two features are present in the code and disabled by flags in \code{src/config/features.ts}.
+
+\paragraph{Selfie verification} When enabled, a user with a profile but no verification is sent to a
+selfie check after setup, and again after changing the profile picture. The screen shows the profile
+picture beside an empty frame, asks the user to copy a random pose (for example a thumbs-up next to the
+face) so an old photo cannot be reused, and takes a front-camera selfie. A verified profile shows a
+\ui{Verified} badge. The comparison is not implemented: \code{api.verifySelfie} always reports a match, and
+the result is kept only on the phone, since \code{profiles.verified} can be written only by the server.
+Issue 17 plans a server-side face comparison before the flag is turned on.
+
+\paragraph{Sign-in with Apple and Google} When enabled, the welcome screen shows \ui{Continue with Apple}
+(on iOS) and \ui{Continue with Google}. Neither provider is configured in Supabase Auth, and the store's
+handler only shows \ui{Not available yet}.

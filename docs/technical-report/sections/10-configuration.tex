@@ -1,0 +1,193 @@
+\chapter{Configuration and environments}
+\label{ch:configuration}
+
+\section{Environments}
+
+Yap has one backend environment: a hosted Supabase project, which every build of the app uses
+(\cref{fig:deployment}). The app reaches it through the URL and publishable key in
+\code{src/config/supabase.ts}. There is no separate staging project; behaviour that must be proved
+against a database is proved against a disposable local Supabase stack (\cref{ch:testing}).
+\Cref{app:config} lists every configuration value.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/deployment}
+  \caption{Environments. Phones run the app in Expo Go against the hosted project; migrations reach the
+    hosted project with \code{supabase db push}; a local stack serves database changes and behaviour proofs.}
+  \label{fig:deployment}
+\end{figure}
+
+\section{Supabase dashboard settings}
+\label{sec:dashboard}
+
+Some configuration lives in the Supabase dashboard rather than in the repository. The README records the
+settings that password sign-in needs, and the project's email delivery is configured alongside them
+(\cref{tab:dashboard}).
+
+\begin{table}[ht]
+  \centering
+  \caption{Settings made in the Supabase dashboard.}
+  \label{tab:dashboard}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{50mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Setting}} & \textsf{\textbf{Value}} \\
+    \midrule
+    Auth, email provider & Enabled for password sign-in; \ui{Confirm email} on; minimum password length 8 \\
+    Auth, email rate & At most one emailed code per address per minute \\
+    Template: confirm sign-up & Shows the 8-digit code (\texttt{\{\{ .Token \}\}}) \\
+    Template: reset password & Shows the 8-digit code instead of a link, with a subject such as \ui{Reset your Yap password} \\
+    Template: magic link & No longer used by the app \\
+    Email delivery & Custom SMTP through Resend, sending from \code{mail.samarxkx.dev} \\
+    Apple and Google providers & Not configured; the app's buttons are behind a flag \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The \code{pg_cron} extension and its schedule, the \code{photos} bucket, the Realtime publication and all
+policies are created by the migrations, not by hand. \code{supabase/config.toml} repeats the Auth settings
+for the local stack only, except that it allows one emailed code per second so local testing is faster;
+it is never pushed to the hosted project, and \code{supabase/README.md} warns against
+running \code{supabase config push}.
+
+\section{Database migrations}
+\label{sec:migrations}
+
+The schema is defined by nine SQL migrations in \code{supabase/migrations}, listed by name in
+\cref{app:migrations}. Each later migration replaces functions with \code{CREATE OR REPLACE}, which keeps
+their grants, or drops and recreates a function whose arguments or return type change and then grants it
+again in the same way as the original.
+
+Each file's version prefix matches the version the hosted project recorded for it, so the repository and
+the hosted migration history are identical. \code{supabase/README.md} describes the workflow
+(\cref{tab:migration-workflow}). Earlier migrations were applied with the Supabase MCP tool
+\code{apply_migration}, which records each one under the time it ran; a file applied that way is renamed
+to the recorded version so the two histories stay identical. An app change and the migration it depends on
+ship together: after the \code{server_rules} migration, for example, \code{join_event} takes the phone's
+position, so an older app build can no longer join events.
+
+\begin{table}[ht]
+  \centering
+  \caption{Changing the database, as \code{supabase/README.md} describes it.}
+  \label{tab:migration-workflow}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{34mm}L{70mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Step}} & \textsf{\textbf{Command}} & \textsf{\textbf{Notes}} \\
+    \midrule
+    Create & \code{supabase migration new <name>} & Plain SQL; never edit a migration already applied to the hosted project \\
+    Try locally & \code{supabase start}, then \code{supabase db reset} after each edit & Rebuilds the local database from every migration \\
+    Regenerate types & \code{supabase gen types typescript --local > src/data/database.types.ts} & Then \code{npx tsc --noEmit} and \code{npm run lint} \\
+    Apply to hosted & \code{supabase link --project-ref qiyipqpigacsljfdclql}, then \code{supabase db push} & Asks for the database password, which is never committed \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\code{src/data/database.types.ts} holds the TypeScript types generated from the schema, which give the
+Supabase client typed tables and function arguments.
+
+\section{Local development}
+
+The README describes the development loop:
+
+\begin{lstlisting}[language=bash, caption={Running the app for development.}, label={lst:run}]
+nvm use            # Node 22, from .nvmrc
+npm install
+npx expo start     # scan the QR code with Expo Go on an iPhone or Android phone
+\end{lstlisting}
+
+The app runs in Expo Go against the hosted project. Exercising the core loop needs two phones signed in
+with different email addresses, within about 100 metres of each other, both live. The native
+\code{ios} and \code{android} folders are generated and not committed.
+
+The database can also run locally, with Docker and a current Supabase CLI. \code{supabase start} starts a
+local stack and applies every migration; \code{supabase/config.toml} configures that stack only
+(\cref{tab:local-stack}). The \code{lock_platform_helper} migration revokes the hosted platform's
+\code{public.rls_auto_enable()} only where that function exists, so it succeeds locally too.
+
+\begin{table}[ht]
+  \centering
+  \caption{The local Supabase stack, from \code{supabase/config.toml}.}
+  \label{tab:local-stack}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{44mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Setting}} & \textsf{\textbf{Value}} \\
+    \midrule
+    Project ID; Postgres & \code{yapmap}; major version 17, as on the hosted project \\
+    Ports & API 54321, database 54322, Studio 54323, mail viewer 54324 \\
+    Email & Not sent: read in the local mail viewer at \code{http://127.0.0.1:54324} \\
+    Auth & Sign-up and email confirmation on; 8-digit codes valid for 3600\,s; one emailed code per address per second; minimum password length 8 \\
+    Email templates & \code{supabase/templates/confirmation.html} and \code{recovery.html}, showing the code \\
+    Seed data; Edge Functions & Off; off \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{App configuration}
+
+\code{app.json} configures the build (\cref{tab:app-json}).
+
+\begin{table}[ht]
+  \centering
+  \caption{App configuration in \code{app.json}.}
+  \label{tab:app-json}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{44mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Key}} & \textsf{\textbf{Value}} \\
+    \midrule
+    Name, slug, version & \code{Yap}, \code{yap}, \code{1.0.0}; portrait only; URL scheme \code{yap} \\
+    Appearance & \code{automatic}: light or dark from the phone's setting \\
+    iOS icon & The \code{assets/expo.icon} bundle, which draws the brand mark over a green fill \\
+    Android icon & Adaptive icon with foreground, background and monochrome layers; background \texttt{\#15803D} \\
+    Splash screen & Brand mark on \texttt{\#FAF8F5} (light) or \texttt{\#181715} (dark) \\
+    Location permission & When in use only, with the text ``Yap uses your location only while you are available, to show you people who are up for a chat in the same place. Nobody sees where you are.'' \\
+    Photo and camera permissions & For choosing a profile photo, and for taking one and a verification selfie \\
+    Plugins & Expo Router, splash screen, location, image picker, date and time picker \\
+    Experiments & Typed routes; React Compiler \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Feature flags}
+
+Two feature flags in \code{src/config/features.ts} are both off: \code{selfieVerification} and
+\code{socialSignIn} (\cref{sec:feature-flags}). Turning a flag on shows the corresponding screens and
+buttons; neither feature has a working backend yet.
+
+\section{Asset pipelines and scripts}
+
+Two scripts regenerate assets from source drawings, so the drawings are the single source of truth
+(\cref{tab:scripts}).
+
+\begin{description}
+  \item[Icons.] \code{npm run icons} runs \code{scripts/make-icons.sh}, which uses ImageMagick 7 to draw
+    the brand mark in \code{assets/brand/yap-mark.svg} into the app icon, the three Android adaptive-icon
+    layers, the light and dark splash images and the favicon, and copies the SVG into the iOS icon bundle.
+    Colours come from the theme tokens. It strips metadata from every image, so re-running it without
+    changes leaves the working tree clean.
+  \item[Mascot.] \code{npm run mascot} runs \code{scripts/make-mascot.mjs}, which reads each drawing in
+    \code{assets/mascot}, removes titles and comments, and writes them as strings into
+    \code{src/components/mascot/mascot-art.ts}. Each file name becomes a pose, drawn with
+    \code{react-native-svg} without any extra bundler setup.
+\end{description}
+
+\begin{table}[ht]
+  \centering
+  \caption{Package scripts.}
+  \label{tab:scripts}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{34mm}L{50mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Script}} & \textsf{\textbf{Command}} & \textsf{\textbf{Purpose}} \\
+    \midrule
+    \code{start} & \code{expo start} & Development server \\
+    \code{ios}, \code{android} & \code{expo start --ios}, \code{--android} & Development server opening a simulator or device \\
+    \code{web} & \code{expo start --web} & From the Expo template; the web target is not supported (\cref{ch:limitations}) \\
+    \code{lint} & \code{expo lint} & ESLint with the Expo configuration \\
+    \code{icons} & \code{sh scripts/make-icons.sh} & Regenerate icons, splash images and favicon \\
+    \code{mascot} & \code{node scripts/make-mascot.mjs} & Regenerate the mascot drawings module \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

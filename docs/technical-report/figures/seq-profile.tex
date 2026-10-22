@@ -1,0 +1,26 @@
+% Sequence: saving a profile and uploading its photos (Figure: profile sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Setup or edit\\screen}
+  \participant[actor]{store}{3.0}{Store}
+  \participant[actor]{api}{6.2}{API layer}
+  \participant[serveractor]{storage}{9.6}{Storage\\(photos bucket)}
+  \participant[serveractor]{db}{13.0}{Postgres}
+
+  \msg{ui}{store}{0.8}{\code{saveProfile}(values)}
+  \msg{store}{api}{1.4}{\code{api.saveProfile}}
+  \fragment{api}{storage}{1.75}{4.4}{for each new photo}
+  \selfmsg{api}{2.35}{re-encode as JPEG, at most\\1080\,px wide, quality 0.8}
+  \msg{api}{storage}{3.45}{upload \code{<id>/<slot>-<ms>.jpg}}
+  \msg{api}{storage}{4.05}{profile picture: also a 320\,px copy}
+  \msg{api}{db}{4.90}{does my row exist?}
+  \msg{api}{db}{5.50}{insert (first save) or update editable columns}
+  \seqnote{db}{db}{5.80}{check constraints: own folder,\\at most 6 extra photos}
+  \msg{api}{storage}{6.90}{list own folder; remove files no longer used}
+  \msg{api}{db}{7.50}{select own row}
+  \msg{api}{storage}{8.10}{sign photo URLs}
+  \msg[reply]{api}{store}{8.70}{stored profile}
+  \selfmsg{store}{9.10}{set \code{profile}; on the first save, mark the\\tutorial due and listen for requests}
+  \msg[reply]{store}{ui}{10.10}{guard opens the app}
+
+  \lifelines{10.45}{ui, store, api, storage, db}
+\end{tikzpicture}

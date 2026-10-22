@@ -1,0 +1,80 @@
+\chapter{Testing and validation}
+\label{ch:testing}
+
+Yap has no automated test suite in the repository and no continuous-integration workflow. Correctness is
+established in three other ways: static checks run on every change, behaviour proofs run against a
+disposable backend for changes that alter behaviour, and manual testing on phones. This chapter describes
+each and states plainly what is not covered. \Cref{fig:validation} shows the path a change takes.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/validation}
+  \caption{Validation of a change before it reaches \code{main}.}
+  \label{fig:validation}
+\end{figure}
+
+\section{Static checks}
+
+The README lists three checks, and the larger changes add a fourth:
+
+\begin{description}
+  \item[Type check.] \code{npx tsc --noEmit} type-checks the whole client in TypeScript's strict mode,
+    including the typed routes and the database types generated from the schema, so a call with the wrong
+    function arguments or a link to a missing route fails to compile.
+  \item[Lint.] \code{npx expo lint} runs ESLint with Expo's configuration. One rule, a web rule about
+    apostrophes in markup, is turned off because it does not apply to React Native text.
+  \item[Project health.] \code{npx expo-doctor} checks that the installed packages match the Expo SDK.
+  \item[Release bundles.] Exporting with \code{npx expo export}, once with \code{--platform ios} and once
+    with \code{--platform android}, builds the production JavaScript bundles and so proves that the app
+    bundles for both platforms.
+\end{description}
+
+\section{Pre-merge review pipeline}
+
+Recent changes reach \code{main} through a pre-push pipeline, \code{no-mistakes}, which reviews the change
+against its stated intent, runs the checks above, checks that documentation still matches the code, and
+opens the pull request. Each finding is either fixed in a separate commit or recorded in the pull request,
+so the history of a change shows what was found and how it was resolved.
+
+\section{Behaviour proofs against a disposable backend}
+
+Changes that alter behaviour were proved against a throwaway local Supabase stack running in Docker, built
+from the repository's migrations, with real signed-up users. Each proof ran the scenario twice: on the code
+before the change, where it was expected to fail, and on the change, where it had to pass. The hosted
+project and \code{src/config/supabase.ts} were never touched; the client code under test was pointed at
+the local stack through a module alias. Two pull requests show the method.
+
+\paragraph{Client reliability (pull request 61)} The app's real store and API layer were bundled for
+Node, with small stand-ins for React Native, the network module and AsyncStorage, and driven as one phone
+while a plain Supabase client acted as the other. Twelve scenarios covered missed chat endings, requests
+lost in the background, two chats at once, sign-out order, a failed profile load, repeated photo
+downloads, raw database errors, a failed go-offline and the history limit. All twelve reproduced the bug
+before the change and passed after it. One item, leaving a group chat before its history loads, had no
+recorded proof.
+
+\paragraph{Server rules (pull request 63)} A suite of SQL-level scenarios made the same function, table
+and storage calls as the app and covered every new rule: cancelling, one chat at a time, blocks, photo
+paths and photo visibility, relocation limits, stale chats, the event radius and join distance, the new
+return values and the function grants. On the previous migrations it recorded 51 passes and 56 failures;
+with the new migration, 118 passes and no failures. A second suite ran the real store and API layer as
+four simulated phones over Realtime and passed all 21 of its steps, from the server-time countdown to
+blocking during a chat; on the previous code it failed at the second and sixth steps and stopped at the seventh. The
+generated database types were regenerated from the local stack as part of the same change.
+
+\section{Manual testing}
+
+The core loop is tested by hand with two phones running Expo Go, signed in with different email
+addresses, within about 100 metres of each other and both live. The README describes this setup and the
+dashboard settings it needs.
+
+\section{What is not covered}
+
+\begin{itemize}
+  \item There are no unit tests, including for the pure helpers in \code{src/lib}, which would be the
+    easiest to test.
+  \item There are no automated user-interface tests on a device or simulator.
+  \item The behaviour-proof scripts were written for their pull requests and are not part of the
+    repository, so they cannot be rerun as a regression suite.
+  \item There is no continuous integration: nothing runs the checks on a pull request automatically, and
+    pull requests show no check results.
+\end{itemize}

@@ -1,0 +1,74 @@
+% System architecture: client layers and Supabase services (Figure: architecture).
+\begin{tikzpicture}[
+    band/.style={box, clientbox, minimum height=8.5mm, font=\sffamily\footnotesize},
+    svc/.style={box, serverbox, minimum height=11mm, text width=24mm, font=\sffamily\footnotesize},
+    path/.style={font=\ttfamily\scriptsize, text=muted},
+    proto/.style={font=\sffamily\scriptsize, text=ink, fill=white, inner sep=1.2pt, align=center},
+  ]
+  % ---------------------------------------------------------------- client
+  \begin{scope}[on background layer]
+    \node[layer, fit={(-0.15,0.85) (15.7,-5.35)}, inner sep=0pt] (clientframe) {};
+  \end{scope}
+  \node[layerlabel] at (clientframe.north west) {MOBILE CLIENT: EXPO AND REACT NATIVE ON iOS AND ANDROID};
+
+  \node[band, minimum width=12cm] (screens) at (6,0) {Screens and navigation\enskip{\ttfamily\scriptsize src/app}};
+  \node[band, minimum width=2.75cm] (components) at (1.375,-1.2) {Components\\[-2pt]{\ttfamily\scriptsize src/components}};
+  \node[band, minimum width=2.75cm] (hooks) at (4.458,-1.2) {Hooks\\[-2pt]{\ttfamily\scriptsize src/hooks}};
+  \node[band, minimum width=2.75cm] (theme) at (7.542,-1.2) {Theme\\[-2pt]{\ttfamily\scriptsize src/theme}};
+  \node[band, minimum width=2.75cm] (lib) at (10.625,-1.2) {Pure helpers\\[-2pt]{\ttfamily\scriptsize src/lib}};
+  \node[band, accentbox, minimum width=12cm] (store) at (6,-2.4) {Store: all shared state, actions and Realtime subscriptions\enskip{\ttfamily\scriptsize src/state/store.ts}};
+  \node[band, accentbox, minimum width=12cm] (api) at (6,-3.6) {API layer: every backend call, error translation, signed URLs\enskip{\ttfamily\scriptsize src/data/api.ts}};
+  \node[band, minimum width=12cm] (client) at (6,-4.8) {Supabase client (supabase-js), session kept in AsyncStorage\enskip{\ttfamily\scriptsize src/data/supabase-client.ts}};
+
+  \node[box, clientbox, text width=26mm, align=left, font=\sffamily\scriptsize, minimum height=5.6cm, anchor=north west] (device) at (12.6,0.42)
+    {\textbf{Device services}\\[3pt]
+     Foreground location\\
+     Camera and photo library\\
+     Image re-encoding\\
+     AsyncStorage\\
+     Network state\\
+     Keep awake\\
+     Haptics\\[3pt]
+     {\color{muted}Used by screens, hooks, the store and the API layer through Expo modules.}};
+
+  \draw[flow] (screens.south -| components) -- (components);
+  \draw[flow] (screens.south -| hooks) -- (hooks);
+  \draw[flow] (hooks.south) -- (hooks |- store.north);
+  \draw[flow] (6,0 |- screens.south) -- (6,0 |- store.north);
+  \draw[flow] (store) -- (api);
+  \draw[softflow] (screens.east) -- (12.3,0 |- screens.east) -- (12.3,0 |- api.east)
+    node[pos=0.5, rotate=90, fill=white, inner sep=1pt, font=\sffamily\tiny, text=muted] {direct calls} -- (api.east);
+  \draw[softflow, -] (5.5,0 |- hooks.south) -- (5.5,-1.82) -- (12.3,-1.82);
+  \draw[flow] (api) -- (client);
+
+  % ---------------------------------------------------------------- Supabase
+  \begin{scope}[on background layer]
+    \node[layer, fit={(-0.15,-6.85) (15.7,-11.45)}, inner sep=0pt] (serverframe) {};
+  \end{scope}
+  \node[layerlabel, anchor=north east] at (serverframe.north east) {SUPABASE PROJECT (HOSTED)};
+
+  \node[svc] (rest) at (1.375,-7.95) {Data API\\[-2pt]{\scriptsize PostgREST}};
+  \node[svc] (realtime) at (4.458,-7.95) {Realtime\\[-2pt]{\scriptsize Postgres changes}};
+  \node[svc] (storage) at (7.542,-7.95) {Storage\\[-2pt]{\scriptsize private bucket \texttt{photos}}};
+  \node[svc] (auth) at (10.625,-7.95) {Auth\\[-2pt]{\scriptsize email and password}};
+  \node[svc, text width=26mm] (smtp) at (14.2,-7.95) {SMTP sender\\[-2pt]{\scriptsize Resend, mail.samarxkx.dev}};
+
+  \node[box, serverbox, minimum width=12cm, text width=11.6cm, align=flush left, font=\sffamily\scriptsize] (pg) at (6,-10.25)
+    {\textbf{\footnotesize Postgres with PostGIS}\\[2pt]
+     \texttt{public}: tables with row-level security; \texttt{SECURITY DEFINER} functions for writes other than own profile, unblock and photos\\
+     \texttt{private}: helper functions and \texttt{location\_changes}; not exposed through the Data API\\
+     \texttt{auth}, \texttt{storage}: accounts and file metadata, managed by Supabase\\
+     \texttt{pg\_cron}: the job \texttt{yap-expire-stale}, every minute};
+
+  \draw[flow, <->] (client.south -| rest) -- node[proto] {HTTPS\\[-2pt]rpc, select} (rest);
+  \draw[flow, <->] (client.south -| realtime) -- node[proto] {WebSocket} (realtime);
+  \draw[flow, <->] (client.south -| storage) -- node[proto] {HTTPS\\[-2pt]upload, sign} (storage);
+  \draw[flow, <->] (client.south -| auth) -- node[proto] {HTTPS\\[-2pt]sessions, codes} (auth);
+  \draw[flow] (auth) -- (smtp);
+  \draw[flow] (smtp.south) -- ++(0,-0.75) node[below, font=\sffamily\scriptsize, align=center, inner sep=1pt] {8-digit codes\\[-2pt]to the user's inbox};
+
+  \draw[flow] (rest) -- node[proto] {SQL as the caller} (rest |- pg.north);
+  \draw[flow] (realtime |- pg.north) -- node[proto] {row changes} (realtime);
+  \draw[flow] (storage) -- node[proto] {read policy} (storage |- pg.north);
+  \draw[flow] (auth) -- node[proto] {\texttt{auth.users}} (auth |- pg.north);
+\end{tikzpicture}

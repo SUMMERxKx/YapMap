@@ -1,0 +1,43 @@
+% Screen map: how the signed-in screens connect, with the action on each transition (Figure: screen map).
+\begin{tikzpicture}[
+    tab/.style={box, accentbox, font=\sffamily\scriptsize\bfseries, text width=20mm, minimum height=9mm, align=center},
+    scr/.style={box, font=\sffamily\scriptsize, text width=20mm, minimum height=9mm, align=center},
+    act/.style={font=\sffamily\tiny, text=muted, fill=white, inner sep=1pt, align=center},
+  ]
+  \node[tab] (golive) at (1.2,0) {Go live tab};
+  \node[tab] (nearby) at (4.6,0) {Nearby tab};
+  \node[tab] (map) at (8.5,0) {Map tab};
+  \node[tab] (profile) at (13.45,0) {Profile tab};
+
+  \node[scr] (sheet) at (1.2,-2.0) {Go-live sheet\\\texttt{go-available}};
+  \node[scr] (person) at (4.6,-2.0) {Person sheet\\\texttt{person/[id]}};
+  \node[scr] (waiting) at (4.6,-4.0) {Waiting\\\texttt{waiting}};
+  \node[scr] (incoming) at (1.2,-4.0) {Incoming request\\\texttt{incoming}};
+  \node[scr, accentbox] (chat) at (2.9,-6.0) {Chat\\\texttt{chat}};
+  \node[scr] (newev) at (7.2,-2.0) {Event form\\\texttt{event/new}};
+  \node[scr] (event) at (9.75,-2.0) {Event sheet\\\texttt{event/[id]}};
+  \node[scr, accentbox] (group) at (8.5,-4.0) {Group chat\\\texttt{group/[id]}};
+  \node[scr, draw=alert, fill=alertsoft] (report) at (8.5,-6.0) {Report\\\texttt{report/[id]}};
+  \node[scr] (edit) at (12.2,-2.0) {Edit profile\\\texttt{edit-profile}};
+  \node[scr] (settings) at (14.7,-2.0) {Settings\\\texttt{settings}};
+  \node[scr, text width=24mm, align=center] (rows) at (14.5,-4.1) {\texttt{password}, \texttt{blocked},\\\texttt{tutorial}; sign out;\\delete account};
+
+  \draw[flow] (golive) -- node[act] {tap YAP,\\or Edit note} (sheet);
+  \draw[flow] (nearby) -- node[act] {tap a card\\or a prompt} (person);
+  \draw[flow] (person) -- node[act] {Say hi} (waiting);
+  \draw[flow] (waiting) |- node[act, pos=0.25] {accepted} (chat.east);
+  \draw[flow] (incoming) |- node[act, pos=0.25] {Accept} (chat.west);
+  \draw[flow] (map) -- node[act] {long press, or\\Create event here} (newev);
+  \draw[flow] (map) -- node[act] {tap a pin} (event);
+  \draw[flow] (newev) -- node[act] {Post event} (group);
+  \draw[flow] (event) -- node[act] {Join} (group);
+  \draw[flow] (profile) -- node[act] {Edit profile} (edit);
+  \draw[flow] (profile) -- node[act] {gear} (settings);
+  \draw[flow] (settings) -- (settings |- rows.north);
+  \draw[softflow] (group) -- node[act] {long press\\a message} (report);
+  \node[act, anchor=north west, fill=none, align=left] at ($(event.south east)+(-0.6,-0.1)$) {host: Delete event};
+
+  \node[act, anchor=south, text width=22mm, fill=none] at ($(incoming.north)+(0,0.05)$) {opens over any screen\\when a request arrives};
+  \node[act, anchor=north, text width=46mm, fill=none] at ($(report.south)+(0,-0.05)$) {also from the safety menu on the person sheet,\\incoming request, chat and event sheet};
+  \node[act, anchor=north, text width=40mm, fill=none] at ($(chat.south)+(0,-0.05)$) {reopened from the bar on the Go live and Nearby tabs};
+\end{tikzpicture}

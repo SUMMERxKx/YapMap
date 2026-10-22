@@ -1,0 +1,32 @@
+% Start-up: restoring the session and choosing the first screen (Figure: start-up).
+\begin{tikzpicture}[
+    node distance=6mm and 9mm,
+    st/.style={step=46mm, font=\sffamily\scriptsize},
+    outcome/.style={terminal, font=\sffamily\scriptsize, text width=30mm, align=center},
+    yes/.style={edgelabel, fill=none, font=\sffamily\scriptsize\itshape, text=muted},
+  ]
+  \node[st] (init) {Root layout calls \texttt{init()} once; it registers the auth, app-state and network listeners};
+  \node[decision, below=of init] (session) {stored\\session?};
+  \node[st, below=of session] (profile) {Load the profile row and sign its photos;\\load saved preferences};
+  \node[decision, below=of profile] (loaded) {loaded?};
+  \node[decision, below=of loaded] (exists) {profile\\exists?};
+  \node[st, below=of exists] (extras) {Load the block list; restore the live session, chat or waiting request from \texttt{my\_status}};
+  \node[st, below=of extras] (listen) {Subscribe to incoming requests; on the first join, look for one already waiting};
+
+  \node[outcome, right=14mm of session] (welcome) {\texttt{(auth)} stack:\\welcome screen};
+  \node[outcome, right=14mm of loaded] (cant) {\ui{Can't reach Yap}\\retry screen};
+  \node[outcome, right=14mm of exists] (setup) {\texttt{profile-setup}\\stack};
+  \node[outcome, right=14mm of listen] (app) {\texttt{(app)} stack:\\Go live tab};
+
+  \draw[flow] (init) -- (session);
+  \draw[flow] (session) -- node[yes, right] {yes} (profile);
+  \draw[flow] (session) -- node[yes, above] {no} (welcome);
+  \draw[flow] (profile) -- (loaded);
+  \draw[flow] (loaded) -- node[yes, right] {yes} (exists);
+  \draw[flow] (loaded) -- node[yes, above] {no (offline)} (cant);
+  \draw[flow] (exists) -- node[yes, above] {no} (setup);
+  \draw[flow] (exists) -- node[yes, right] {yes} (extras);
+  \draw[flow] (extras) -- node[yes, right, align=left] {failures here are retried\\by the next catch-up} (listen);
+  \draw[flow] (listen) -- (app);
+  \draw[softflow] (cant.north) |- node[yes, pos=0.25, right, align=left] {retry, or a\\later catch-up} (profile.east);
+\end{tikzpicture}

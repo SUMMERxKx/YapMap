@@ -1,0 +1,22 @@
+% Sequence: showing another user's photo through a signed URL (Figure: photo sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{List or\\profile screen}
+  \participant[actor]{api}{3.3}{API layer\\(URL cache)}
+  \participant[serveractor]{storage}{6.9}{Storage}
+  \participant[serveractor]{db}{10.4}{Postgres\\read policy}
+  \participant[actor]{img}{13.8}{Image cache}
+
+  \msg{ui}{api}{0.8}{photo paths of the cards}
+  \selfmsg{api}{1.05}{skip paths with a URL that has 10 min\\left, or a refusal under 1 min old}
+  \msg{api}{storage}{2.1}{\code{createSignedUrls}(the rest, 1 h)}
+  \msg{storage}{db}{2.7}{select policy \code{photos_read_visible}}
+  \selfmsg{db}{2.95}{\code{can_see_photo}\\for each file}
+  \msg[reply]{db}{storage}{3.9}{allowed or not}
+  \msg[reply]{storage}{api}{4.5}{a URL for each allowed path}
+  \selfmsg{api}{4.75}{cache: a URL for 1 h,\\a refusal for 60\,s}
+  \msg[reply]{api}{ui}{5.7}{display URLs}
+  \msg{ui}{img}{6.3}{show, with the token removed from the cache key}
+  \msg{img}{storage}{6.9}{download only on a cache miss}
+
+  \lifelines{7.25}{ui, api, storage, db, img}
+\end{tikzpicture}

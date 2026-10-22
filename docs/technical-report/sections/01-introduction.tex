@@ -1,0 +1,170 @@
+\chapter{Introduction}
+\label{ch:introduction}
+
+\section{Purpose and scope}
+
+This report describes Yap as it exists on the \code{main} branch of the YapMap repository at commit
+\code{2b1f996}. It covers the architecture of the mobile client and its backend, the data model, the
+flow of data through the system, every user-facing feature, and the rules the server enforces. It is
+written for engineers who maintain, review or extend the app, and for readers who need to understand
+what the app does with personal data.
+
+Every statement in the report is taken from the source code, the SQL migrations in
+\code{supabase/migrations}, the repository documentation and the history of merged pull requests. Where
+behaviour depends on configuration that lives outside the repository, such as settings in the Supabase
+dashboard, the report says so. Numbers such as radii, time limits and rate limits are quoted from the
+code that enforces them; \cref{tab:parameters} collects them in one place.
+
+The report is organised in three parts. \Cref{ch:architecture,ch:data-model,ch:server-interface}
+describe the structure of the system: its components, its data and the interface between client and
+server. \Cref{ch:flows,ch:features} describe behaviour: the major flows step by step, then each feature
+with the screens and functions that implement it. \Cref{ch:security,ch:reliability,ch:performance,ch:configuration,ch:testing,ch:limitations}
+cover cross-cutting qualities and operations. A glossary and three reference appendices close the report.
+
+\section{What Yap does}
+
+Yap is a mobile app for iOS and Android that helps people in the same place have a spontaneous
+conversation in person. The product line on its welcome screen states the intent: \emph{the app that gets
+you off the app}. The app is built around a short, repeated loop:
+
+\begin{enumerate}
+  \item \textbf{Go live.} A user taps the large \ui{YAP} button, chooses how long to be visible (30, 60 or
+    120 minutes) and may add a note of up to 60 characters, such as where to find them. The phone sends
+    its position once, and the user becomes \term{live}.
+  \item \textbf{See who is nearby.} While live, the user sees a list of the other live users within about
+    100 metres. The list shows a photo, first name and last initial, the note, an introduction and
+    interests. It never shows a location or a distance.
+  \item \textbf{Say hi.} The user opens one person's profile and sends a \term{say-hi request}. The
+    recipient has five minutes to answer. A sender can have only one request waiting at a time.
+  \item \textbf{Accept or decline.} The recipient sees the sender's full profile and two buttons of
+    equal weight, \ui{Accept} and \ui{Not now}. A declined request and an expired request look the same
+    to the sender, who sees \ui{Not this time}.
+  \item \textbf{Chat and meet.} An accepted request opens a private one-to-one chat. While they chat, both
+    users disappear from everyone else's nearby list. The chat exists so the two can find each other in
+    the room.
+  \item \textbf{End.} Either user ends the chat and records whether they met. If they are still live, both
+    return to the nearby lists.
+\end{enumerate}
+
+Alongside the loop, the \ui{Map} tab shows \term{events}: small public plans, such as a coffee or a study
+break, that a host places at a chosen spot. Anyone within 5 kilometres of an event can join it, and every
+member can read and write its group chat. \Cref{fig:core-loop} shows the loop and the event path.
+
+\begin{figure}[t]
+  \centering
+  \input{figures/core-loop}
+  \caption{The core loop. The upper path is the one-to-one loop; the lower path is the map event feature,
+    which does not require being live.}
+  \label{fig:core-loop}
+\end{figure}
+
+\section{Design principles}
+
+Five principles recur throughout the code. They explain many of the decisions described later.
+
+\begin{description}
+  \item[Locations are never shown.] The server returns people, never positions or distances. A live
+    position is stored only while the user is live and is never sent back to any client. The only places
+    the app shows are event locations, which hosts choose on purpose (\cref{sec:location-privacy}).
+  \item[The server enforces every rule.] The client cannot write to any table except its own profile row
+    and its own block list. Every other write goes through a database function that checks who is calling,
+    what state they are in, whether the two people are near each other or have blocked each other, and
+    whether a rate limit applies. A modified client cannot bypass these checks (\cref{ch:security}).
+  \item[One thing at a time.] A sender has at most one request waiting, and a user takes part in at most
+    one chat. While a request or chat is on screen, further incoming requests are not shown and expire on
+    the server.
+  \item[No pressure.] Declining is as easy as accepting, and the sender cannot tell a decline from an
+    expiry. The interface uses the phrase \ui{Not this time} for both.
+  \item[Safety is two taps away.] Every surface that shows another person carries a menu with
+    \ui{Report} and \ui{Block}. A block takes effect on the server at once, in both directions.
+\end{description}
+
+\section{Conventions}
+
+The report uses the following conventions.
+
+\begin{itemize}
+  \item \code{Monospace} marks identifiers, file paths, SQL and values as they appear in the code.
+    Paths are relative to the repository root. \ui{Sans-serif} marks labels the app shows on screen.
+  \item A \term{database function} is a Postgres function in the \code{public} schema that the client
+    calls through the Supabase API (a remote procedure call, or RPC). A \term{helper} is a function in
+    the \code{private} schema, which clients cannot call. The \term{caller} is the signed-in user on whose
+    behalf a database function runs; functions read the caller's identity from the session with
+    \code{auth.uid()} and never accept it as an argument.
+  \item A \term{store action} is an exported function in \code{src/state/store.ts}. An \term{API function}
+    is an exported function in \code{src/data/api.ts}.
+  \item Distances are in metres unless stated otherwise. The client represents instants as milliseconds
+    since the Unix epoch; the database stores \code{timestamptz} values and converts them to
+    milliseconds in the JSON objects its functions build. Message rows, which are returned as stored,
+    carry \texttt{created\_at} as an ISO~8601 string (\cref{app:db-functions}).
+  \item Terms with a specific meaning in Yap, such as \term{live}, \term{open}, \term{chatting},
+    \term{person card} and \term{catch-up}, are defined where they first appear and collected in the
+    glossary (\cref{ch:glossary}).
+\end{itemize}
+
+\section{Key parameters}
+
+\Cref{tab:parameters} lists the limits and timings that define Yap's behaviour, with the place that
+enforces each one. Where the client and the server both apply a limit, the server's check is the one that
+cannot be bypassed.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{40mm}L{48mm}L{\dimexpr\linewidth-88mm-4\tabcolsep\relax}@{}}
+  \caption{Key parameters and where they are enforced.}
+  \label{tab:parameters}\\
+  \toprule
+  \textsf{\textbf{Parameter}} & \textsf{\textbf{Value}} & \textsf{\textbf{Enforced by}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Parameter}} & \textsf{\textbf{Value}} & \textsf{\textbf{Enforced by}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Going live and nearby}}} \\
+  Live duration & 30, 60 or 120 minutes & \code{go_green}; \code{DURATIONS} in \code{constants.ts} \\
+  Live note length & 0 to 60 characters & check constraint; \code{go_green}, \code{update_note} \\
+  Nearby radius & 100\,m plus the caller's reported GPS accuracy, at most 150\,m & \code{nearby}, \code{private.near_each_other} \\
+  Nearby list size & at most 50 people & \code{nearby} \\
+  Nearby refresh & every 20\,s while live and on screen & \code{NEARBY_REFRESH_MS}, \code{useNearbyPolling} \\
+  Location changes & at most 3 in any 10 minutes & \code{go_green} \\
+  Movement while live & at most 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
+  GPS wobble & moves of 150\,m or less are ignored & \code{go_green} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Requests and chats}}} \\
+  Answer window & 5 minutes & default of \code{chat_requests.expires_at} \\
+  Requests sent & at most 5 in any 10 minutes & \code{send_request} \\
+  Requests waiting per sender & 1 & partial unique index; \code{send_request} \\
+  Chats per user & 1 & \code{send_request}, \code{respond} \\
+  Message length & 1 to 1000 characters & check constraint; both send functions \\
+  Messages sent & at most 30 per minute, one-to-one and group combined & \code{send_chat_message}, \code{send_event_message} \\
+  Chat history loaded & newest 200 messages & \code{HISTORY_LIMIT} in \code{api.ts} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
+  Map radius & 1 to 50\,km, default 10\,km & slider and \code{EVENT_RADIUS_KM}; \code{events_near} caps at 50\,km \\
+  Visibility after start & 3 hours & \code{events_near} \\
+  Start time & now to 7 days ahead (server allows 5 minutes in the past) & event form; \code{create_event} \\
+  Events created & at most 5 per host in any 24 hours & \code{create_event} \\
+  Events listed & at most 50 & \code{events_near} \\
+  Join distance & within 5\,km & \code{join_event} \\
+  Title and description & 1 to 60 and 0 to 200 characters & check constraints; form limits \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Profiles and photos}}} \\
+  Names & 1 to 30 characters each & check constraints; form limits \\
+  Introduction & 1 to 300 characters & check constraint; form limit \\
+  Interests & 3 to 5 & check constraint; setup and edit forms \\
+  Extra photos & 4 to 6 in the app; at most 6 on the server & forms; \code{profiles_photo_paths_max} \\
+  Uploaded photo & JPEG, at most 1080\,px wide, quality 0.8 & \code{uploadJpeg} \\
+  Avatar copy & JPEG, 320\,px wide & \code{uploadJpeg} \\
+  Storage object & at most 5\,MiB; JPEG, PNG or WebP & \code{photos} bucket settings \\
+  Signed photo URL & valid 1 hour; reused until 10 minutes remain & \code{SIGNED_URL_SECONDS}, \code{SIGNED_URL_MIN_LEFT_MS} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Accounts and safety}}} \\
+  Password & at least 8 characters & \code{PASSWORD_MIN_LENGTH}; Supabase Auth setting \\
+  Emailed code & 8 digits; resend after 60\,s & email templates; \code{verify.tsx} \\
+  Automatic hiding & 3 distinct reporters & \code{report_user} \\
+  Report details & at most 500 characters & \code{report_user}; check constraint \\
+  Housekeeping & every minute & \code{pg_cron} job \code{yap-expire-stale} \\
+\end{longtable}
+\endgroup

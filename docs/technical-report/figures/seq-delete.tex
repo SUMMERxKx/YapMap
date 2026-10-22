@@ -1,0 +1,22 @@
+% Sequence: deleting an account (Figure: deletion sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Settings}
+  \participant[actor]{store}{3.5}{Store and\\API layer}
+  \participant[serveractor]{storage}{6.9}{Storage}
+  \participant[serveractor]{db}{10.2}{Postgres}
+  \participant[serveractor]{auth}{13.6}{Supabase Auth}
+
+  \selfmsg{ui}{0.6}{confirm:\\``Delete your account?''}
+  \msg{ui}{store}{1.6}{\code{deleteAccount}}
+  \msg{store}{storage}{2.2}{list own folder, 100 at a time}
+  \msg[reply]{storage}{store}{2.8}{paths}
+  \msg{store}{storage}{3.4}{remove every file}
+  \msg{store}{db}{4.0}{\code{delete_account}}
+  \selfmsg{db}{4.25}{chat partner back to \code{open};\\delete the \code{auth.users} row;\\every user table cascades}
+  \msg[reply]{db}{store}{5.6}{done}
+  \msg{store}{auth}{6.2}{\code{signOut}}
+  \selfmsg{store}{6.45}{auth listener: close channels,\\forget URLs, reset state}
+  \msg[reply]{store}{ui}{7.4}{guard opens the welcome screen}
+
+  \lifelines{7.75}{ui, store, storage, db, auth}
+\end{tikzpicture}

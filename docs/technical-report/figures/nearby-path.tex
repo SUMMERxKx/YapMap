@@ -1,0 +1,32 @@
+% The nearby refresh path and the work saved at each step (Figure: nearby path).
+\begin{tikzpicture}[
+    stepbox/.style={box, font=\sffamily\scriptsize, text width=31mm, minimum height=10mm, align=center},
+    saving/.style={font=\sffamily\tiny, text=accentdark, text width=33mm, align=center, anchor=north},
+  ]
+  \node[stepbox, clientbox] (poll) at (1.85,0) {\textbf{One shared poll}\\every 20\,s};
+  \node[stepbox, serverbox] (rpc) at (5.95,0) {\textbf{\texttt{nearby()}}\\one query};
+  \node[stepbox, accentbox] (paths) at (10.05,0) {\textbf{\texttt{toPeople}}\\picture and small-copy paths};
+  \node[stepbox, accentbox] (cache) at (14.15,0) {\textbf{Signed-URL cache}\\\texttt{signPaths}};
+
+  \node[stepbox, serverbox] (sign) at (14.15,-2.9) {\textbf{\texttt{createSignedUrls}}\\one batch for the misses};
+  \node[stepbox, clientbox] (state) at (10.05,-2.9) {\textbf{\texttt{state.nearby}}};
+  \node[stepbox, clientbox] (avatar) at (5.95,-2.9) {\textbf{Avatar}\\small copy at 64\,pt or less};
+  \node[stepbox, clientbox] (img) at (1.85,-2.9) {\textbf{\texttt{expo-image} cache}\\key without the token};
+
+  \draw[flow] (poll) -- (rpc);
+  \draw[flow] (rpc) -- (paths);
+  \draw[flow] (paths) -- (cache);
+  \draw[flow] (cache) -- node[edgelabel, right=2pt, fill=none] {misses} (sign);
+  \draw[flow] (sign) -- (state);
+  \draw[flow] (cache.south west) ++(0.3,0) -- node[edgelabel, fill=none, sloped, above=1pt] {hits} (state.north east);
+  \draw[flow] (state) -- (avatar);
+  \draw[flow] (avatar) -- (img);
+
+  \node[saving] at (poll.south) {paused in the background and when not live};
+  \node[saving] at (rpc.south) {GiST index; at most 50 cards; no positions};
+  \node[saving] at (paths.south) {further photos wait until a profile opens};
+  \node[saving] at ($(sign.south)+(0,0)$) {URLs last 1\,h, reused until 10\,min remain};
+  \node[saving] at (state.south) {an older refresh never replaces a newer one};
+  \node[saving] at (avatar.south) {320\,px file instead of 1080\,px};
+  \node[saving] at (img.south) {downloaded once, however often re-signed};
+\end{tikzpicture}

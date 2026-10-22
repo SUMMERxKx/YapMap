@@ -1,0 +1,67 @@
+\chapter{Route and screen reference}
+\label{app:routes}
+
+Every route in \code{src/app}, with its file, parameters and purpose. Paths are relative to
+\code{src/app}; a file named \code{_layout.tsx} is a navigator, and a segment in parentheses is a group that
+does not appear in the URL. \Cref{sec:navigation} explains the guards.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{44mm}L{28mm}L{\dimexpr\linewidth-72mm-4\tabcolsep\relax}@{}}
+  \caption{Routes and screens.}
+  \label{tab:routes}\\
+  \toprule
+  \textsf{\textbf{File}} & \textsf{\textbf{Parameters}} & \textsf{\textbf{Purpose}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{File}} & \textsf{\textbf{Parameters}} & \textsf{\textbf{Purpose}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Root}}} \\
+  \code{_layout.tsx} & --- & Theme, \code{init()}, the four guarded stacks, \ui{Can't reach Yap}, the offline banner \\
+  \code{verify-face.tsx} & --- & Selfie check with a random pose; reached only when \code{FEATURES.selfieVerification} is on \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Signed out: \code{(auth)}}}} \\
+  \code{(auth)/_layout.tsx} & --- & Stack; slide from the right on both platforms \\
+  \code{(auth)/welcome.tsx} & --- & Product line; \ui{Create account}, \ui{Sign in}; social buttons behind a flag \\
+  \code{(auth)/sign-up.tsx} & --- & Email, password, confirmation; \code{signUp} \\
+  \code{(auth)/verify.tsx} & \code{email}, \code{purpose} (\code{signup} or \code{reset}) & Eight-digit code entry; confirms sign-up, or carries the reset code forward; resend after 60\,s \\
+  \code{(auth)/sign-in.tsx} & --- & Email and password; unconfirmed accounts go to \code{verify} \\
+  \code{(auth)/forgot-password.tsx} & \code{email} (optional) & Sends the reset code \\
+  \code{(auth)/new-password.tsx} & \code{email}, \code{code} & New password and confirmation; \code{finishPasswordReset} \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Profile setup: \code{profile-setup}}}} \\
+  \code{profile-setup/_layout.tsx} & --- & Stack inside \code{ProfileDraftProvider} \\
+  \code{profile-setup/index.tsx} & --- & Greeting; \ui{I'm 18 or older}; \ui{Use a different account} \\
+  \code{profile-setup/name.tsx} & --- & Step 1: first and last name \\
+  \code{profile-setup/gender.tsx} & --- & Step 2: gender and \ui{Show my gender on my profile} \\
+  \code{profile-setup/about.tsx} & --- & Step 3: introduction, up to 300 characters \\
+  \code{profile-setup/interests.tsx} & --- & Step 4: three to five interests \\
+  \code{profile-setup/photo.tsx} & --- & Step 5: profile picture from the library or the front camera \\
+  \code{profile-setup/photos.tsx} & --- & Step 6: four to six further photos; \ui{Finish} saves the profile \\
+  \midrule
+  \multicolumn{3}{@{}l}{\textsf{\textbf{Signed in: \code{(app)}}}} \\
+  \code{(app)/_layout.tsx} & --- & Stack; nearby polling and prompts, end-of-session timer, request and chat takeovers, tutorial, keep-awake \\
+  \code{(app)/(tabs)/_layout.tsx} & --- & Bottom tabs with haptics: \ui{Go live}, \ui{Nearby}, \ui{Map}, \ui{Profile} \\
+  \code{(app)/(tabs)/index.tsx} & --- & \ui{Go live}: the \ui{YAP} button, note, expiry and pending-offline notices, active chat bar \\
+  \code{(app)/(tabs)/nearby.tsx} & --- & \ui{Nearby}: person cards, waiting-request bar, active chat bar; empty state when not live \\
+  \code{(app)/(tabs)/map.tsx} & --- & \ui{Map}: event pins, radius slider and circle, recentre, \ui{Create event here} \\
+  \code{(app)/(tabs)/profile.tsx} & --- & \ui{Profile}: the user as others see them, \ui{Edit profile}, Settings gear \\
+  \code{(app)/go-available.tsx} & \code{mode} (\code{edit}) & Sheet: duration and note, then \code{goGreen}; in edit mode, \code{updateNote} \\
+  \code{(app)/person/[id].tsx} & \code{id} & Sheet: a person's profile, safety menu, \ui{Say hi} \\
+  \code{(app)/waiting.tsx} & --- & Modal: waiting for the answer, countdown, \ui{Cancel request}, \ui{Not this time} \\
+  \code{(app)/incoming.tsx} & --- & Full-screen modal: an incoming request, \ui{Not now} and \ui{Accept} \\
+  \code{(app)/chat.tsx} & --- & The one-to-one chat; \ui{End} or \ui{Close}; safety menu \\
+  \code{(app)/event/new.tsx} & \code{lat}, \code{lng} & Event form: category, title, details, start time; \ui{Post event} \\
+  \code{(app)/event/[id].tsx} & \code{id} & Sheet: event details, host, \ui{Join and open chat} or \ui{Open group chat}; \ui{Delete event} for the host; \ui{This event was deleted} when a join finds it gone \\
+  \code{(app)/group/[id].tsx} & \code{id} & An event's group chat; \ui{Leave} for guests; long press to report or block \\
+  \code{(app)/report/[id].tsx} & \code{id}, \code{name} & Modal: report reason, details, \ui{Also block} \\
+  \code{(app)/edit-profile.tsx} & --- & Single-page profile form \\
+  \code{(app)/settings.tsx} & --- & Account, help, safety and legal rows; sign out; delete account; version \\
+  \code{(app)/blocked.tsx} & --- & Blocked users with \ui{Unblock} \\
+  \code{(app)/password.tsx} & --- & Change password \\
+  \code{(app)/tutorial.tsx} & --- & Five-page tutorial \\
+\end{longtable}
+\endgroup

@@ -1,0 +1,26 @@
+% Sequence: the one-to-one chat, from opening to ending (Figure: chat sequence).
+\begin{tikzpicture}
+  \participant{a}{0}{User A's app}
+  \participant[serveractor]{db}{4.3}{Postgres}
+  \participant[serveractor]{rt}{8.6}{Realtime}
+  \participant{b}{12.9}{User B's app}
+
+  \msg{a}{rt}{0.8}{join \code{chat-<id>}: messages, request updates}
+  \msg[reply]{rt}{a}{1.4}{subscribed}
+  \msg{a}{db}{2.0}{newest 200 messages; request status}
+  \msg[reply]{db}{a}{2.6}{history}
+  \seqnote{a}{b}{2.95}{B's app opens the chat in the same way}
+  \msg{a}{db}{4.0}{\code{send_chat_message}(id, text)}
+  \msg[reply]{db}{a}{4.6}{saved row, shown at once}
+  \msg[push]{db}{rt}{5.2}{row inserted}
+  \msg[push]{rt}{b}{5.8}{new message}
+  \msg[push]{rt}{a}{6.4}{same message, skipped by ID}
+  \msg{b}{db}{7.2}{\code{end_chat}(id, met or cancelled)}
+  \seqnote{db}{db}{7.45}{status set; both users\\\code{open} again}
+  \msg[push]{db}{rt}{8.5}{row updated}
+  \msg[push]{rt}{a}{9.1}{status no longer \code{accepted}}
+  \selfmsg{a}{9.35}{``B ended the chat'';\\composer closed}
+  \seqnote{a}{b}{10.35}{a block ends the chat in the same way; if B deletes the account, A's app notices at its next catch-up or send}
+
+  \lifelines{10.85}{a, db, rt, b}
+\end{tikzpicture}

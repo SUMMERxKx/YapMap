@@ -1,0 +1,202 @@
+\chapter{Reliability}
+\label{ch:reliability}
+
+A phone is an unreliable place to run a real-time app. The network drops and returns, the operating
+system suspends apps in the background, Realtime connections break and rejoin, and the user may close the
+app at any moment. This chapter describes how Yap stays correct under those conditions. The guiding rule
+is that the server is the source of truth: the client may fall behind, but it always has a way to ask the
+server where things stand and catch up.
+
+\section{Failure model}
+
+The design assumes five kinds of failure:
+
+\begin{itemize}
+  \item \textbf{Lost Realtime events.} Realtime does not replay changes sent while a channel was
+    disconnected, so any event can be missed.
+  \item \textbf{Background suspension.} Without push notifications, an app in the background receives
+    nothing.
+  \item \textbf{Network loss.} Any call can fail, including a call whose effect matters to someone else,
+    such as going offline.
+  \item \textbf{Restart.} The app can be closed while live, waiting for an answer or in a chat.
+  \item \textbf{Races.} Two users can act on the same request at the same moment, and slow answers can
+    arrive after newer ones.
+\end{itemize}
+
+\section{Realtime subscriptions}
+\label{sec:realtime}
+
+The client opens at most three Realtime channels of its own and one per waiting request
+(\cref{fig:realtime}). Each is created by the API layer and subscribed through \code{subscribeAsMe}, which
+first passes the user's current token to Realtime. Without that step, a session created by some sign-in
+paths (the password-reset code, for one) would join channels without the user's token; the database would
+then refuse the filter and nothing would arrive. Every subscription accepts an \code{onSubscribed}
+callback that runs on the first join and again after every reconnect, which is the moment to fetch
+whatever may have been missed.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/realtime}
+  \caption{Realtime channel map. Two published tables feed four channels; select policies decide which rows
+    each subscriber receives; each channel's handler updates one part of the store.
+    \Cref{tab:subscriptions} gives when each channel opens and closes.}
+  \label{fig:realtime}
+\end{figure}
+
+The store keeps exactly one of each of its channels and closes all of them on sign-out. Opening a new
+one-to-one chat or group chat closes the previous one first, so a channel is never leaked.
+
+\section{Catch-up}
+\label{sec:catch-up}
+
+Because events can be missed, the store has a single procedure, \code{catchUp}, that asks the server
+directly where things stand. It runs when the app returns to the foreground, when the network returns,
+when the incoming-requests channel re-joins after a disconnection, and when Auth refreshes the token after
+a failed load (\cref{fig:catch-up}). Calls never overlap: a call that arrives while one is running makes
+it run once more when it finishes.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/catch-up}
+  \caption{The catch-up. Each step tolerates failure; whatever fails is tried again by the next
+    catch-up.}
+  \label{fig:catch-up}
+\end{figure}
+
+Each step repairs one kind of drift between the phone and the server:
+
+\begin{itemize}
+  \item A pending request to go offline is sent again (\cref{sec:offline}).
+  \item If the profile has not loaded, because the user is signed out or still setting up, the catch-up
+    stops here. If the block list and status never loaded, they are loaded now instead of the next step.
+  \item \code{my_status} reveals a live session the server has ended while the app was asleep; the app
+    then shows \ui{Your time's up}. It also reveals a chat that was accepted just before the connection
+    dropped.
+  \item A query of the open chat's request status (\code{api.requestStatus}) reveals a chat the other
+    user ended or deleted with their account: anything other than \code{accepted} marks it ended.
+  \item A query for the newest waiting request addressed to the user finds a request that arrived while
+    the app was in the background.
+  \item The open chat's history is reloaded and merged by message ID.
+\end{itemize}
+
+The catch-up never undoes something the user did while it was running. It drops the live session only if
+the session on the phone is the same object it was before the call, so a fresh \ui{Go live} is not
+cancelled by a stale answer, and it opens a chat only if no chat changed on the phone in the meantime.
+
+\section{Offline behaviour}
+\label{sec:offline}
+
+\Cref{tab:offline} lists how each action behaves without a connection. A banner tells the user the phone
+is offline whenever the operating system reports no connection or no internet.
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{46mm}L{\dimexpr\linewidth-46mm-2\tabcolsep\relax}@{}}
+  \caption{Behaviour without a connection.}
+  \label{tab:offline}\\
+  \toprule
+  \textsf{\textbf{Situation}} & \textsf{\textbf{Behaviour}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Situation}} & \textsf{\textbf{Behaviour}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  Launch with a stored session & The profile cannot load, so \ui{Can't reach Yap} replaces the app, with \ui{Try again}; the load is retried when the token refreshes or a catch-up runs \\
+  Go live, say hi, accept, send a message, create, join or delete an event & The call fails and an alert explains; nothing changes on the server. A failed \ui{Accept} also closes the request screen, and the request later expires \\
+  Go offline by tapping the red button & The phone shows the user offline at once; \ui{Almost offline} appears, and the call is retried at the next catch-up \\
+  Live session reaches its end time & The phone shows the user offline; the server's minute job removes the session on time anyway \\
+  Nearby refresh & The last list stays on screen \\
+  Waiting for an answer & Realtime and the poll fail quietly; the timer shows \ui{Not this time} after the end time; if the request was in fact accepted, the catch-up opens the chat \\
+  Chat accepted but not yet opened & An alert says the chat opens as soon as the phone is back online; the catch-up opens it \\
+  Messages, requests or a chat ending missed while away & Recovered by the channel re-joining and by the catch-up \\
+  Map & The existing pins stay \\
+  A person's further photos & The profile shows without them \\
+  Sign out & Refused with an explanation, because ending the chat and going offline must reach the server first \\
+\end{longtable}
+\endgroup
+
+\section{Ordering and races}
+\label{sec:ordering}
+
+Several guards keep late or duplicate work from corrupting state.
+
+\paragraph{On the server} \code{respond}, \code{cancel_request} and \code{end_chat} lock the request row
+before deciding, so concurrent actions on one request apply in sequence. A partial unique index makes a
+second waiting request from one sender impossible even if two calls race. \code{respond} withdraws the
+recipient's own waiting request before checking for an existing chat, so an answer landing at the same
+moment is seen. A cancel that arrives just after an accept ends the new chat instead of leaving one user
+in a chat the other never sees.
+
+\paragraph{In the store}
+\begin{itemize}
+  \item Counters on nearby refreshes, event loads and group chat visits discard any answer that arrives
+    after a newer request has started or the screen has closed.
+  \item \code{handledRequestIds} and \code{closedChatIds} stop a catch-up, which may have read the server a
+    moment earlier, from reviving a request already answered or a chat already closed on this phone.
+  \item \code{openingChatId} stops the same chat being opened twice when Realtime and a catch-up report it
+    together.
+  \item Chats subscribe before loading history and merge messages by ID, so no message is lost between
+    the two steps and none is shown twice.
+  \item Going live waits for an in-flight retry of going offline, so the retry cannot delete the new
+    session.
+  \item \code{init()} runs once per process, however often the root layout mounts.
+\end{itemize}
+
+\section{Time}
+
+The server owns every deadline. \code{go_green} returns the session's start and end as the server set
+them, and \code{send_request} returns the request's end time; the countdowns on screen count towards those
+instants. The phone's end-of-session timer fires at the server's end time as measured by the phone's clock and
+then calls \code{go_offline}; the answer timer only changes the screen. A wrong clock on the phone can
+therefore end a session early or make a countdown read wrong, but it cannot extend a session or a request,
+because the server checks its own time and its minute job removes whatever has run out.
+
+The countdowns themselves share one clock (\code{useClock}): a single one-second interval serves every
+countdown on screen and stops when none is shown. It reads the time outside React's render, as React
+requires, and copes with the device clock being changed.
+
+\section{Staying reachable without push notifications}
+
+Yap does not send push notifications, so a request reaches a user only while the app is open. Two choices
+follow from that. While the user is live, the app keeps the screen awake, and the \ui{Go live} tab says so
+(\ui{Keep Yap open to get requests}). And every screen that a request or a chat opens is a normal route
+(\code{/incoming}, \code{/chat}), opened by the \code{(app)} layout, so a push notification added later
+can open the same routes.
+
+\section{Error handling}
+
+Errors are handled at the edge where they can be explained. The API layer turns every refusal, Auth error
+and network failure into a sentence. Screens catch the errors of the actions they start and show them in
+an alert or inline. Store actions catch the failures that are expected while offline and leave them to the
+next catch-up. The result is that a user always sees a short explanation, never a stack trace or database
+text, and an action that failed can simply be tried again.
+
+\section{Timers and schedules}
+
+\Cref{tab:timers} lists every timer in the system.
+
+\begin{table}[ht]
+  \centering
+  \caption{Timers and schedules.}
+  \label{tab:timers}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{48mm}L{40mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Timer}} & \textsf{\textbf{Period or delay}} & \textsf{\textbf{Owner}} \\
+    \midrule
+    Housekeeping job & every minute & \code{pg_cron}, \code{expire_stale} \\
+    Request answer window & 5 minutes & \code{chat_requests.expires_at} \\
+    Nearby refresh & every 20\,s, foreground only & \code{useNearbyPolling} \\
+    Answer poll & every 7\,s & \code{waitForAnswer} \\
+    Answer timer & end time plus 3\,s & \code{waitForAnswer} \\
+    End of live session & at the server's end time & \code{(app)/_layout} \\
+    Countdown clock & every second, while shown & \code{useClock} \\
+    Location fix & up to 8\,s & \code{useForegroundLocation}, map \\
+    Nearby prompt & 8\,s on screen & \code{NearbyToast} \\
+    Code resend & 60\,s cooldown & \code{(auth)/verify} \\
+    Signed photo URL & 1 hour; reused until 10 minutes remain; refusals retried after 60\,s & \code{signPaths} \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

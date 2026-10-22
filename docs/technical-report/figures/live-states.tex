@@ -1,0 +1,13 @@
+% Live state of a user: the availability row and its state column (Figure: live states).
+\begin{tikzpicture}
+  \node[endstate, minimum width=24mm] (off) at (0,0) {not live\\[-1pt]{\scriptsize\mdseries no row}};
+  \node[state, minimum width=24mm] (open) at (6.6,0) {open\\[-1pt]{\scriptsize\mdseries on nearby lists}};
+  \node[state, minimum width=24mm] (chatting) at (13.2,0) {chatting\\[-1pt]{\scriptsize\mdseries hidden from lists}};
+
+  \draw[transition] ($(off.east)+(0,0.2)$) -- node[translabel, above=2pt, fill=none] {goes live} ($(open.west)+(0,0.2)$);
+  \draw[transition] ($(open.west)+(0,-0.2)$) -- node[translabel, below=2pt, fill=none] {goes offline, or time is up} ($(off.east)+(0,-0.2)$);
+  \draw[transition] ($(open.east)+(0,0.2)$) -- node[translabel, above=2pt, fill=none] {a request is accepted} ($(chatting.west)+(0,0.2)$);
+  \draw[transition] ($(chatting.west)+(0,-0.2)$) -- node[translabel, below=2pt, fill=none] {the chat ends} ($(open.east)+(0,-0.2)$);
+  \draw[transition] (chatting.north) -- ++(0,0.7) -| node[translabel, pos=0.25, above=1pt, fill=none] {goes offline, or time is up} (off.north);
+  \draw[transition] (off.south) -- ++(0,-1.0) -| node[translabel, pos=0.25, below=1pt, fill=none] {goes live while still in an accepted chat} (chatting.south);
+\end{tikzpicture}

@@ -1,0 +1,32 @@
+% Sequence: going live, refreshing the nearby list and going offline (Figure: live sequence).
+\begin{tikzpicture}
+  \participant{ui}{0}{Screens and\\app layout}
+  \participant[actor]{loc}{3.0}{Phone location}
+  \participant[actor]{store}{6.2}{Store and\\API layer}
+  \participant[serveractor]{db}{9.8}{Postgres}
+  \participant[serveractor]{storage}{13.3}{Storage}
+
+  \msg{ui}{loc}{0.8}{ask for foreground permission}
+  \msg[reply]{loc}{ui}{1.4}{position and accuracy}
+  \seqnote{loc}{loc}{1.65}{fresh fix within 8\,s, else\\one at most 5 min old}
+  \msg{ui}{store}{2.9}{\code{goGreen}(minutes, note, position)}
+  \msg{store}{db}{3.5}{\code{go_green}}
+  \seqnote{db}{db}{3.8}{relocation rules;\\insert or update the session}
+  \msg[reply]{db}{store}{4.9}{server start and end times}
+  \msg[reply]{store}{ui}{5.5}{live: button turns red, screen kept awake, end timer set}
+
+  \fragment{ui}{storage}{5.95}{9.4}{loop: every 20 s while live and in the foreground}
+  \msg{ui}{store}{6.8}{\code{refreshNearby}}
+  \msg{store}{db}{7.4}{\code{nearby}}
+  \msg[reply]{db}{store}{8.0}{up to 50 person cards}
+  \msg{store}{storage}{8.6}{sign profile pictures (cached)}
+  \msg[reply]{store}{ui}{9.15}{nearby list; prompt for new people}
+
+  \fragment{ui}{storage}{9.8}{13.3}{go offline (tap the red button), or the end time is reached}
+  \msg{ui}{store}{10.65}{\code{goOffline}}
+  \selfmsg{store}{10.9}{clear the live state at once}
+  \msg{store}{db}{11.85}{\code{go_offline}: withdraw waiting request, delete session}
+  \seqnote{store}{db}{12.15}{on failure after a tap: marked pending, retried by the next catch-up;\\at the end time: no retry, the minute job removes the session}
+
+  \lifelines{13.55}{ui, loc, store, db, storage}
+\end{tikzpicture}

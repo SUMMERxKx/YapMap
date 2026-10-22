@@ -1,0 +1,72 @@
+\chapter{Glossary}
+\label{ch:glossary}
+
+\begin{description}[itemsep=4pt]
+  \item[Accepted] The status of a request that its recipient accepted. The same row then represents the
+    one-to-one chat until the chat ends.
+  \item[API function] An exported function in \code{src/data/api.ts}, the client's only route to the
+    backend.
+  \item[Availability] The database row that records that a user is live: position, accuracy, note, state
+    and the session's start and end.
+  \item[Caller] The signed-in user on whose behalf a database function runs, identified by
+    \code{auth.uid()}.
+  \item[Catch-up] The store procedure that asks the server where things stand after the app returns to the
+    foreground, reconnects, or a channel re-joins.
+  \item[Chat] A one-to-one conversation between two users, opened when a request is accepted. Distinct from
+    a group chat.
+  \item[Chatting] The live state of a user who is in a chat. Chatting users are left out of nearby lists.
+  \item[Data API] The Supabase REST interface to the \code{public} schema, used for function calls and
+    direct table reads.
+  \item[Database function] A Postgres function in the \code{public} schema that the client calls. Every
+    write the client makes, apart from its own profile, unblocking and its own photo files in Storage, is
+    a database function.
+  \item[Event] A public plan placed at a chosen spot on the map by its host, with a category, title,
+    description, start time and group chat.
+  \item[Event card] The JSON form of an event returned by the server, including the host's name and photo
+    path, the member count and whether the viewer has joined.
+  \item[Go live] To start a live session: choose a duration and an optional note, and send the phone's
+    position once.
+  \item[Go offline] To end a live session early. The interface calls it \ui{get off}.
+  \item[Group chat] The chat of an event, open to its members.
+  \item[Guard] A Boolean in the root layout that decides which stack of screens may be shown.
+  \item[Helper] A function in the \code{private} schema, shared by database functions or used by policies,
+    and not callable through the Data API.
+  \item[Host] The user who created an event: its first member, and the only user who can delete it.
+  \item[Live] Having an unexpired \code{availability} row. Only live users appear in, and see, nearby
+    lists.
+  \item[Live note] An optional text of up to 60 characters shown to nearby users while its author is live,
+    often saying where to find them.
+  \item[Member] A user who has joined an event and may read and write its group chat.
+  \item[Minute job] The \code{pg_cron} job \code{yap-expire-stale}, which runs \code{private.expire_stale}
+    every minute.
+  \item[Nearby] Within 100 metres plus the reported GPS accuracy of the first user's phone, and never more
+    than 150 metres, with both users live.
+  \item[Not this time] What the sender sees when a request is declined, expires or is withdrawn by the
+    server. The three cannot be told apart.
+  \item[Open] The live state of a user who can appear on nearby lists and receive requests.
+  \item[Person card] The JSON form of a profile that other users receive: first name, last initial, gender
+    if shown, introduction, interests, photo paths, live note and the verified flag. It never contains a
+    location.
+  \item[Publishable key] The public key the app uses to reach the Supabase project. It grants only what
+    row-level security and the database functions allow.
+  \item[Realtime] The Supabase service that pushes inserts and updates on chosen tables to subscribed
+    clients, subject to row-level security.
+  \item[Refusal] An exception raised by a database function with a short fixed message, which the client
+    translates into a sentence.
+  \item[Relocation limits] The rules in \code{go_green} that bound how often and how fast a live position
+    may change.
+  \item[Request] A say-hi request: one user's invitation to another to talk, answered within five minutes.
+  \item[Row-level security] Postgres policies that decide, row by row, what a database role may read or
+    write. In Yap they deny by default.
+  \item[\code{SECURITY DEFINER}] A Postgres function that runs with its owner's privileges rather than the
+    caller's. Yap's database functions use it to perform writes that row-level security forbids to clients
+    directly, after checking the rules themselves.
+  \item[Signed URL] A time-limited address for a file in the private photo bucket, created only for a user
+    allowed to read the file.
+  \item[Small copy] The 320-pixel copy of a profile picture, stored next to it with the suffix
+    \code{-small.jpg} and used for small avatars.
+  \item[Store] The single module, \code{src/state/store.ts}, that holds the app's shared state and its
+    actions.
+  \item[Store action] An exported function of the store, through which screens change state.
+  \item[Yap cat] The app's mascot, drawn in five poses on empty, waiting and error screens.
+\end{description}

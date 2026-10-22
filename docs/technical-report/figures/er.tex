@@ -1,0 +1,98 @@
+% Entity-relationship diagram of the database (Figure: entity-relationship).
+% Each box lists a table's columns; PK marks the primary key and FK a foreign key. Lines are foreign
+% keys, labelled with the referencing columns; 1, n and 0..1 give the cardinality at each end.
+\begin{tikzpicture}[
+    k/.style={font=\sffamily\tiny, text=muted, inner sep=1pt},
+    kl/.style={font=\sffamily\tiny, text=ink, inner sep=1pt},
+  ]
+  \newcommand{\pk}{\hfill{\sffamily\tiny PK}}
+  \newcommand{\fk}{\hfill{\sffamily\tiny FK}}
+  \newcommand{\pkfk}{\hfill{\sffamily\tiny PK, FK}}
+
+  % ---------------------------------------------------------------- column B
+  \node[entity=30mm, anchor=north] (users) at (7.95,0) {\textbf{auth.users}\nodepart{two}
+    id\pk\\ email\\ {\sffamily\tiny managed by Supabase Auth}};
+  \node[entity=30mm, anchor=north, draw=accent, line width=0.8pt] (profiles) at (7.95,-2.5) {\textbf{profiles}\nodepart{two}
+    id\pkfk\\ first\_name\\ last\_name\\ gender\\ show\_gender\\ intro\\ interests\\ photo\_path\\
+    photo\_paths\\ is\_adult\\ verified\\ status\\ created\_at};
+  \node[entity=30mm, anchor=north] (members) at (7.95,-8.6) {\textbf{event\_members}\nodepart{two}
+    event\_id\pkfk\\ user\_id\pkfk\\ joined\_at};
+
+  % ---------------------------------------------------------------- column A
+  \node[entity=30mm, anchor=north, dashed] (objects) at (1.75,0) {\textbf{storage.objects}\nodepart{two}
+    bucket\_id = 'photos'\\ name = <owner>/<file>};
+  \node[entity=30mm, anchor=north] (availability) at (1.75,-2.5) {\textbf{availability}\nodepart{two}
+    user\_id\pkfk\\ location\\ accuracy\_m\\ note\\ state\\ started\_at\\ expires\_at};
+  \node[privateentity=30mm, anchor=north] (changes) at (1.75,-6.2) {\textbf{location\_changes}\nodepart{two}
+    user\_id\fk\\ changed\_at};
+  \node[entity=30mm, anchor=north] (blocks) at (1.75,-8.4) {\textbf{blocks}\nodepart{two}
+    blocker\pkfk\\ blocked\pkfk\\ created\_at};
+  \node[entity=30mm, anchor=north] (reports) at (1.75,-10.8) {\textbf{reports}\nodepart{two}
+    id\pk\\ reporter\fk\\ reported\fk\\ request\_id\fk\\ reason\\ details\\ created\_at\\ reviewed\_at\\ action};
+
+  % ---------------------------------------------------------------- column C
+  \node[entity=30mm, anchor=north] (requests) at (14.1,-0.6) {\textbf{chat\_requests}\nodepart{two}
+    id\pk\\ from\_user\fk\\ to\_user\fk\\ status\\ created\_at\\ expires\_at\\ responded\_at\\ ended\_at};
+  \node[entity=30mm, anchor=north] (messages) at (14.1,-4.9) {\textbf{messages}\nodepart{two}
+    id\pk\\ request\_id\fk\\ event\_id\fk\\ sender\fk\\ sender\_name\\ body\\ created\_at};
+  \node[entity=30mm, anchor=north] (events) at (14.1,-9.0) {\textbf{events}\nodepart{two}
+    id\pk\\ host\fk\\ emoji\\ title\\ description\\ location\\ starts\_at\\ created\_at};
+
+  % ---------------------------------------------------------------- relationships
+  % profiles - auth.users
+  \draw[relation] (users.south) -- node[kl, right=2pt] {id} (profiles.north);
+  \node[k, left=2pt] at ($(users.south)+(0,-0.15)$) {1};
+  \node[k, left=2pt] at ($(profiles.north)+(0,0.15)$) {1};
+  % profiles - storage.objects: by folder name, not a foreign key
+  \draw[relation, dashed] (objects.east |- 0,-0.7) -- (5.2,-0.7) |- (profiles.west |- 0,-2.9);
+  \node[kl, anchor=west] at (5.25,-1.75) {folder = id};
+  % profiles - availability
+  \draw[relation] (profiles.west |- 0,-3.6) -- node[kl, above=1pt] {user\_id} (availability.east |- 0,-3.6);
+  \node[k, below=1pt] at ($(profiles.west |- 0,-3.6)+(-0.18,0)$) {1};
+  \node[k, below=1pt] at ($(availability.east |- 0,-3.6)+(0.3,0)$) {0..1};
+  % profiles - location_changes
+  \draw[relation] (profiles.west |- 0,-6.85) -- node[kl, above=1pt] {user\_id} (changes.east |- 0,-6.85);
+  \node[k, below=1pt] at ($(profiles.west |- 0,-6.85)+(-0.18,0)$) {1};
+  \node[k, below=1pt] at ($(changes.east |- 0,-6.85)+(0.18,0)$) {n};
+  % profiles - blocks and reports, through one trunk
+  \draw[relation] (profiles.west |- 0,-7.3) -- (5.1,-7.3) |- (blocks.east |- 0,-9.3);
+  \draw[relation] (5.1,-9.3) |- (reports.east |- 0,-11.6);
+  \node[kl, above=1pt] at ($(blocks.east |- 0,-9.3)!0.5!(5.1,-9.3)$) {blocker, blocked};
+  \node[kl, above=1pt] at ($(reports.east |- 0,-11.6)!0.5!(5.1,-11.6)$) {reporter, reported};
+  \node[k, below=1pt] at ($(profiles.west |- 0,-7.3)+(-0.18,0)$) {1};
+  \node[k, below=1pt] at ($(blocks.east |- 0,-9.3)+(0.18,0)$) {n};
+  \node[k, below=1pt] at ($(reports.east |- 0,-11.6)+(0.18,0)$) {n};
+  % profiles - chat_requests
+  \draw[relation] (profiles.east |- 0,-3.1) -- node[kl, above=1pt] {from\_user, to\_user} (requests.west |- 0,-3.1);
+  \node[k, below=1pt] at ($(profiles.east |- 0,-3.1)+(0.18,0)$) {1};
+  \node[k, below=1pt] at ($(requests.west |- 0,-3.1)+(-0.18,0)$) {n};
+  % profiles - messages
+  \draw[relation] (profiles.east |- 0,-6.3) -- node[kl, above=1pt] {sender} (messages.west |- 0,-6.3);
+  \node[k, below=1pt] at ($(profiles.east |- 0,-6.3)+(0.18,0)$) {1};
+  \node[k, below=1pt] at ($(messages.west |- 0,-6.3)+(-0.18,0)$) {n};
+  % profiles - events
+  \draw[relation] (profiles.east |- 0,-7.3) -- (11.0,-7.3) |- (events.west |- 0,-9.4);
+  \node[kl, above=1pt] at ($(11.0,-9.4)!0.5!(events.west |- 0,-9.4)$) {host};
+  \node[k, below=1pt] at ($(profiles.east |- 0,-7.3)+(0.18,0)$) {1};
+  \node[k, below=1pt] at ($(events.west |- 0,-9.4)+(-0.18,0)$) {n};
+  % profiles - event_members
+  \draw[relation] (members.north) -- node[kl, right=2pt] {user\_id} (profiles.south);
+  \node[k, left=2pt] at ($(profiles.south)+(0,-0.15)$) {1};
+  \node[k, left=2pt] at ($(members.north)+(0,0.15)$) {n};
+  % events - event_members
+  \draw[relation] (members.east |- 0,-9.95) -- node[kl, below=1pt] {event\_id} (events.west |- 0,-9.95);
+  \node[k, above=1pt] at ($(members.east |- 0,-9.95)+(0.18,0)$) {n};
+  \node[k, above=1pt] at ($(events.west |- 0,-9.95)+(-0.18,0)$) {1};
+  % chat_requests - messages, events - messages
+  \draw[relation] (requests.south) -- node[kl, right=2pt] {request\_id} (messages.north);
+  \node[k, left=2pt] at ($(requests.south)+(0,-0.15)$) {0..1};
+  \node[k, left=2pt] at ($(messages.north)+(0,0.15)$) {n};
+  \draw[relation] (messages.south) -- node[kl, right=2pt] {event\_id} (events.north);
+  \node[k, left=2pt] at ($(messages.south)+(0,-0.15)$) {n};
+  \node[k, left=2pt] at ($(events.north)+(0,0.15)$) {0..1};
+  % chat_requests - reports
+  \draw[relation] (reports.east |- 0,-14.1) -- (15.95,-14.1) |- (requests.east |- 0,-1.15);
+  \node[kl, above=1pt] at (9.6,-14.1) {request\_id (set to null when the request is deleted)};
+  \node[k, above=1pt] at ($(reports.east |- 0,-14.1)+(0.18,0)$) {n};
+  \node[k, above=1pt] at ($(requests.east |- 0,-1.15)+(0.12,0.02)$) {0..1};
+\end{tikzpicture}

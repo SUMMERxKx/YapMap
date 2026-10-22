@@ -1,0 +1,73 @@
+\chapter{Performance}
+\label{ch:performance}
+
+Yap's workload is small per user but frequent: every live user refreshes a nearby list every 20 seconds,
+and every list shows photos. The design keeps each refresh to one database query and as few photo
+downloads as possible. \Cref{fig:nearby-path} follows one refresh and notes the work saved at each step;
+the rest of the chapter lists the choices that matter, grouped by where they act.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/nearby-path}
+  \caption{One nearby refresh. Most refreshes end with cache hits: no new signed URLs and no downloads.}
+  \label{fig:nearby-path}
+\end{figure}
+
+\section{Database}
+
+\begin{description}
+  \item[A table of live users only.] \code{availability} holds a row only while its user is live, and
+    rows are deleted on going offline and by the minute job. The table that every nearby query scans is
+    therefore as small as the number of people live at that moment, whatever the number of accounts.
+  \item[Spatial indexes.] \code{availability.location} and \code{events.location} have GiST indexes, so
+    the distance tests in \code{nearby}, \code{near_each_other} and \code{events_near} use an index rather
+    than a scan.
+  \item[Partial indexes.] Indexes restricted to \code{pending} and \code{accepted} requests stay small,
+    because at any moment few requests are waiting or open. They serve the one-request and one-chat checks,
+    \code{my_status} and the minute job.
+  \item[Indexed rate limits.] Each rate limit counts a user's recent rows. The counts for requests,
+    messages and location changes use indexes on the user and the time; the count of events created uses
+    the index on the host.
+  \item[Bounded results.] \code{nearby} and \code{events_near} return at most 50 rows; chat history is the
+    newest 200 messages, read through an index on the chat and time.
+  \item[Work done in one call.] Person cards and event cards are assembled in the database, so a list
+    needs one round trip. \code{my_status} restores the live session, the chat and the waiting request in
+    one call. The send functions return the saved message, so the sender does not read it back.
+\end{description}
+
+\section{Network}
+
+\begin{description}
+  \item[One shared nearby poll.] A single poll in the \code{(app)} layout feeds the list, the person sheet
+    and the prompts. It runs only while the user is live and the app is in the foreground.
+  \item[Photos signed in batches and cached.] All the photo paths a screen needs are signed in one
+    request. Signed URLs are reused until ten minutes before they expire, so the same photo keeps the same
+    address across refreshes.
+  \item[Downloads cached by stable keys.] \code{expo-image} caches each photo under its URL without the
+    signing token, so a photo is downloaded once even when its URL is signed again.
+  \item[Small copies for small avatars.] Each profile picture has a 320-pixel copy. Avatars of 64 points
+    or less, such as those in lists, prompts and the chat header, use it, and so does the host's photo
+    on an event.
+  \item[Lazy further photos.] Lists sign only profile pictures. A person's further photos are signed when
+    their profile is opened, keyed by their paths so that a nearby refresh does not sign them again.
+  \item[Smaller uploads.] Photos are re-encoded on the phone as JPEG at most 1080 pixels wide, at quality
+    0.8, and never enlarged. The resize reuses the image already decoded instead of reading the file again.
+  \item[Filtered Realtime.] Each channel filters on one column (\code{to_user}, \code{id},
+    \code{request_id} or \code{event_id}), so the server sends a client only the rows it subscribed to.
+\end{description}
+
+\section{Rendering}
+
+\begin{description}
+  \item[Selective re-rendering.] Components subscribe to slices of the store through selectors, so a
+    change re-renders only the components whose slice changed. The React Compiler, enabled as an Expo
+    experiment, memoises components automatically.
+  \item[One clock for all countdowns.] A single one-second interval drives every countdown on screen and
+    stops when none is shown.
+  \item[Virtualised lists.] The nearby list, the blocked list and both chat threads use \code{FlatList};
+    chat threads are inverted, so they open at the newest message without scrolling.
+  \item[Static map markers.] Event pins are custom views drawn once (\code{tracksViewChanges} is off), so
+    the map does not redraw them on every frame.
+  \item[Stable list data.] The nearby refresh replaces the list only when an answer is current, and event
+    reloads keep the messages already loaded for each event.
+\end{description}

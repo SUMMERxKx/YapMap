@@ -1,0 +1,75 @@
+\chapter{Server refusals and the messages shown}
+\label{app:refusals}
+
+Database functions refuse a request by raising an exception with a fixed message. The API layer maps each
+message to the sentence the user sees, through the table \code{SERVER_REFUSALS} in
+\code{src/data/api.ts} (\cref{tab:refusals}). Errors that are not refusals are handled after the table:
+a second waiting request caught by the unique index, any other unique-key conflict, network failures,
+expired sessions and, finally, anything else (\cref{tab:other-errors}).
+
+\begingroup\tablefont
+\begin{longtable}{@{}L{36mm}L{40mm}L{\dimexpr\linewidth-76mm-4\tabcolsep\relax}@{}}
+  \caption{Refusals raised by database functions.}
+  \label{tab:refusals}\\
+  \toprule
+  \textsf{\textbf{Refusal}} & \textsf{\textbf{Raised by}} & \textsf{\textbf{Shown to the user}} \\
+  \midrule
+  \endfirsthead
+  \toprule
+  \textsf{\textbf{Refusal}} & \textsf{\textbf{Raised by}} & \textsf{\textbf{Shown to the user}} \\
+  \midrule
+  \endhead
+  \bottomrule
+  \endfoot
+  \code{not signed in} & \code{go_green}, \code{send_request}, \code{cancel_request}, \code{block_user}, \code{report_user}, \code{delete_account}, \code{create_event}, \code{join_event}, \code{delete_event} & Your session has ended. Sign in again. \\
+  \code{cannot request yourself} & \code{send_request} & You can't say hi to yourself. \\
+  \code{not available} & \code{send_request}, \code{respond}, \code{send_chat_message}, \code{join_event} & They're not available right now. \\
+  \code{not nearby} & \code{send_request} & They're not nearby any more. \\
+  \code{too many requests} & \code{send_request} & You've said hi a lot in the last few minutes. Wait a bit and try again. \\
+  \code{already chatting} & \code{send_request}, \code{respond} & You're already in a chat. End it before starting a new one. \\
+  \code{already waiting} & \code{send_request} & You already have a request waiting. Wait for the answer, or cancel it first. \\
+  \code{no such pending request} & \code{respond} & This request is no longer waiting for an answer. \\
+  \code{request expired} & \code{respond} & This request has expired. \\
+  \code{no such chat} & \code{end_chat}, \code{send_chat_message} & This chat has ended. (A failed send closes the chat instead.) \\
+  \code{invalid message} & both send functions & Messages can be 1 to 1000 characters long. \\
+  \code{too many messages} & both send functions & You're sending messages too fast. Wait a moment and try again. \\
+  \code{cannot block yourself} & \code{block_user} & You can't block yourself. \\
+  \code{cannot report yourself} & \code{report_user} & You can't report yourself. \\
+  \code{profile not ready} & \code{go_green}, \code{create_event}, \code{join_event} & Finish your profile first. \\
+  \code{invalid location} & \code{go_green}, \code{create_event}, \code{join_event} & We couldn't use your location. Try again in a moment. \\
+  \code{invalid duration} & \code{go_green} & Choose 30, 60 or 120 minutes. \\
+  \code{note too long} & \code{go_green}, \code{update_note} & Notes can be up to 60 characters long. \\
+  \code{moving too fast} & \code{go_green} & Your location changed too quickly. Wait a few minutes, then try again. \\
+  \code{too many location changes} & \code{go_green} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. \\
+  \code{invalid start time} & \code{create_event} & Pick a start time within the next 7 days. \\
+  \code{too many events} & \code{create_event} & You've posted as many events as you can today. Try again tomorrow. \\
+  \code{no such event} & \code{join_event}, \code{delete_event} & This event has ended. (A join instead shows \ui{This event was deleted}; a delete counts it as done.) \\
+  \code{not the host} & \code{delete_event} & Only the host can delete this event. \\
+  \code{too far away} & \code{join_event} & You can join an event from within 5 km of it. \\
+  \code{not a member} & \code{send_event_message} & You can't post here. The event may have ended or been deleted. \\
+  \code{invalid outcome} & \code{end_chat} & Not mapped; the app never sends another outcome \\
+\end{longtable}
+\endgroup
+
+\begin{table}[ht]
+  \centering
+  \caption{Other errors and the messages shown.}
+  \label{tab:other-errors}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{70mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Error}} & \textsf{\textbf{Shown to the user}} \\
+    \midrule
+    Unique violation on \code{chat_requests_one_pending_idx} & You already have a request waiting. Wait for an answer, then try again. \\
+    Any other unique violation (code 23505) & That's already done. \\
+    Network failure & Can't reach Yap right now. Check your connection and try again. \\
+    Expired session token & Your session has ended. Sign in again. \\
+    Anything else & Something went wrong. Please try again. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Supabase Auth errors are mapped separately by \code{friendlyAuthError}: wrong credentials, an existing
+account, a weak or unchanged password, a password change that needs a fresh sign-in, rate limits on
+requests and on emails, and network failures each have their own sentence, and an invalid or expired code
+always reads \ui{Invalid or expired code. Please request a new one.}

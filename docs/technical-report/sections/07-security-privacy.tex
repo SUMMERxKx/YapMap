@@ -1,0 +1,283 @@
+\chapter{Security and privacy}
+\label{ch:security}
+
+Yap handles three kinds of sensitive data: where people are, what they look like, and whom they talk
+to. This chapter describes how the system protects each, starting from what it assumes about the client.
+\Cref{fig:security} shows every path from a phone to the data and the rule that guards it.
+
+\begin{figure}[ht]
+  \centering
+  \input{figures/security}
+  \caption{Security boundaries. Writes go through functions that check before they act; direct table and
+    storage access is limited by policies; Realtime delivers only rows the subscriber could select.}
+  \label{fig:security}
+\end{figure}
+
+\section{Trust model}
+
+The server trusts nothing the client says about identity or state. The app's address and publishable
+key are in the app bundle and must be assumed public, so anyone can build a client that calls the same
+API with a valid user session. Every rule therefore lives in the database, where such a client cannot
+bypass it:
+
+\begin{itemize}
+  \item Identity comes only from the session token, through \code{auth.uid()}.
+  \item State, such as whether a user is live, chatting or waiting on a request, is read from the
+    database, never taken from arguments.
+  \item Proximity is computed from stored positions, never from a distance the client supplies.
+  \item Every write passes through a database function, except three the policies confine to the user's
+    own data: the profile's client-writable columns, deleting one's own \code{blocks} rows (unblocking),
+    and photo files in one's own Storage folder. Each function checks what its action needs; blocks and
+    rate limits apply where \cref{tab:functions} lists them, so \code{update_note}, \code{leave_event}
+    and \code{end_chat}, for example, check neither.
+\end{itemize}
+
+The server must accept two inputs it cannot verify: the position the phone reports, and the GPS accuracy,
+which widens the nearby radius by at most 50 metres. The relocation limits bound how a live position may
+change (\cref{sec:relocation-limits}); the position sent to join an event is checked only against the
+event's distance.
+
+\section{Authentication and sessions}
+
+Accounts are Supabase Auth users with an email address and a password of at least eight characters.
+Every new address is confirmed with an emailed 8-digit code before the account can sign in, and a
+forgotten password is reset with another emailed code. Supabase limits how often codes are sent; the app
+reports those limits as sentences.
+
+The Supabase client keeps the session in AsyncStorage, refreshes its access token automatically, and does
+not look for sessions in URLs. AsyncStorage is used rather than the platform's secure store because the
+session JSON is larger than the roughly 2\,KB a secure-store entry holds. Before joining any Realtime
+channel the client passes the current token to Realtime, so every channel joins as the signed-in user and
+receives only the rows that user may read. On sign-out the app closes every channel and forgets every
+signed URL.
+
+\section{Row-level security and grants}
+\label{sec:rls}
+
+Row-level security is enabled on every application table and on \code{private.location_changes}. The
+anonymous role has no access to any of the app's tables and cannot call any of its functions. \Cref{tab:rls} lists what a
+signed-in user may do directly; everything else happens inside a database function.
+
+\begin{table}[ht]
+  \centering
+  \caption{Direct access for signed-in users. A dash means no access.}
+  \label{tab:rls}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{28mm}L{34mm}L{30mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Table}} & \textsf{\textbf{Select}} & \textsf{\textbf{Insert, update}} & \textsf{\textbf{Delete}} \\
+    \midrule
+    \code{profiles} & own row & own row; editable columns only; \code{is_adult} must be true on insert & --- \\
+    \code{availability} & --- & --- & --- \\
+    \code{chat_requests} & rows the user sent or received & --- & --- \\
+    \code{messages} & chats the user is in and events the user has joined, minus senders the user blocked & --- & --- \\
+    \code{events}, \code{event_members} & --- & --- & --- \\
+    \code{blocks} & blocks the user made & --- & blocks the user made \\
+    \code{reports} & --- & --- & --- \\
+    \code{location_changes} & --- & --- & --- \\
+    \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & own folder & own folder \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+Column grants close a gap that row-level security alone would leave: a user may update their own profile
+row, but only its editable columns. \code{verified} and \code{status} cannot be written by any client, and
+\code{id} and \code{is_adult} cannot be changed after the row is created.
+
+Every function is hardened in the same way. \code{SECURITY DEFINER} functions set an empty
+\code{search_path}, so a caller cannot make them resolve a name to an object of the caller's choosing.
+Execution is revoked from \code{public} and \code{anon}. Helpers live in a schema the Data API does not
+expose. A platform helper that Supabase installs, \code{public.rls_auto_enable}, is also revoked from
+every API role, because a \code{SECURITY DEFINER} function should not be callable by them even when it
+can do nothing outside its intended trigger.
+
+\section{What the functions enforce}
+
+\Cref{tab:functions} lists every check. They fall into six groups:
+
+\begin{description}
+  \item[Identity.] Every function acts as \code{auth.uid()}; a user cannot request, block or report
+    themselves.
+  \item[Profile standing.] Going live, creating and joining events require an active adult profile;
+    only active users can be found or sent a request.
+  \item[State.] A request can be answered only while it is \code{pending} and addressed to the caller; a
+    chat can be ended or written to only while it is \code{accepted} and the caller takes part in it;
+    one request may wait per sender and one chat may run per user; only its host can delete an event.
+  \item[Proximity.] Nearby lists and requests require both users to be live within 100 to 150 metres,
+    and so does seeing a stranger's photos; joining an event requires being within 5 kilometres of it.
+  \item[Blocks.] Any block between two users, in either direction, stops every interaction between
+    them (\cref{sec:blocking-reporting}).
+  \item[Limits.] Lengths, durations, start times and rates (\cref{tab:rate-limits}).
+\end{description}
+
+\section{Location privacy}
+\label{sec:location-privacy}
+
+\subsection{How a position is handled}
+
+A live position follows a short, fixed path:
+
+\begin{enumerate}
+  \item The app asks for \emph{while using the app} permission only, never background location. It reads a
+    position when the user taps \ui{Go live} or \ui{Join}, and when the \ui{Map} tab centres on the user. It
+    does not follow the user's movements.
+  \item \code{go_green} stores the position in the user's \code{availability} row, which no client can read.
+  \item Database functions use the position only to compare distances. No function returns it, and no
+    function returns a distance: \code{nearby} returns person cards, and the cards contain no location.
+  \item \code{go_offline} deletes the row the moment the user goes offline, and the minute job deletes it
+    when the session ends. No copy is kept. \code{private.location_changes} keeps the time of each
+    location change for ten minutes, but never the place.
+\end{enumerate}
+
+The positions sent to \code{events_near} (the centre of the map, usually the user's position) and to
+\code{join_event} are used for one query each and are not stored. Event locations
+are the exception to all of this by design: they are places hosts choose to publish, and the map shows
+them to anyone within the chosen radius.
+
+The nearby radius is deliberately coarse. A user appears to others only as ``nearby'', within 100 metres
+plus the viewer's reported accuracy and never beyond 150 metres, and moves of 150 metres or less do not
+change the stored position at all (\cref{sec:relocation-limits}), so the list cannot be used to track
+someone's small movements.
+
+\subsection{Relocation limits}
+\label{sec:relocation-limits}
+
+A modified client could call \code{go_green} with arbitrary coordinates and then \code{nearby}, and so
+learn who is live at places the user is not. \code{go_green} limits this probing in three ways:
+
+\begin{itemize}
+  \item \textbf{GPS wobble is ignored.} If the user is live and the new position is within 150 metres of
+    the stored one, the stored position and its time stay as they were. Small steps therefore cannot add
+    up to a large move.
+  \item \textbf{Speed.} While the user is live, a larger move must not exceed 150 metres plus walking pace,
+    10 km/h, over the time since the stored position was set (\cref{lst:speed}).
+  \item \textbf{Frequency.} Starting a session, or moving more than 150 metres, counts as a location
+    change. At most three are allowed in any ten minutes.
+\end{itemize}
+
+\begin{lstlisting}[language=pgsql, caption={The speed check in \code{go_green}. \code{moved_m} is the distance from the stored position.}, label={lst:speed}]
+-- 10 km/h is 10000 m per 3600 s, counted from when your live position was set
+allowed_m := 150 + 10000.0 / 3600 * extract(epoch from now() - previous.started_at);
+if moved_m > allowed_m then raise exception 'moving too fast'; end if;
+\end{lstlisting}
+
+\subsection{The delete-on-offline trade-off}
+\label{sec:trade-off}
+
+The go-live screen promises that the location is deleted when the user stops. Keeping that promise means
+the server holds no position once a user is offline, and so the speed check can apply only within one
+live session. A modified client can therefore go offline, go live somewhere else, and repeat, limited only
+by the frequency rule: three location changes in ten minutes, or about eighteen an hour. The alternative,
+keeping each user's last position after they go offline so that the speed rule could span sessions, would
+have broken the promise. The project chose to keep the promise and accept this residual risk; no cooldown
+was added.
+
+\section{Photo privacy}
+\label{sec:photo-privacy}
+
+Photos are the most identifying data in Yap, and their protection has four layers.
+
+\paragraph{A private bucket} The \code{photos} bucket is private, so no photo has a public address.
+Clients see a photo only through a signed URL, valid for one hour.
+
+\paragraph{Own folder only} Storage policies let a user upload, overwrite and delete only inside the
+folder named after their own user ID. Check constraints on \code{profiles} require the profile picture and
+every further photo to be a file directly inside the owner's folder, with no deeper path and no
+\code{..}, and allow at most six further photos. A profile therefore cannot show someone else's face.
+
+\paragraph{Visible people only} Reading an object, which signing a URL and listing a folder both require,
+is allowed for the user's own folder and otherwise only when \code{private.can_see_photo} agrees. It
+allows a photo only if all of the following hold:
+
+\begin{itemize}
+  \item the file is on the owner's current profile (the profile picture, its 320-pixel copy, or one of
+    the further photos), never an older file left in the folder;
+  \item neither user has blocked the other;
+  \item and one of these is true: the owner is on the user's nearby list right now (owner active, live and
+    open, and both near each other); a request between them is waiting, or they are chatting or met; or
+    the file is the owner's profile picture and the owner hosts an event the map shows.
+\end{itemize}
+
+\paragraph{Short-lived URLs} The policy is checked when a URL is signed. A URL signed while its owner was
+visible stays usable until it expires, at most one hour later, even if the owner stops being visible in
+the meantime.
+
+\section{What other users can see}
+
+\Cref{tab:exposure} sets out what another user can learn about a person, and when.
+
+\begin{table}[ht]
+  \centering
+  \caption{What other users can see.}
+  \label{tab:exposure}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{42mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Data}} & \textsf{\textbf{Visible to others}} \\
+    \midrule
+    First name, last initial & On the person card, in event cards (host) and with every message sent \\
+    Last name, email address & Never \\
+    Gender & On the person card, only if the owner chose to show it and did not choose \ui{Prefer not to say} \\
+    Introduction, interests & On the person card \\
+    Photos & Through signed URLs, only while the owner is visible to the viewer (\cref{sec:photo-privacy}) \\
+    Live note & On the person card while the owner is live; through \code{request_person} only while the request or chat is still going \\
+    Live position, distance & Never \\
+    Event location & To anyone whose map radius covers it, by design \\
+    Being live & Only to other live users nearby, and only while the owner is \code{open} \\
+    Blocks and reports & Never; a reported user is not told who reported them \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+The 18+ confirmation is the user's own declaration; the app does not verify age. \code{verified} is
+reserved for the selfie check, which is switched off (\cref{sec:feature-flags}).
+
+\section{Blocking and reporting}
+\label{sec:blocking-reporting}
+
+A block is stored as one directed row but enforced in both directions. The helper
+\code{private.blocked_between} is checked by \code{nearby}, \code{send_request}, \code{request_person},
+\code{send_chat_message}, \code{events_near}, \code{join_event} and \code{can_see_photo}, so once either
+user blocks the other they no longer appear to each other, cannot send each other requests or chat
+messages, cannot load each other's photos, and do not see each other's events. \code{block_user} also
+cancels any waiting request and any chat between the two at once. Event group chats are shared spaces: a
+blocked user can still write in an event both have joined, but the user who blocked them does not receive
+those messages, because the \code{messages} select policy removes them, and the app filters them again.
+Unblocking deletes the row, and the person can appear again at the next refresh.
+
+A report records the reason and details. When three different users have reported the same profile, the
+profile becomes \code{hidden}: it disappears from nearby lists, cannot receive requests, and its owner can
+no longer go live or create or join events, until a person reviews it. The repository contains no review
+tool; the \code{reviewed_at} and \code{action} columns and the \code{suspended} status are reserved for one.
+
+\section{Rate limits and abuse controls}
+
+\Cref{tab:rate-limits} collects the limits that bound what one account can do.
+
+\begin{table}[ht]
+  \centering
+  \caption{Rate limits.}
+  \label{tab:rate-limits}
+  \tablefont
+  \begin{tabularx}{\textwidth}{@{}L{44mm}L{48mm}Y@{}}
+    \toprule
+    \textsf{\textbf{Action}} & \textsf{\textbf{Limit}} & \textsf{\textbf{Enforced by}} \\
+    \midrule
+    Sending requests & 5 per sender in any 10 minutes & \code{send_request} \\
+    Waiting requests & 1 per sender at a time & \code{send_request}; partial unique index \\
+    Sending messages & 30 per sender per minute, both chat kinds & \code{send_chat_message}, \code{send_event_message} \\
+    Creating events & 5 per host in any 24 hours & \code{create_event} \\
+    Changing location & 3 changes in any 10 minutes & \code{go_green} \\
+    Moving while live & 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
+    Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\
+    Auth requests & Supabase's per-project limits & Supabase Auth \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Keys and secrets}
+
+The app contains two configuration values, the project URL and the publishable key, both in
+\code{src/config/supabase.ts}. Both are public by design: the key grants only what row-level security and
+the database functions allow. No secret key, service-role key or SMTP credential is in the repository or
+the app; they exist only in the Supabase dashboard.
