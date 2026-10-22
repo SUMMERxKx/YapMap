@@ -226,7 +226,7 @@ export function ProfileForm({ initial, submitLabel, onSubmit, showAgeCheck = tru
       {showAgeCheck && (
         <Checkbox checked={isAdult} onChange={setIsAdult} label="I confirm I am 18 or older">
           <AppText variant="caption" color="textSecondary">
-            Yap is for adults only. By continuing you agree to the Community Rules on respectful, safe
+            Yap is for adults only. By continuing you agree to the Community Guidelines on respectful, safe
             conversations in public places.
           </AppText>
         </Checkbox>
