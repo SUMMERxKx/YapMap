@@ -246,7 +246,7 @@ restart.
 \begin{figure}[ht]
   \centering
   \input{figures/seq-events}
-  \caption{Loading events around the user, creating and joining an event, and the group chat.}
+  \caption{Loading events around the user, creating, joining and deleting an event, and the group chat.}
   \label{fig:seq-events}
 \end{figure}
 
@@ -274,14 +274,26 @@ the event card, and the app opens the event's group chat.
 (\ui{Starts in 25 min}, \ui{Started 10 min ago}), number of members, details and host. \ui{Join and open
 chat} requests the phone's position and calls \code{join_event}, which accepts the user only within five
 kilometres of the event. Anyone may therefore see events up to 50 kilometres away, but only someone
-nearby can join one and read its chat.
+nearby can join one and read its chat. If the host has deleted the event in the meantime, the server
+answers \code{no such event}; the app takes the event off the map and the sheet shows \ui{This event was
+deleted}.
 
 \paragraph{The group chat} The group chat subscribes to the event's messages while its screen is open and
 loads the newest 200 messages each time the channel joins. Messages show the sender's name. Messages from
 users the reader has blocked are excluded by row-level security and filtered again on screen. A long press
 on someone else's message offers \ui{Report} and \ui{Block}; blocking the host also removes the event from
 the map and closes the chat. A guest can leave the event, which removes their membership and their access
-to its chat. The host has no \ui{Leave} button, because on the server a host leaving deletes the event.
+to its chat. The host has no \ui{Leave} button, because on the server a host leaving deletes the event;
+the host deletes it deliberately instead. Sending to the chat of an event that no longer exists, or that
+the user has left, is refused with \code{not a member}, shown as \ui{You can't post here. The event may
+have ended or been deleted.}
+
+\paragraph{Deleting an event} The event sheet shows the host a \ui{Delete event} button. After a
+confirmation (\ui{Delete this event?} \ui{Everyone who joined will lose the group chat.}), the store
+calls \code{delete_event}, which accepts only the host. Deleting the row removes the event's members and
+its group-chat messages through their cascading foreign keys. The app takes the event off the map at once;
+other phones stop showing it at their next load of events. An event already deleted, for example from
+another phone, counts as deleted.
 
 \section{Photos}
 \label{sec:flow-photos}

@@ -43,9 +43,10 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \code{too many location changes} & \code{go_green} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. \\
   \code{invalid start time} & \code{create_event} & Pick a start time within the next 7 days. \\
   \code{too many events} & \code{create_event} & You've posted as many events as you can today. Try again tomorrow. \\
-  \code{no such event} & \code{join_event} & This event has ended. \\
+  \code{no such event} & \code{join_event}, \code{delete_event} & This event has ended. (A join instead shows \ui{This event was deleted}; a delete counts it as done.) \\
+  \code{not the host} & \code{delete_event} & Only the host can delete this event. \\
   \code{too far away} & \code{join_event} & You can join an event from within 5 km of it. \\
-  \code{not a member} & \code{send_event_message} & Join the event to chat. \\
+  \code{not a member} & \code{send_event_message} & You can't post here. The event may have ended or been deleted. \\
   \code{invalid outcome} & \code{end_chat} & Not mapped; the app never sends another outcome \\
 \end{longtable}
 \endgroup

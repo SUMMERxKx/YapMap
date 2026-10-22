@@ -75,8 +75,9 @@ function call through \code{supabase.rpc}; \emph{select} and \emph{delete} are D
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
   \code{eventsNear(centre, radiusM?)} & rpc \code{events_near}; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
   \code{createEvent(input)} & rpc \code{create_event} & \code{MapEvent} \\
-  \code{joinEvent(id, position)} & rpc \code{join_event}; throws first if there is no position & --- \\
+  \code{joinEvent(id, position)} & rpc \code{join_event}; throws first if there is no position & \code{'event-deleted'} on \code{no such event} \\
   \code{leaveEvent(id)} & rpc \code{leave_event} & --- \\
+  \code{deleteEvent(id)} & rpc \code{delete_event}; \code{no such event} counts as done & --- \\
 \end{longtable}
 \endgroup
 

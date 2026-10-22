@@ -99,8 +99,9 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{loadEvents(centre)} & Load events around a point with the saved radius; a newer load wins \\
   \code{setEventRadius(km)} & Clamp to 1--50\,km, save, reload around the last centre \\
   \code{createEvent(input)} & Call \code{create_event}; put the new event first \\
-  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member \\
+  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member, or, if the event is gone, remove it and return \code{'event-deleted'} \\
   \code{leaveEvent(id)} & Call \code{leave_event}; remove the event if the user hosts it, else mark it left \\
+  \code{deleteEvent(id)} & Call \code{delete_event}; remove the event from the map and lists \\
   \code{enterEventChat(id)}, \code{leaveEventChat()} & Open or close the group chat's channel; history loads on each join \\
   \code{sendGroupMessage(id, text)} & Send in a group chat; show the saved message at once \\
 \end{longtable}

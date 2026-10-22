@@ -43,6 +43,7 @@ has it. Instants in returned JSON are milliseconds since the Unix epoch.
   \code{create_event(emoji text, title text, description text, lat double precision, lng double precision, starts_at_ms bigint)} & \code{jsonb} & plpgsql; an event card \\
   \code{join_event(event_id uuid, lat double precision, lng double precision)} & \code{void} & plpgsql \\
   \code{leave_event(event_id uuid)} & \code{void} & plpgsql \\
+  \code{delete_event(event_id uuid)} & \code{void} & plpgsql \\
   \code{send_event_message(event_id uuid, body text)} & \code{jsonb} & plpgsql; the saved \code{messages} row \\
 \end{longtable}
 \endgroup

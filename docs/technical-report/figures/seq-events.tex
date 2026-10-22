@@ -24,11 +24,16 @@
   \msg{store}{db}{9.25}{\code{join_event}: within 5\,km}
   \msg[reply]{db}{store}{9.85}{member; the group chat opens}
 
-  \fragment{ui}{rt}{10.8}{13.9}{group chat, while its screen is open}
-  \msg{store}{rt}{11.65}{join \code{messages-event_id-<id>}}
-  \msg{store}{db}{12.25}{newest 200 messages; \code{send_event_message}}
-  \msg[push]{rt}{store}{12.85}{new messages from members}
-  \msg[reply]{store}{ui}{13.45}{thread, minus blocked senders}
+  \fragment{ui}{rt}{10.8}{13.3}{delete: the host taps ``Delete event'' and confirms}
+  \msg{ui}{store}{11.65}{\code{deleteEvent}(id)}
+  \msg{store}{db}{12.25}{\code{delete_event}: host only; members and messages cascade}
+  \msg[reply]{store}{ui}{12.85}{the event leaves the map}
 
-  \lifelines{14.15}{ui, loc, store, db, rt}
+  \fragment{ui}{rt}{13.7}{16.8}{group chat, while its screen is open}
+  \msg{store}{rt}{14.55}{join \code{messages-event_id-<id>}}
+  \msg{store}{db}{15.15}{newest 200 messages; \code{send_event_message}}
+  \msg[push]{rt}{store}{15.75}{new messages from members}
+  \msg[reply]{store}{ui}{16.35}{thread, minus blocked senders}
+
+  \lifelines{17.05}{ui, loc, store, db, rt}
 \end{tikzpicture}

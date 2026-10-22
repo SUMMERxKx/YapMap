@@ -196,15 +196,16 @@ summarises who may do what.
     Create an event & Active adult profile; start from five minutes ago to seven days ahead; at most five per host in 24 hours \\
     Join an event & Active adult profile; within 5\,km of the event; not blocked by or blocking the host \\
     Read and write its chat & Members only; 1 to 1000 characters; at most 30 messages a minute \\
-    Leave & A guest's membership ends; a host leaving deletes the event, which the app does not offer \\
+    Leave & A guest's membership ends; the app offers no \ui{Leave} to the host \\
+    Delete & Host only, from the event sheet, after a confirmation; members and the group chat go with the event \\
     \bottomrule
   \end{tabularx}
 \end{table}
 
 \implemented
   {\code{(app)/(tabs)/map}, \code{(app)/event/new}, \code{(app)/event/[id]}, \code{(app)/group/[id]}}
-  {\code{loadEvents}, \code{setEventRadius}, \code{createEvent}, \code{joinEvent}, \code{leaveEvent}, \code{enterEventChat}, \code{sendGroupMessage}; \code{EventIcon}, \code{eventCategory}}
-  {\code{events_near}, \code{create_event}, \code{join_event}, \code{leave_event}, \code{send_event_message}}
+  {\code{loadEvents}, \code{setEventRadius}, \code{createEvent}, \code{joinEvent}, \code{leaveEvent}, \code{deleteEvent}, \code{enterEventChat}, \code{sendGroupMessage}; \code{EventIcon}, \code{eventCategory}}
+  {\code{events_near}, \code{create_event}, \code{join_event}, \code{leave_event}, \code{delete_event}, \code{send_event_message}}
 
 \section{Blocking and reporting}
 \label{sec:feature-safety}

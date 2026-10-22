@@ -23,7 +23,7 @@ implemented.
   No push notifications & Requests and messages arrive only while the app is open, so the screen stays on while live. A request to a locked or closed phone is shown only if the app returns within its five minutes; otherwise it expires as \ui{Not this time}. Push was deferred; the routes it would open already exist. \\
   One request and one chat at a time & By design. A request that arrives while another request or a chat is on screen is never shown and expires; its sender cannot tell it from a decline. \\
   Verification and social sign-in off & Both are built behind flags (\cref{sec:feature-flags}). Verification has no face comparison, and neither Apple nor Google is configured in Supabase Auth. \\
-  Hosts cannot manage events & The app offers no way to edit or delete an event. Events leave the map three hours after they start. \\
+  Events cannot be edited & A host can delete an event but not change it. Events leave the map three hours after they start. \\
   Placeholder links & Community rules, privacy policy, terms and support point to placeholder addresses. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
   Bounded lists & At most 50 people nearby, 50 events on the map and the newest 200 messages per chat. \\
   \midrule

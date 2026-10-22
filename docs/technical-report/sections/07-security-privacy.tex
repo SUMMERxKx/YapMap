@@ -98,7 +98,7 @@ can do nothing outside its intended trigger.
     only active users can be found or sent a request.
   \item[State.] A request can be answered only while it is \code{pending} and addressed to the caller; a
     chat can be ended or written to only while it is \code{accepted} and the caller takes part in it;
-    one request may wait per sender and one chat may run per user.
+    one request may wait per sender and one chat may run per user; only its host can delete an event.
   \item[Proximity.] Nearby lists and requests require both users to be live within 100 to 150 metres,
     and so does seeing a stranger's photos; joining an event requires being within 5 kilometres of it.
   \item[Blocks.] Any block between two users, in either direction, stops every interaction between

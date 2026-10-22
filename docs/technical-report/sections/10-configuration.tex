@@ -49,15 +49,16 @@ policies are created by the migrations, not by hand.
 \section{Database migrations}
 \label{sec:migrations}
 
-The schema is defined by eight SQL migrations in \code{supabase/migrations}, listed in
+The schema is defined by nine SQL migrations in \code{supabase/migrations}, listed by name in
 \cref{app:migrations}. Each later migration replaces functions with \code{CREATE OR REPLACE}, which keeps
 their grants, or drops and recreates a function whose arguments or return type change and then grants it
 again in the same way as the original.
 
-Two practices govern how migrations reach the hosted project. First, the hosted project's recorded
-migration versions do not match the file names in the repository, so a new migration is applied in the
+Two practices govern how migrations reach the hosted project. First, on the revision this report
+describes, the hosted project's recorded migration versions do not match the version prefixes of the
+files in the repository, so a new migration is applied in the
 same way as the earlier ones rather than with \code{supabase db push}. Second, an app change and the
-migration it depends on ship together: after the server-rules migration, for example, \code{join_event}
+migration it depends on ship together: after the \code{server_rules} migration, for example, \code{join_event}
 takes the phone's position, so an older app build can no longer join events.
 
 \code{src/data/database.types.ts} holds TypeScript types generated from the schema, which give the
@@ -79,8 +80,8 @@ The app runs in Expo Go against the hosted project. Exercising the core loop nee
 with different email addresses, within about 100 metres of each other, both live. The native
 \code{ios} and \code{android} folders are generated and not committed.
 
-A local Supabase stack can run the migrations for testing, with one adjustment: migration
-\code{20261004210004_lock_platform_helper.sql} revokes \code{public.rls_auto_enable()}, a function the
+A local Supabase stack can run the migrations for testing, with one adjustment: the migration named
+\code{lock_platform_helper} revokes \code{public.rls_auto_enable()}, a function the
 hosted platform installs, so a local stack needs a stand-in for it.
 
 \section{App configuration}

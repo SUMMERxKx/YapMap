@@ -30,7 +30,7 @@
   \item[Guard] A Boolean in the root layout that decides which stack of screens may be shown.
   \item[Helper] A function in the \code{private} schema, shared by database functions or used by policies,
     and not callable through the Data API.
-  \item[Host] The user who created an event. The host is the event's first member.
+  \item[Host] The user who created an event: its first member, and the only user who can delete it.
   \item[Live] Having an unexpired \code{availability} row. Only live users appear in, and see, nearby
     lists.
   \item[Live note] An optional text of up to 60 characters shown to nearby users while its author is live,

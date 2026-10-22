@@ -123,7 +123,8 @@ characters), a description (up to 200 characters), a position and a start time. 
 the host chose on the map and is, by design, the one location in the system that other users are meant
 to see. The \code{emoji} column stores the category as one of twelve emoji values; the client maps each
 value to an icon and a name (\cref{tab:event-categories}). \code{event_members} records who has joined
-which event. The host is added as a member when the event is created.
+which event. The host is added as a member when the event is created, and only the host can delete the
+event (\code{delete_event}); its members and messages are deleted with it.
 
 \subsection{Blocks and reports}
 

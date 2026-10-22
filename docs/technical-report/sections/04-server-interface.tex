@@ -150,6 +150,9 @@ message in parentheses where one applies.
     (\code{no such event}); no block between the caller and the host (\code{not available}); profile active
     and adult (\code{profile not ready}); valid position (\code{invalid location}); the caller's position
     within 5\,km of the event (\code{too far away}). \\
+  \code{delete_event}\newline{\scriptsize event\_id}
+  & Deletes the event; its members and group-chat messages go with it through cascading foreign keys.
+    Checks: signed in; the event exists (\code{no such event}); the caller is its host (\code{not the host}). \\
   \code{leave_event}\newline{\scriptsize event\_id}
   & If the caller hosts the event, deletes it with its members and messages; otherwise removes the
     caller's membership. \\
@@ -195,6 +198,7 @@ function that can change a given table.
     \code{create_event} & R & & & & RI & RI & & & \\
     \code{join_event} & R & & & & R & I & R & & \\
     \code{leave_event} & & & & & RD & D & & & \\
+    \code{delete_event} & & & & D\textsuperscript{\dag} & RD & D\textsuperscript{\dag} & & & \\
     \code{send_event_message} & R & & & RI & & R & & & \\
     \code{expire_stale} (job) & & RD & RU & & & & & & D \\
     \midrule
@@ -203,6 +207,7 @@ function that can change a given table.
   \end{tabular}
   \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
   \code{auth.users} row; the cascade removes the profile and every row that references it.
+  \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
 \end{table}
 
 Two details of these functions carry more weight than their size suggests. First, \code{respond},
