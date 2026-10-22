@@ -1,6 +1,7 @@
 # Releasing Yap on the App Store and Google Play
 
-Everything needed to build Yap for the stores and fill in their forms, in order. The answers
+Everything needed to build Yap for the stores and fill in their forms, in order. The everyday
+flow (CI, versioning, shipping database changes, rollback) is in [`RELEASING.md`](RELEASING.md). The answers
 below match what the app and database do as of October 2026; if the app starts collecting
 something new, update this file, `docs/legal/privacy-policy.md` and
 `expo.ios.privacyManifests` in `app.json` together.
