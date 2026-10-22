@@ -51,7 +51,7 @@ type State = {
   eventRadiusKm: number; // how far around you the map looks for events
   nearbyAlert: NearbyAlert | null;
   events: MapEvent[];
-  eventsLoaded: boolean; // the map has heard back about events at least once
+  eventsRadiusKm: number | null; // the distance the shown events were loaded for; null until the first answer
 };
 
 const initialState: State = {
@@ -76,7 +76,7 @@ const initialState: State = {
   eventRadiusKm: EVENT_RADIUS_KM.default,
   nearbyAlert: null,
   events: [],
-  eventsLoaded: false,
+  eventsRadiusKm: null,
 };
 
 let state = initialState;
@@ -896,7 +896,8 @@ export async function loadEvents(center: { latitude: number; longitude: number }
   lastEventsCenter = center;
   eventLoads += 1;
   const thisLoad = eventLoads;
-  const nearby = await api.eventsNear(center, state.eventRadiusKm * 1000);
+  const radiusKm = state.eventRadiusKm;
+  const nearby = await api.eventsNear(center, radiusKm * 1000);
   if (thisLoad !== eventLoads) return;
   // Keep the loaded chat history of events we're in; refresh everything else.
   const events = nearby.map((event) => {
@@ -904,7 +905,7 @@ export async function loadEvents(center: { latitude: number; longitude: number }
     if (!existing) return event;
     return { ...event, messages: existing.messages };
   });
-  set({ events, eventsLoaded: true });
+  set({ events, eventsRadiusKm: radiusKm });
 }
 
 /** Changes how far around you the map looks for events, remembers it, and reloads the pins. */

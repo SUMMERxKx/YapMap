@@ -95,7 +95,7 @@ function regionAround(center: { latitude: number; longitude: number }, km: numbe
 export default function EventsMap() {
   const { colors, layout, radius, spacing, elevation } = useTheme();
   const events = useStore((state) => state.events);
-  const eventsLoaded = useStore((state) => state.eventsLoaded);
+  const loadedKm = useStore((state) => state.eventsRadiusKm);
   const radiusKm = useStore((state) => state.eventRadiusKm);
   const navigation = useNavigation<BottomTabNavigationProp<{ map: undefined }>>();
   const map = useRef<MapView>(null);
@@ -224,11 +224,11 @@ export default function EventsMap() {
 
   // Nothing in range: the cat looks around, and says so. Hidden while the slider moves.
   let noEventsNote = null;
-  if (eventsLoaded && events.length === 0 && draggedKm === null) {
+  if (loadedKm === radiusKm && events.length === 0 && draggedKm === null) {
     noEventsNote = (
       <View
         accessible
-        accessibilityLabel={`No events within ${radiusKm} km yet. Widen the distance, or start one yourself.`}
+        accessibilityLabel={`No events within ${loadedKm} km yet. Widen the distance, or start one yourself.`}
         style={[
           styles.note,
           elevation.floating,
@@ -243,7 +243,7 @@ export default function EventsMap() {
         ]}>
         <Mascot pose="searching" size={64} />
         <View style={[styles.flex, { gap: spacing.xxs }]}>
-          <AppText variant="bodyStrong">{`No events within ${radiusKm} km yet`}</AppText>
+          <AppText variant="bodyStrong">{`No events within ${loadedKm} km yet`}</AppText>
           <AppText variant="caption" color="textSecondary">
             Widen the distance, or start one yourself.
           </AppText>

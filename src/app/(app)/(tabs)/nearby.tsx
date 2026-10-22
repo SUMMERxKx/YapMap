@@ -58,8 +58,13 @@ function NearbyList() {
     emptyContent = (
       <View style={{ gap: spacing.md }}>
         <PersonCardSkeleton />
-        <PersonCardSkeleton />
-        <PersonCardSkeleton />
+        <View
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{ gap: spacing.md }}>
+          <PersonCardSkeleton />
+          <PersonCardSkeleton />
+        </View>
       </View>
     );
   } else {
