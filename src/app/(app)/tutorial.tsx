@@ -1,12 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, useWindowDimensions, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button } from '@/components/ui/button';
+import { TopBar } from '@/components/ui/top-bar';
 import { markTutorialSeen } from '@/state/store';
 import { useTheme } from '@/theme';
 
@@ -49,9 +50,12 @@ const PAGES: Page[] = [
   },
 ];
 
+// Screens shorter than this (an iPhone SE or smaller) get smaller art, so every page fits.
+const SHORT_SCREEN_HEIGHT = 700;
+
 export default function Tutorial() {
   const { colors, layout, spacing } = useTheme();
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const list = useRef<FlatList<Page>>(null);
   const [index, setIndex] = useState(0);
   const last = index === PAGES.length - 1;
@@ -61,10 +65,13 @@ export default function Tutorial() {
     if (first?.index != null) setIndex(first.index);
   }, []);
 
-  const done = () => {
+  // Seen as soon as it opens, so leaving any other way (like the Android back button)
+  // never brings it back.
+  useEffect(() => {
     markTutorialSeen();
-    router.back();
-  };
+  }, []);
+
+  const done = () => router.back();
 
   const next = () => {
     if (last) {
@@ -74,8 +81,8 @@ export default function Tutorial() {
     list.current?.scrollToIndex({ index: index + 1, animated: true });
   };
 
-  // No Skip on the last page; an empty View keeps the top row's height.
-  let skipButton = <View />;
+  // No Skip on the last page; the top bar keeps its height either way.
+  let skipButton;
   if (!last) {
     skipButton = <Button label="Skip" variant="ghost" size="compact" onPress={done} />;
   }
@@ -85,18 +92,24 @@ export default function Tutorial() {
     nextLabel = 'Let’s yap';
   }
 
+  let artSize = 200;
+  if (height < SHORT_SCREEN_HEIGHT) {
+    artSize = 150;
+  }
+  const artStyle = [styles.art, { width: artSize, height: artSize, borderRadius: artSize / 2 }];
+
   const renderPage = ({ item }: { item: Page }) => {
     // Pages with an icon show it on a soft circle; the first page shows the YAP button itself.
     let art;
     if (item.icon) {
       art = (
-        <View style={[styles.art, { backgroundColor: colors.greenSoft }]}>
-          <Ionicons name={item.icon} size={84} color={colors.greenText} />
+        <View style={[artStyle, { backgroundColor: colors.greenSoft }]}>
+          <Ionicons name={item.icon} size={artSize * 0.42} color={colors.greenText} />
         </View>
       );
     } else {
       art = (
-        <View style={[styles.art, { backgroundColor: colors.green }]}>
+        <View style={[artStyle, { backgroundColor: colors.green }]}>
           <AppText style={[styles.yap, { color: colors.onGreen }]} maxFontSizeMultiplier={1.2}>
             YAP
           </AppText>
@@ -117,9 +130,10 @@ export default function Tutorial() {
   };
 
   return (
-    <SafeAreaView style={[styles.flex, { backgroundColor: colors.background }]}>
-      <View style={[styles.top, { minHeight: layout.topBarHeight, paddingHorizontal: spacing.md }]}>
-        {skipButton}
+    // Inside the top and bottom safe areas, with the same side padding as every other screen.
+    <SafeAreaView edges={['top', 'bottom']} style={[styles.flex, { backgroundColor: colors.background }]}>
+      <View style={{ paddingHorizontal: layout.screenPadding, paddingTop: spacing.sm }}>
+        <TopBar trailing={skipButton} />
       </View>
 
       <FlatList
@@ -155,9 +169,8 @@ export default function Tutorial() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  top: { alignItems: 'flex-end', justifyContent: 'center' },
   page: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  art: { width: 200, height: 200, borderRadius: 100, alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  art: { alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
   yap: { fontSize: 56, lineHeight: 64, fontWeight: '900', letterSpacing: 2 },
   dots: { flexDirection: 'row', justifyContent: 'center' },
   dot: { height: 8, borderRadius: 4 },

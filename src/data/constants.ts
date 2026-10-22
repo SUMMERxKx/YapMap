@@ -45,6 +45,12 @@ export const EVENT_CATEGORY_FALLBACK = { name: 'Event', icon: 'calendar' } as co
 /** Events can be planned at most this far ahead. */
 export const EVENT_MAX_AHEAD_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * How far around you the map looks for events, in km. The server never goes beyond 50 km.
+ * The smallest choice is 1 km, since a 0 km circle would never show an event.
+ */
+export const EVENT_RADIUS_KM = { min: 1, max: 50, default: 10 } as const;
+
 export const REPORT_REASONS: { value: ReportReason; label: string }[] = [
   { value: 'inappropriate-photo', label: 'Inappropriate photo' },
   { value: 'harassment', label: 'Harassment' },

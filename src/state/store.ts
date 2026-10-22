@@ -10,6 +10,7 @@ import { Alert, AppState } from 'react-native';
 import { useSyncExternalStore } from 'react';
 
 import * as api from '@/data/api';
+import { EVENT_RADIUS_KM } from '@/data/constants';
 import type {
   Availability,
   ChatSession,
@@ -22,7 +23,7 @@ import type {
   ReportReason,
 } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
-import { loadPrefs, savePrefs } from '@/state/saved-prefs';
+import { clampRadiusKm, loadPrefs, savePrefs } from '@/state/saved-prefs';
 
 export type NearbyAlert =
   | { id: string; kind: 'summary'; count: number }
@@ -46,7 +47,8 @@ type State = {
   blockedIds: string[];
   blockedNames: Record<string, string>;
   safetyTipViews: number;
-  seenTutorial: boolean;
+  tutorialDue: boolean; // a brand-new account: show how the app works once
+  eventRadiusKm: number; // how far around you the map looks for events
   nearbyAlert: NearbyAlert | null;
   events: MapEvent[];
 };
@@ -69,7 +71,8 @@ const initialState: State = {
   blockedIds: [],
   blockedNames: {},
   safetyTipViews: 0,
-  seenTutorial: false,
+  tutorialDue: false,
+  eventRadiusKm: EVENT_RADIUS_KM.default,
   nearbyAlert: null,
   events: [],
 };
@@ -208,8 +211,8 @@ async function refreshAfterAuth() {
     session: { email: user.email ?? '' },
     profile,
     loadFailed: false,
-    seenTutorial: prefs.seenTutorial,
     safetyTipViews: prefs.safetyTipViews,
+    eventRadiusKm: prefs.eventRadiusKm,
   });
   // The layout sends them to profile setup; saveProfile starts listening once it's saved.
   if (!profile) return;
@@ -436,7 +439,12 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
     keepsVerification = true;
   }
   set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
-  if (!previous) extrasLoaded = true;
+  if (!previous) {
+    extrasLoaded = true;
+    // The first save is the end of sign-up: show the tutorial this once. Later launches
+    // never show it again; Settings has "View tutorial" for anyone who wants it back.
+    set({ tutorialDue: true });
+  }
   // A new account can be said hi to from now on, so start listening (sign-in only does
   // this for accounts that already had a profile).
   listenForRequests(stored.id);
@@ -801,8 +809,7 @@ export function dismissNearbyAlert() {
 }
 
 export function markTutorialSeen() {
-  set({ seenTutorial: true });
-  rememberPrefs();
+  set({ tutorialDue: false });
 }
 
 export function markSafetyTipSeen() {
@@ -810,10 +817,10 @@ export function markSafetyTipSeen() {
   rememberPrefs();
 }
 
-/** Keeps the tutorial and safety-tip progress for this account across launches. */
+/** Keeps the safety-tip progress and the events distance for this account across launches. */
 function rememberPrefs() {
   if (!state.myId) return;
-  savePrefs(state.myId, { seenTutorial: state.seenTutorial, safetyTipViews: state.safetyTipViews });
+  savePrefs(state.myId, { safetyTipViews: state.safetyTipViews, eventRadiusKm: state.eventRadiusKm });
 }
 
 // ---------------------------------------------------------------- safety
@@ -878,8 +885,17 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 
 // ---------------------------------------------------------------- map events
 
+// Where events were last loaded around, so a new distance can reload the same spot.
+let lastEventsCenter: { latitude: number; longitude: number } | null = null;
+// Counts loads, so a slow answer never replaces a newer one.
+let eventLoads = 0;
+
 export async function loadEvents(center: { latitude: number; longitude: number }) {
-  const nearby = await api.eventsNear(center);
+  lastEventsCenter = center;
+  eventLoads += 1;
+  const thisLoad = eventLoads;
+  const nearby = await api.eventsNear(center, state.eventRadiusKm * 1000);
+  if (thisLoad !== eventLoads) return;
   // Keep the loaded chat history of events we're in; refresh everything else.
   const events = nearby.map((event) => {
     const existing = state.events.find((loaded) => loaded.id === event.id);
@@ -887,6 +903,13 @@ export async function loadEvents(center: { latitude: number; longitude: number }
     return { ...event, messages: existing.messages };
   });
   set({ events });
+}
+
+/** Changes how far around you the map looks for events, remembers it, and reloads the pins. */
+export async function setEventRadius(km: number) {
+  set({ eventRadiusKm: clampRadiusKm(km) });
+  rememberPrefs();
+  if (lastEventsCenter) await loadEvents(lastEventsCenter);
 }
 
 export async function createEvent(input: {

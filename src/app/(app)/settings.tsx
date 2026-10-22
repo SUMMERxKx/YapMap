@@ -73,6 +73,12 @@ export default function Settings() {
         </ListGroup>
       </SettingsSection>
 
+      <SettingsSection title="HELP">
+        <ListGroup>
+          <ListRow label="View tutorial" onPress={() => router.push('/tutorial')} last />
+        </ListGroup>
+      </SettingsSection>
+
       <SettingsSection title="SAFETY AND LEGAL">
         <ListGroup>
           <ListRow label="Community rules" trailing="external" onPress={() => Linking.openURL(LINKS.rules)} />

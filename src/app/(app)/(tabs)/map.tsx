@@ -1,16 +1,19 @@
+import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
+import type { BottomTabNavigationProp } from 'expo-router/js-tabs';
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Circle, Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
 import { EventIcon } from '@/components/events/event-icon';
 import { Button, IconButton } from '@/components/ui/button';
+import { EVENT_RADIUS_KM } from '@/data/constants';
 import { FIX_TIMEOUT_MS } from '@/hooks/use-foreground-location';
 import { eventCategory } from '@/lib/event-category';
-import { loadEvents, useStore } from '@/state/store';
+import { loadEvents, setEventRadius, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Used until we know where the user is (or if they don't share location).
@@ -18,6 +21,9 @@ const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitu
 
 // A position the phone already knows is good enough if it is at most this old.
 const RECENT_POSITION_MS = 2 * 60 * 1000;
+
+// About this many km per degree of latitude.
+const KM_PER_DEGREE = 111;
 
 const PIN_ICON_SIZE = 24;
 const PIN_PADDING = 4;
@@ -75,17 +81,42 @@ function loadEventsQuietly(center: { latitude: number; longitude: number }) {
   loadEvents(center).catch(() => {});
 }
 
+/** A map region centred on a point that just fits a circle of `km` around it. */
+function regionAround(center: { latitude: number; longitude: number }, km: number): Region {
+  // The circle's width plus a little room at the edges.
+  const delta = ((km * 2) / KM_PER_DEGREE) * 1.2;
+  // A degree of longitude gets shorter away from the equator, so it takes more of them.
+  const longitudeDelta = delta / Math.cos((center.latitude * Math.PI) / 180);
+  return { latitude: center.latitude, longitude: center.longitude, latitudeDelta: delta, longitudeDelta };
+}
+
 /** Events on a map. Pins are events at places their hosts chose, never anyone's live location. */
 export default function EventsMap() {
   const { colors, layout, radius, spacing, elevation } = useTheme();
   const events = useStore((state) => state.events);
+  const radiusKm = useStore((state) => state.eventRadiusKm);
+  const navigation = useNavigation<BottomTabNavigationProp<{ map: undefined }>>();
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [location, setLocation] = useState<LocationState>({ status: 'checking' });
+  // Where events are loaded around: the user once found, Vancouver until then.
+  const [eventsCenter, setEventsCenter] = useState({
+    latitude: DEFAULT_REGION.latitude,
+    longitude: DEFAULT_REGION.longitude,
+  });
+  // The distance shown while the slider is being dragged; null when not dragging.
+  const [draggedKm, setDraggedKm] = useState<number | null>(null);
+  // Where the map was last asked to centre on the user. A move asked for before the map is
+  // ready is ignored, so onMapReady makes it again.
+  const userRegion = useRef<Region | null>(null);
   // Events are loaded around Vancouver only once, if we never find the user.
   const loadedFallback = useRef(false);
   // Read when the app comes back to the front: only then is it worth asking the phone again.
   const wasDenied = useRef(false);
+
+  const onMapReady = () => {
+    if (userRegion.current) map.current?.animateToRegion(userRegion.current, 400);
+  };
 
   // Centres the map on the user when we found them, and loads the events there.
   const showResult = (result: FindResult) => {
@@ -94,6 +125,8 @@ export default function EventsMap() {
       const here = { ...DEFAULT_REGION, latitude: result.latitude, longitude: result.longitude };
       setLocation({ status: 'found' });
       setRegion(here);
+      setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
+      userRegion.current = here;
       map.current?.animateToRegion(here, 400);
       loadEventsQuietly(here);
       return;
@@ -111,16 +144,30 @@ export default function EventsMap() {
     showResult(result);
   };
 
-  // On open: find the user (asking for permission the first time).
+  // On open, and every time the Map tab is pressed: find the user and centre on them. Coming back
+  // from an event leaves the map where it was. findUser only shows the permission prompt the
+  // first time, so someone who said no isn't asked again and again.
   useEffect(() => {
     let cancelled = false;
-    findUser().then((result) => {
-      if (!cancelled) showResult(result);
-    });
+    const find = () => {
+      findUser().then((result) => {
+        if (!cancelled) showResult(result);
+      });
+    };
+    find();
+    const unsubscribe = navigation.addListener('tabPress', find);
     return () => {
       cancelled = true;
+      unsubscribe();
     };
-  }, []);
+  }, [navigation]);
+
+  // Letting go of the slider: remember the distance, reload the pins and fit the map to it.
+  const changeRadius = (km: number) => {
+    setDraggedKm(null);
+    map.current?.animateToRegion(regionAround(eventsCenter, km), 400);
+    setEventRadius(km).catch(() => {});
+  };
 
   // Coming back from the phone's Settings after turning location on: try again.
   useEffect(() => {
@@ -168,6 +215,11 @@ export default function EventsMap() {
     );
   }
 
+  let shownKm = radiusKm;
+  if (draggedKm !== null) {
+    shownKm = draggedKm;
+  }
+
   const createAt = (latitude: number, longitude: number) =>
     router.push({ pathname: '/event/new', params: { lat: String(latitude), lng: String(longitude) } });
 
@@ -178,11 +230,20 @@ export default function EventsMap() {
         style={StyleSheet.absoluteFill}
         initialRegion={DEFAULT_REGION}
         showsUserLocation={location.status === 'found'}
+        onMapReady={onMapReady}
         onRegionChangeComplete={setRegion}
         onLongPress={(event) => {
           const { latitude, longitude } = event.nativeEvent.coordinate;
           createAt(latitude, longitude);
         }}>
+        {/* The area the distance filter covers. */}
+        <Circle
+          center={eventsCenter}
+          radius={shownKm * 1000}
+          strokeColor={colors.green}
+          strokeWidth={1.5}
+          fillColor={`${colors.green}14`}
+        />
         {events.map((event) => {
           // Events you've joined get a filled green pin, with a light badge so the icon still shows.
           let pinColor = colors.surface;
@@ -234,6 +295,28 @@ export default function EventsMap() {
           <AppText variant="caption" color="textSecondary">
             Long-press the map to create one. Pins show events, never where people are.
           </AppText>
+          <View style={[styles.radiusRow, { marginTop: spacing.sm }]}>
+            <AppText variant="caption" color="textSecondary">
+              Show events within
+            </AppText>
+            <AppText variant="bodyStrong" color="greenText" style={styles.radiusValue}>
+              {shownKm} km
+            </AppText>
+          </View>
+          <Slider
+            minimumValue={EVENT_RADIUS_KM.min}
+            maximumValue={EVENT_RADIUS_KM.max}
+            step={1}
+            value={radiusKm}
+            onValueChange={setDraggedKm}
+            onSlidingComplete={changeRadius}
+            minimumTrackTintColor={colors.green}
+            maximumTrackTintColor={colors.border}
+            thumbTintColor={colors.green}
+            accessibilityLabel="Distance for events"
+            accessibilityValue={{ text: `${shownKm} km` }}
+            style={styles.slider}
+          />
           {locationPrompt}
         </View>
       </SafeAreaView>
@@ -263,6 +346,9 @@ const styles = StyleSheet.create({
   banner: { borderWidth: StyleSheet.hairlineWidth },
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0 },
   prompt: { alignItems: 'flex-start' },
+  radiusRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  radiusValue: { fontVariant: ['tabular-nums'] },
+  slider: { height: 40 },
   recentre: { alignSelf: 'flex-end' },
   // The pin's corners follow the badge's corners, the badge inset by the pin's padding.
   pin: {
