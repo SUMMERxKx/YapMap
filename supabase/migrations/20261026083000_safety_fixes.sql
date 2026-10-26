@@ -907,9 +907,10 @@ begin
 end;
 $$;
 
--- Undoes a suspension or an automatic hide after review: the account is active again, its
--- email address comes off the ban list, and its open reports are marked reviewed, so they
--- don't hide it again. Run it from the SQL editor.
+-- Undoes a suspension or an automatic hide after review: the account is active again, it is a
+-- member of the events it still hosts again (end_activity took it out of them), its email
+-- address comes off the ban list, and its open reports are marked reviewed, so they don't hide
+-- it again. Run it from the SQL editor.
 create function private.restore_user(target uuid)
 returns void
 language plpgsql security definer set search_path = ''
@@ -920,6 +921,9 @@ begin
   end if;
 
   update public.profiles set status = 'active' where id = target;
+  insert into public.event_members (event_id, user_id)
+  select e.id, target from public.events e where e.host = target
+  on conflict do nothing;
   update public.reports set reviewed_at = now(), action = 'restored'
   where reported = target and reviewed_at is null;
   delete from private.banned_identities b

@@ -415,7 +415,8 @@ refuses an unknown profile (\code{no such profile}), then:
 \end{enumerate}
 
 \code{private.restore_user(target)} lifts a suspension or an automatic hide: it sets the status back to
-\code{active}, takes the email address off the ban list, and marks every open report about the person
+\code{active}, makes the person a member again of the events they still host (\code{end_activity} took
+them out), takes the email address off the ban list, and marks every open report about the person
 as reviewed (action \code{restored}), so reports already reviewed cannot hide them again. \code{docs/legal/moderation.md} describes
 the owner's daily review: the queries that list open reports and what the reported person posted, and
 the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through

@@ -1,5 +1,6 @@
-// Delete account, from Settings: says exactly what is deleted, and only lets the button work
-// once you've typed your first name, so nobody deletes their account with a stray tap.
+// Delete account, from Settings or the account-on-hold screen: says exactly what is deleted, and
+// only lets the button work once you've typed your first name, so nobody deletes their account
+// with a stray tap.
 
 import { router } from 'expo-router';
 import { useState } from 'react';

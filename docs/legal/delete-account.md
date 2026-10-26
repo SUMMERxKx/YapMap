@@ -11,6 +11,9 @@
 3. Tap **Delete account**. The screen lists what is deleted.
 4. Type your first name, as it is on your profile, to confirm, then tap **Delete my account**.
 
+If your account is on hold (hidden after reports, or suspended), Yap opens on the "Your account is
+on hold" screen instead: tap **Delete account** there, then do step 4.
+
 Your account is deleted straight away.
 
 ## Without the app

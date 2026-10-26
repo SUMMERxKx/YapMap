@@ -224,8 +224,9 @@ users by first name and last initial, with \ui{Unblock}. The server semantics ar
 \cref{sec:blocking-reporting}. Separately, the server refuses an introduction, interest, live note, event
 or message that contains a slur or abusive word from its list, and the app explains why
 (\cref{sec:word-filter}); the owner reviews reports and can suspend an account (\cref{sec:moderation}).
-A hidden or suspended user sees \ui{Your account is on hold} instead of the app, with \ui{Email support}
-and \ui{Use a different account}; the screen appears at launch, and as soon as the server refuses an
+A hidden or suspended user sees \ui{Your account is on hold} instead of the app, with \ui{Email support},
+\ui{Use a different account} and \ui{Delete account}, which opens the same delete screen as Settings; the
+screen appears at launch, and as soon as the server refuses an
 action with \code{account restricted}, and is checked again at each catch-up, so a restored account comes
 back by itself.
 
@@ -264,7 +265,8 @@ the live session must reach the server or the other person would be left waiting
 goes offline, then signs out, and the Auth listener resets the app. \ui{Delete account} opens its own
 screen, which lists what is deleted and keeps \ui{Delete my account} disabled until the user types their
 first name as it is on their profile, ignoring capitals and spaces around it; deleting then follows
-\cref{sec:flow-delete}. This in-app deletion is what Apple requires (guideline 5.1.1(v)); for Google Play,
+\cref{sec:flow-delete}. A hidden or suspended user reaches the same screen from \ui{Your account is on
+hold}. This in-app deletion is what Apple requires (guideline 5.1.1(v)); for Google Play,
 the published \code{delete-account} page also tells people without the app how to ask for deletion.
 
 \implemented

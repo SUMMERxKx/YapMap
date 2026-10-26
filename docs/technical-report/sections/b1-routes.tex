@@ -21,7 +21,9 @@ does not appear in the URL. \Cref{sec:navigation} explains the guards.
   \endfoot
   \multicolumn{3}{@{}l}{\textsf{\textbf{Root}}} \\
   \code{_layout.tsx} & --- & Theme, \code{init()}, the five guarded stacks, \ui{Can't reach Yap}, the offline banner \\
-  \code{account-restricted.tsx} & --- & \ui{Your account is on hold} for a hidden or suspended account: \ui{Email support}, \ui{Use a different account} \\
+  \code{account-restricted/_layout.tsx} & --- & The stack a hidden or suspended account is limited to \\
+  \code{account-restricted/index.tsx} & --- & \ui{Your account is on hold}: \ui{Email support}, \ui{Use a different account}, \ui{Delete account} \\
+  \code{account-restricted/delete-account.tsx} & --- & The \code{(app)/delete-account} screen, reachable while on hold \\
   \code{verify-face.tsx} & --- & Selfie check with a random pose; reached only when \code{FEATURES.selfieVerification} is on \\
   \code{guidelines.tsx} & --- & Community guidelines: the rules, what happens when someone breaks them, the word filter; opened from sign-up and Settings, signed in or out \\
   \code{acknowledgements.tsx} & --- & Yap's copyright and every open-source package the app ships, each with its licence text (\code{src/data/third-party-licenses.json}) \\

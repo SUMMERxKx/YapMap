@@ -91,8 +91,9 @@ Photos are in Storage → `photos` → the folder named after their id.
 Pick one, and always finish with step 4.
 
 - **Nothing wrong:** mark the reports reviewed. If they were hidden after 3 reports, show them
-  again (this also takes their email off the ban list, in case they deleted and came back, and
-  marks any report still open as reviewed, so those reports can't hide them again):
+  again (this also puts them back in the events they still host, takes their email off the ban
+  list, in case they deleted and came back, and marks any report still open as reviewed, so those
+  reports can't hide them again):
 
   ```sql
   update public.reports set reviewed_at = now(), action = 'no action'

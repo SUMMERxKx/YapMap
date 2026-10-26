@@ -1,7 +1,8 @@
 // Shown instead of the app while the account is hidden (after reports, until they are reviewed)
 // or suspended. The server refuses everything such an account tries ('account restricted'),
-// so this says why, and how to ask about it.
+// so this says why, how to ask about it, and still lets the person delete their account.
 
+import { router } from 'expo-router';
 import { Linking, View } from 'react-native';
 
 import { SwitchAccountButton } from '@/components/account/switch-account-button';
@@ -20,6 +21,11 @@ export default function AccountRestricted() {
         <View style={{ gap: spacing.sm }}>
           <Button label="Email support" icon="mail-outline" onPress={() => Linking.openURL(LINKS.support)} />
           <SwitchAccountButton />
+          <Button
+            label="Delete account"
+            variant="destructiveSoft"
+            onPress={() => router.push('/account-restricted/delete-account')}
+          />
         </View>
       }>
       <EmptyState

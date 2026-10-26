@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(50);
+select plan(51);
 
 -- 40 people; who does what is written next to each section.
 insert into auth.users (id, email)
@@ -126,9 +126,9 @@ select throws_ok($$ select pg_temp.call_nearby(1) $$, 'too many lookups', 'a 13t
 -- Reports (D2) and restricted accounts (D3, D9) ----------------------------------------------
 -- 10 is reported. 11 is waiting on 10's say-hi. 12 said hi to 10 and got no answer, 13 is only
 -- in 10's event, 14 never met 10. 15 chatted with 10, 16 met 10, and 17 is in 10's event, where
--- 10 posted. 18 is an established account and reports 19. 32 is hidden, then restored, by
--- reports from the established accounts 33-36. 37 said hi to 38, who accepted and then ended the
--- chat; 39 said hi to 38 and took it back before an answer.
+-- 10 posted. 18 is an established account and reports 19. 32 hosts an event, is hidden by
+-- reports from the established accounts 33-35, restored, then reported by 36. 37 said hi to 38,
+-- who accepted and then ended the chat; 39 said hi to 38 and took it back before an answer.
 
 select pg_temp.act_as(10);
 select public.go_green(49.8951, -97.1384, 5, 60, '');
@@ -203,6 +203,9 @@ select ok(
   'a report from an account older than 3 days counts towards the hide'
 );
 
+select pg_temp.act_as(32);
+create temp table thirty_two_event as
+select (public.create_event('🎲', 'Board games', '', 44.6488, -63.5752, (extract(epoch from now()) * 1000)::bigint) ->> 'id')::uuid as id;
 update public.profiles set created_at = now() - interval '4 days' where id in (select pg_temp.id_of(n) from generate_series(33, 36) as n);
 select pg_temp.act_as(n), public.report_user(pg_temp.id_of(32), 'other', '') from generate_series(33, 35) as n;
 select is(
@@ -211,6 +214,13 @@ select is(
   'three counted reports hide someone'
 );
 select private.restore_user(pg_temp.id_of(32));
+select ok(
+  exists (
+    select 1 from public.event_members m
+    where m.event_id = (select id from thirty_two_event) and m.user_id = pg_temp.id_of(32)
+  ),
+  'after a restore, a host is a member of the event they still host again'
+);
 select pg_temp.act_as(36);
 select public.report_user(pg_temp.id_of(32), 'other', '');
 select is(
