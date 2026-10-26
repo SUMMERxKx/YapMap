@@ -26,7 +26,6 @@ const DELETED = [
   'Every say-hi request and 1:1 chat, with their messages',
   'Events you host and their group chats, and your messages in other events',
   'Your block list',
-  'Your sign-in: your email address and password',
 ];
 
 /** Whether what was typed is the name, ignoring capitals and spaces around it. */
@@ -38,6 +37,10 @@ function matchesName(typed: string, name: string) {
 export default function DeleteAccount() {
   const { colors, spacing } = useTheme();
   const firstName = useStore((state) => state.profile?.firstName ?? '');
+  // On hold (hidden or suspended): the server keeps a hash of the email address, so it can't sign up again.
+  const restricted = useStore((state) => state.restricted);
+  let signIn = 'Your sign-in: your email address and password';
+  if (restricted) signIn = 'Your password';
   const [typed, setTyped] = useState('');
   const confirmed = matchesName(typed, firstName);
 
@@ -82,16 +85,23 @@ export default function DeleteAccount() {
         <AppText variant="label" color="textSecondary" accessibilityRole="header">
           WHAT IS DELETED
         </AppText>
-        {DELETED.map((item) => (
+        {[...DELETED, signIn].map((item) => (
           <View key={item} style={[styles.item, { gap: spacing.md }]}>
             <View style={[styles.bullet, { backgroundColor: colors.destructive, marginTop: spacing.sm }]} />
             <AppText style={styles.itemText}>{item}</AppText>
           </View>
         ))}
       </Card>
-      <InfoNote icon="log-out-outline">
-        To use Yap again later, you'd create a new account. If you only want a break, sign out instead.
-      </InfoNote>
+      {restricted ? (
+        <InfoNote icon="mail-outline">
+          Your account is on hold, so we keep a scrambled (hashed) copy of your email address so it can't be used to
+          sign up again.
+        </InfoNote>
+      ) : (
+        <InfoNote icon="log-out-outline">
+          To use Yap again later, you'd create a new account. If you only want a break, sign out instead.
+        </InfoNote>
+      )}
 
       <View style={{ gap: spacing.sm }}>
         <AppText>
