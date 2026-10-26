@@ -121,14 +121,14 @@
   },
   {
    "name": "@supabase/auth-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
   },
   {
    "name": "@supabase/functions-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
@@ -142,28 +142,28 @@
   },
   {
    "name": "@supabase/postgrest-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
   },
   {
    "name": "@supabase/realtime-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
   },
   {
    "name": "@supabase/storage-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
   },
   {
    "name": "@supabase/supabase-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 13
@@ -262,6 +262,13 @@
   {
    "name": "expo-asset",
    "version": "57.0.20",
+   "license": "MIT",
+   "repository": "https://github.com/expo/expo",
+   "textIndex": 2
+  },
+  {
+   "name": "expo-clipboard",
+   "version": "57.0.2",
    "license": "MIT",
    "repository": "https://github.com/expo/expo",
    "textIndex": 2

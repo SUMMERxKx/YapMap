@@ -21,20 +21,22 @@ import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } f
 // can't open links.
 
 const INVALID_CODE = 'Invalid or expired code. Please request a new one.';
-const ACCOUNT_EXISTS = 'There is already an account with this email. Sign in, or use Forgot password.';
 
 /**
  * Create an account. Returns true when Supabase emailed a code to confirm it, and false
  * when the account is ready straight away ("Confirm email" switched off in the dashboard).
+ *
+ * An email that already has an account goes to the code screen like a new one (Supabase
+ * sends it nothing and returns a user with no identities), so nobody can use sign-up to
+ * find out whether someone uses Yap. The code screen says what to do if no code comes.
  */
 export async function signUp(email: string, password: string) {
   const { data, error } = await supabase.auth.signUp({ email, password });
+  if (error && isAccountExists(error)) return true;
+  // A code went out less than a minute ago and still works. Saying so would also give away
+  // the account: a confirmed one never hits this limit, since nothing is sent to it.
+  if (error && error.code === 'over_email_send_rate_limit') return true;
   if (error) throw new Error(friendlyAuthError(error));
-  // For an email that already has an account, Supabase may send nothing and return a user
-  // with no identities, so say so instead of waiting for a code that never comes.
-  if (data.user && data.user.identities?.length === 0) {
-    throw new Error(ACCOUNT_EXISTS);
-  }
   return data.session === null;
 }
 
@@ -45,7 +47,13 @@ export async function verifySignUpCode(email: string, code: string) {
 
 export async function resendSignUpCode(email: string) {
   const { error } = await supabase.auth.resend({ email, type: 'signup' });
-  if (error) throw new Error(friendlyAuthError(error));
+  // Same as sign-up: an existing account looks like a code that was sent.
+  if (error && !isAccountExists(error)) throw new Error(friendlyAuthError(error));
+}
+
+/** The email already belongs to a confirmed account. */
+function isAccountExists(error: { code?: string; message: string }) {
+  return error.code === 'user_already_exists' || error.code === 'email_exists' || /already (registered|confirmed)/i.test(error.message);
 }
 
 /** Returns 'unconfirmed' when the password is right but the account still needs its code. */
@@ -110,9 +118,6 @@ function friendlyAuthError(error: { code?: string; message: string }) {
   }
   if (error.code === 'invalid_credentials') {
     return "Wrong email or password. If you've never set a password, use Forgot password.";
-  }
-  if (error.code === 'user_already_exists') {
-    return ACCOUNT_EXISTS;
   }
   if (error.code === 'weak_password') {
     return `Choose a stronger password: at least ${PASSWORD_MIN_LENGTH} characters.`;

@@ -60,6 +60,9 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
   (the 8-digit code that confirms a new account).
 - **Authentication -> Emails -> Templates -> Reset password**: show `{{ .Token }}` (an 8-digit
   code) instead of the link, with a subject such as "Reset your Yap password".
+- For both templates, paste the body of `supabase/templates/confirmation.html` and
+  `recovery.html`: they put the code on its own large line, so it is easy to copy and paste
+  into the app's code screen.
 - **Magic link** template: no longer used by the app, since sign-in by emailed code alone
   was replaced by email and password.
 

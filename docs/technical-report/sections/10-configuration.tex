@@ -35,8 +35,8 @@ settings that password sign-in needs, and the project's email delivery is config
     \midrule
     Auth, email provider & Enabled for password sign-in; \ui{Confirm email} on; minimum password length 8 \\
     Auth, email rate & At most one emailed code per address per minute \\
-    Template: confirm sign-up & Shows the 8-digit code (\texttt{\{\{ .Token \}\}}) \\
-    Template: reset password & Shows the 8-digit code instead of a link, with a subject such as \ui{Reset your Yap password} \\
+    Template: confirm sign-up & Shows the 8-digit code (\texttt{\{\{ .Token \}\}}) on its own large line, as in \code{supabase/templates/confirmation.html} \\
+    Template: reset password & Shows the 8-digit code on its own large line instead of a link (\code{supabase/templates/recovery.html}), with a subject such as \ui{Reset your Yap password} \\
     Template: magic link & No longer used by the app \\
     Email delivery & Custom SMTP through Resend, sending from \code{mail.samarxkx.dev} \\
     Apple and Google providers & Not configured; the app's buttons are behind a flag \\
