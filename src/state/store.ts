@@ -380,7 +380,7 @@ async function catchUpOnce() {
  * everything a restricted account was in (live session, requests, chat, events), so the app lets
  * go of them too; the root layout then shows the restricted screen instead of the app.
  */
-async function checkRestricted() {
+export async function checkRestricted() {
   const myId = state.myId;
   let restricted;
   try {

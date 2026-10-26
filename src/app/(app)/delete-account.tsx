@@ -3,7 +3,7 @@
 // with a stray tap.
 
 import { router } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -15,7 +15,7 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import { errorMessage } from '@/lib/error-message';
-import { deleteAccount, useStore } from '@/state/store';
+import { checkRestricted, deleteAccount, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Everything that goes with the account: the photos first, then the database rows (each of these
@@ -43,6 +43,11 @@ export default function DeleteAccount() {
   if (restricted) signIn = 'Your password';
   const [typed, setTyped] = useState('');
   const confirmed = matchesName(typed, firstName);
+
+  // The account may have been put on hold since the app last asked, which changes what is kept.
+  useEffect(() => {
+    void checkRestricted();
+  }, []);
 
   // Said once they've typed as much as the name holds, so it doesn't flash while typing.
   let mismatch: string | null = null;
