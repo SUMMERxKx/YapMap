@@ -146,7 +146,8 @@ cannot be bypassed.
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
   Map radius & 1 to 50\,km around the position the server holds, default 10\,km & slider and \code{EVENT_RADIUS_KM}; \code{events_near} caps at 50\,km \\
-  Map position & kept 2 hours; changes under the live limits & \code{set_map_position} \\
+  Map position & the newest position from the map or going live, used for 2 hours & \code{set_map_position}, \code{go_green}, \code{private.my_position} \\
+  Distance from the last known position & at most 5\,km plus 1000\,km/h since it was set, for a map position or going live when not live & \code{set_map_position}, \code{go_green} \\
   Event lookups & at most 20 per minute & \code{events_near} \\
   Visibility after start & 3 hours & \code{events_near} \\
   Start time & now to 7 days ahead (server allows 5 minutes in the past) & event form; \code{create_event} \\

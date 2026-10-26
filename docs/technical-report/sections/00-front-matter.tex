@@ -51,12 +51,12 @@ short-lived signed URLs, and a \code{pg_cron} job ends expired sessions, request
 minute.
 
 Privacy shapes the design throughout. Live positions are stored only as the centre of a cell of about
-100 metres, are never returned to any client, and are deleted the moment a user goes offline; whether two
+100 metres, are never returned to any client, and the live session is deleted the moment a user goes
+offline; whether two
 people are nearby depends only on their cells, so no sequence of calls can locate anyone more precisely. Other users see a person card that carries a
 first name and last initial but no location or distance. A photo can be loaded only by someone who can
-currently see its owner. The project accepted one deliberate trade-off to keep the promise that a location
-is deleted on going offline: the server cannot rate-limit the distance between two separate live
-sessions, so it limits how often a location may change instead.
+currently see its owner. Only the user's last known cell is kept after going offline, so a new position,
+live or on the map, is refused unless it could have been reached from that cell since it was set.
 
 Safety follows the app stores' rules for apps where people post and meet. Every user agrees to community
 guidelines at sign-up, can report and block from every screen that shows another person, and cannot post

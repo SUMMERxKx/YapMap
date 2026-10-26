@@ -127,7 +127,7 @@ identity: yes**, **used for tracking: no**.
 | --- | --- | --- |
 | Contact Info | **Email Address** | Sign-in |
 | Contact Info | **Name** | First and last name on the profile |
-| Location | **Precise Location** | The phone's position while live or on the map, stored only as a square of about 100 m (deleted when you get off, the map's after 2 hours) |
+| Location | **Precise Location** | The phone's position while live or on the map, stored only as a square of about 100 m (the live session deleted when you get off; only the last known square kept, to check the next one) |
 | User Content | **Photos or Videos** | Profile photos |
 | User Content | **Emails or Text Messages** | Chat and group messages |
 | User Content | **Other User Content** | Intro, interests, live note, events, reports |

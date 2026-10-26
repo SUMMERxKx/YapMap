@@ -14,8 +14,8 @@ long it is kept and how to delete it.
 
 The short version: we keep what you put in your profile, the chats and events you take part
 in, and your safety reports and blocks, for as long as you have an account. We only ever store
-your location as an area of about 100 metres, only while you are live or using the map, and
-delete it soon after. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
+your location as an area of about 100 metres, and keep only the last one, to check that the next
+one is somewhere you could have travelled to. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
 
 Questions or requests: **support@samarxkx.dev**.
 
@@ -28,9 +28,9 @@ Questions or requests: **support@samarxkx.dev**.
 - **The 8-digit codes we email you** to confirm your address or reset your password. They
   expire after a short time.
 - **When you sign up,** we check your email address against a list of temporary-email services
-  and against our list of banned addresses, and we keep a scrambled (hashed) copy of the IP
-  address it came from for one day, so one network can't make more than 20 accounts a day. The
-  hash can't be turned back into the IP address.
+  and against our list of banned addresses, and we keep a hashed copy of the IP address it came
+  from for one day, only so one network can't make more than 20 accounts a day, and then delete
+  it.
 
 ### Your profile
 
@@ -48,8 +48,9 @@ Questions or requests: **support@samarxkx.dev**.
   about 100 metres it falls in, never the exact point (plus how accurate your phone says the
   location is, between 0 and 50 metres). We also keep the **note** you add ("How to find me")
   and when your session started and ends. We use the area only to work out who is in the same
-  square as you or one next to it. It is **never shown to anyone**, and it is **deleted when you
-  get off or your time runs out** (within a minute).
+  square as you or one next to it. It is **never shown to anyone**, and your live session is
+  **deleted when you get off or your time runs out** (within a minute). The area is also kept as
+  your last known area (see "Events on the map").
 - **The times you started a session or moved** (not where), kept for 10 minutes so the app can
   limit how often a live location can change. This stops people from hopping around to find
   out who is live where.
@@ -71,8 +72,11 @@ These are kept until either person deletes their account.
 
 Events and their group chats are kept until the host deletes the event or their account.
 When you use the map, your phone sends its location and we store your **area** (the centre of
-the square of about 100 metres it falls in) for up to 2 hours. The map lists events around that
-area, and joining an event checks you are within 5 km of it. Like a live location, it can only
+the square of about 100 metres it falls in). The map lists events around your newest area, from
+the map or from going live, for 2 hours after it was set, and joining an event checks you are
+within 5 km of it. We keep only your **last known area** and when it was set, until a newer one
+replaces it or you delete your account, so a new location far from it is refused unless you
+could have travelled there since (5 km plus 1,000 km an hour). Like a live location, it can only
 change a few times in 10 minutes, and it is never shown to anyone.
 
 ### Safety
@@ -80,8 +84,9 @@ change a few times in 10 minutes, and it is never shown to anyone.
 - **People you block**, so you never see each other.
 - **Reports you make** (who, the reason, any details you add) and reports made about you. We
   read reports to keep Yap safe (see our Community Guidelines). A profile is hidden until we
-  have reviewed it when three different people report it who met that person on Yap (a say-hi,
-  a chat or an event they both joined) or have used Yap for at least 3 days.
+  have reviewed it when three different people report it who really interacted with that person
+  on Yap (a chat between them, a say-hi from that person, or a message that person posted in a
+  group chat they are both in) or have used Yap for at least 3 days.
 - **Banned email addresses.** If we suspend an account, or an account is deleted while it is
   hidden or suspended, we keep a scrambled (hashed) copy of its email address so it can't sign
   up again.
@@ -138,9 +143,9 @@ someone's safety.
 | Data | Kept until |
 | --- | --- |
 | Live area and note | You get off, or your time runs out (deleted within a minute) |
-| Map area | 2 hours after it was set |
+| Last known area (from the map or going live) | Until a newer one replaces it, or you delete your account; the map uses it for 2 hours |
 | Location-change times | 10 minutes |
-| Scrambled IP addresses of sign-ups, and photo upload times | 1 day |
+| Hashed IP addresses of sign-ups, and photo upload times | 1 day |
 | Profile, photos, chats, messages, events, blocks | You delete your account (or we remove it for breaking the rules) |
 | Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
 | Banned email addresses (hashed) | Until we lift the ban |

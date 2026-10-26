@@ -269,8 +269,9 @@ position the phone recorded in the last two minutes if there is one, otherwise w
 for a fresh fix, and otherwise uses the last position the phone knows, however old. It then centres the
 map and loads the events within the chosen radius of that point: the API layer sends the position to
 \code{set_map_position} and then calls \code{events_near}, which lists events around the position the
-server holds (\cref{sec:location-privacy}). If the server keeps its earlier position because the new one
-moved too far or too often, the map still lists the events around the kept one. Without a position, the
+server holds (\cref{sec:location-privacy}). If the server refuses the new position because it is too
+far from the last known one or changed too often, the map keeps the pins it has and shows the refusal
+under the banner with a \ui{Try again} button. Without a position, the
 map loads no events and shows a note and a button to turn location on; when the user returns from the
 phone's settings, the map tries again.
 

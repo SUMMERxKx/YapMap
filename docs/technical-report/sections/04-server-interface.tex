@@ -70,11 +70,12 @@ message in parentheses where one applies.
     at most 60 characters (\code{note too long}); latitude and longitude in range (\code{invalid location}).
     Applies the relocation rules of \cref{sec:relocation-limits} under a per-user lock: a move of 150\,m
     or less keeps the stored position and start time; a larger move while live must not exceed 150\,m plus
-    10\,km/h over the time since the position was set (\code{moving too fast}); and at most three location
-    changes are allowed in ten minutes, shared with \code{set_map_position} (\code{too many location
-    changes}). Stores the centre of the position's cell, the accuracy clamped to 0--50\,m, and the
+    10\,km/h over the time since the position was set (\code{moving too fast}); going live when not live
+    must be within 5\,km plus 1000\,km/h of the last known position (\code{location jumped}); and at most
+    three location changes are allowed in ten minutes, shared with \code{set_map_position} (\code{too many
+    location changes}). Stores the centre of the position's cell, the accuracy clamped to 0--50\,m, and the
     session as \code{chatting} if the caller has an accepted chat, otherwise \code{open}, ending
-    \code{minutes} after now. \\
+    \code{minutes} after now. The stored position also becomes the caller's last known position. \\
   \code{update_note}\newline{\scriptsize note}
   & Replaces the live note. Checks: an active profile, as for \code{go_green}; at most 60 characters
     (\code{note too long}). Does nothing if the caller is not live. \\
@@ -143,8 +144,8 @@ message in parentheses where one applies.
     by the caller in 24 hours (\code{too many reports}). An attached request is kept only if it is
     between the two users. Records whether the report counts towards the automatic hide
     (\cref{sec:blocking-reporting}). Sets the reported profile to \code{hidden}, and ends everything the
-    person is in, once three different users' counted reports name it; a per-person lock makes reports
-    sent at once still count. \\
+    person is in, once three different users' counted reports that are not yet reviewed name it; a
+    per-person lock makes reports sent at once still count. \\
   \code{delete_account}
   & If the caller's profile is hidden or suspended, puts their email address on the ban list
     (\cref{sec:signup-checks}). Returns the caller's chat partner, if any, to \code{open}, then deletes the
@@ -153,16 +154,17 @@ message in parentheses where one applies.
     before calling it. \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
   \code{set_map_position}\newline{\scriptsize lat, lng}
-  & Stores the centre of the position's cell as the caller's map position for two hours. Checks: an
-    active profile; latitude and longitude in range (\code{invalid location}). Applies the relocation rules
-    under the same per-user lock as \code{go_green}: a move of 150\,m or less changes nothing; within two
-    hours of the last position a larger move must not exceed 150\,m plus 10\,km/h (\code{moving too fast});
-    and a change counts towards the three in ten minutes (\code{too many location changes}) unless the
-    caller's live position is already there. \\
+  & Stores the centre of the position's cell as the caller's last known position, which the map uses for
+    two hours. Checks: an active profile; latitude and longitude in range (\code{invalid location}). Applies
+    the relocation rules under the same per-user lock as \code{go_green}: a move of 150\,m or less from the
+    last known position keeps it and renews its time; a larger move must be within 5\,km plus 1000\,km/h
+    over the time since the last known position was set, however long ago (\code{location jumped}); and a
+    change counts towards the three in ten minutes (\code{too many location changes}) unless the caller's
+    live position is already there. \\
   \code{events_near}\newline{\scriptsize radius\_m}\newline{\scriptsize returns event cards}
   & Returns up to 50 event cards within \code{radius_m} (default 10\,km, never more than 50\,km) of the
-    position the server holds for the caller: the map position, or else the live position
-    (\code{location needed} when there is neither). Only events that started less than three hours ago or
+    position the server holds for the caller: the last position \code{set_map_position} or \code{go_green}
+    stored, if set in the last two hours (\code{location needed} otherwise). Only events that started less than three hours ago or
     have not started, whose host is active and not blocked in either direction, ordered by start time.
     At most 20 calls a minute (\code{too many lookups}). \\
   \code{create_event}\newline{\scriptsize emoji, title, description, lat, lng, starts\_at\_ms}\newline{\scriptsize returns an event card}
@@ -241,10 +243,9 @@ function that can change a given table.
   the user's id to null in \code{reports}.
   \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
   Not shown: \code{create_event} also inserts into \code{private.event_posts}; \code{set_map_position}
-  writes \code{private.map_positions}, which \code{go_green}, \code{events_near} and \code{join_event}
-  read; \code{nearby} and \code{events_near} count calls in \code{private.call_counts}; and
-  \code{report_user} (through \code{private.end_activity}) also removes the hidden person's map position.
-  The minute job prunes all four private tables.
+  and \code{go_green} write \code{private.last_positions}, which they, \code{events_near} and
+  \code{join_event} read; and \code{nearby} and \code{events_near} count calls in
+  \code{private.call_counts}. The minute job prunes the event posts and call counts.
 \end{table}
 
 Two details of these functions carry more weight than their size suggests. First, \code{respond},
@@ -308,7 +309,7 @@ caller, or reads no tables at all.
   \code{person_card(target)} & The JSON card that is all another user may see of a profile \\
   \code{near_each_other(a, b)} & True if both users are live and their cell centres are at most 150\,m apart: the same cell or a touching one \\
   \code{cell_center(lat, lng)} & The centre of the cell of about 100\,m a position falls in; the only position ever stored \\
-  \code{my_position(user)} & The position the server holds for a user: the map position if kept, else the live position \\
+  \code{my_position(user)} & The position the server holds for a user: the last position from the map or going live, if set in the last two hours \\
   \code{require_active(user)} & Refuses with \code{not signed in}, \code{profile not ready} or \code{account restricted} unless the user has an active adult profile \\
   \code{count_call(user, list, max, per)} & Counts a call to \code{nearby} or \code{events_near} in a fixed window and refuses past the limit (\code{too many lookups}) \\
   \code{event_card(event, viewer)} & An event's fields, host name, member count and whether the viewer has joined; the host's photo path only when the viewer has joined \\
@@ -324,7 +325,7 @@ caller, or reads no tables at all.
   \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
   \code{has_blocked_word(input)} & True if the text contains a word from \code{private.blocked_words} (\cref{sec:word-filter}) \\
   \code{refuse_blocked_words()} & The word-filter trigger function: refuses the row when a named column has a listed word \\
-  \code{end_activity(user)} & Ends a user's live session, map position, requests, chats and event memberships; used by the automatic hide and \code{suspend_user} \\
+  \code{end_activity(user)} & Ends a user's live session, requests, chats and event memberships; used by the automatic hide and \code{suspend_user} \\
   \code{normalised_email(email)}, \code{email_hash(email)} & An address as the ban list compares it (lowercase, no \code{+tag}, no dots for Gmail), and its SHA-256 \\
   \code{ban_email_of(user, reason)} & Puts a user's email address on \code{private.banned_identities} \\
   \code{set_reported_hash()} & Trigger on \code{reports}: stores a hash of the reported id, which outlives the account \\
@@ -405,8 +406,8 @@ refuses an unknown profile (\code{no such profile}), then:
     messages or create or join events (\code{account restricted}), and nobody sees their profile, photos
     or events;
   \item through \code{private.end_activity}, ends every chat they are in, returning the other person to
-    \code{open} if still live, cancels their waiting requests, and deletes their live session, map
-    position and event memberships, so they cannot post in group chats either;
+    \code{open} if still live, cancels their waiting requests, and deletes their live session and event
+    memberships, so they cannot post in group chats either;
   \item puts their email address on the ban list, so deleting the account and signing up again with it
     is refused (\cref{sec:signup-checks});
   \item marks every open report about them as reviewed, with \code{note} (default \code{suspended}) as
@@ -414,7 +415,8 @@ refuses an unknown profile (\code{no such profile}), then:
 \end{enumerate}
 
 \code{private.restore_user(target)} lifts a suspension or an automatic hide: it sets the status back to
-\code{active} and takes the email address off the ban list. \code{docs/legal/moderation.md} describes
+\code{active}, takes the email address off the ban list, and marks every open report about the person
+as reviewed (action \code{restored}), so reports already reviewed cannot hide them again. \code{docs/legal/moderation.md} describes
 the owner's daily review: the queries that list open reports and what the reported person posted, and
 the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through
 removing one message or event, to suspending or deleting the account.
@@ -432,8 +434,8 @@ time-based rules hold even when no app is open:
   \item It marks as \code{cancelled} every \code{accepted} chat in which neither person is live any more.
   \item It deletes entries older than ten minutes from \code{private.location_changes}.
   \item It deletes entries older than a day from \code{private.event_posts},
-    \code{private.signup_ips} and \code{private.photo_uploads}, map positions older than two hours, and
-    call counts from windows more than an hour old.
+    \code{private.signup_ips} and \code{private.photo_uploads}, and call counts from windows more than an
+    hour old. Last known positions are kept.
 \end{enumerate}
 
 Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do

@@ -14,7 +14,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | Filter for objectionable words | Server side, on intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022100308_content_moderation.sql`) |
 | Report a person | The ··· menu on a profile, an incoming say-hi, a chat and an event; long-press a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
-| Automatic hiding | A profile reported by 3 different people whose reports count is hidden from everyone until reviewed, and everything it is in ends (`report_user`). A report counts when the two met through the app (a say-hi or chat between them, or an event both joined) or the reporter's account is at least 3 days old with no open report against it; other reports only go to the queue |
+| Automatic hiding | A profile reported by 3 different people whose reports count and are not reviewed yet is hidden from everyone until reviewed, and everything it is in ends (`report_user`). A report counts when the two really interacted (a chat between them that was accepted or met, a say-hi the reported person sent the reporter, or a message the reported person posted in a group chat both are in) or the reporter's account is at least 3 days old with no open report against it; a say-hi the reporter sent that was never accepted, or only being in the same event, isn't enough. Other reports only go to the queue |
 | Keeping banned people out | Suspended people, and anyone who deletes their account while hidden or suspended, can't sign up again with that email (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
 | Remove content and users | The SQL below, run by the owner |
 
@@ -64,8 +64,9 @@ order by r.created_at;
 
 Reports stay when either person deletes their account: the deleted person's name and id are
 empty, and `reported_hash` still groups every report about the same person. `counts_toward_hide`
-is false for a report from a new account that never met the person; three of those don't hide
-anyone, so read them with that in mind (they can be a pile-on by throwaway accounts).
+is false for a report from a new account that never really interacted with the person; three
+of those don't hide anyone, so read them with that in mind (they can be a pile-on by throwaway
+accounts). Reviewed reports no longer count towards the automatic hide.
 
 ### 2. Look at what the reported person posted
 
@@ -90,7 +91,8 @@ Photos are in Storage → `photos` → the folder named after their id.
 Pick one, and always finish with step 4.
 
 - **Nothing wrong:** mark the reports reviewed. If they were hidden after 3 reports, show them
-  again (this also takes their email off the ban list, in case they deleted and came back):
+  again (this also takes their email off the ban list, in case they deleted and came back, and
+  marks any report still open as reviewed, so those reports can't hide them again):
 
   ```sql
   update public.reports set reviewed_at = now(), action = 'no action'

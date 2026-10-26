@@ -42,8 +42,9 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \code{too many lookups} & \code{nearby}, \code{events_near} & You're refreshing too fast. Wait a moment and try again. \\
   \code{invalid duration} & \code{go_green} & Choose 30, 60 or 120 minutes. \\
   \code{note too long} & \code{go_green}, \code{update_note} & Notes can be up to 60 characters long. \\
-  \code{moving too fast} & \code{go_green}, \code{set_map_position} & Your location changed too quickly. Wait a few minutes, then try again. (From \code{set_map_position} it is not shown: the map keeps the position the server holds.) \\
-  \code{too many location changes} & \code{go_green}, \code{set_map_position} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. (Not shown from \code{set_map_position}, as above.) \\
+  \code{moving too fast} & \code{go_green} & Your location changed too quickly. Wait a few minutes, then try again. \\
+  \code{location jumped} & \code{go_green}, \code{set_map_position} & Your location is too far from where Yap last saw you to have travelled there since. Try again later. \\
+  \code{too many location changes} & \code{go_green}, \code{set_map_position} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. \\
   \code{invalid start time} & \code{create_event} & Pick a start time within the next 7 days. \\
   \code{too many events} & \code{create_event} & You've posted as many events as you can today. Try again tomorrow. \\
   \code{invalid title} & \code{create_event} & Give your event a title on one line, without special characters. \\

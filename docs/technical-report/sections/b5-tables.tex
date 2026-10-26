@@ -128,10 +128,10 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \tablehead{private.blocked\_words: words the word filter refuses}
   \code{word} & \code{text}, primary key; lowercase letters and digits only; about 20 rows when created \\
   \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated}; changed by the owner in the SQL editor \\[3pt]
-  \tablehead{private.map\_positions: the position the map uses}
+  \tablehead{private.last\_positions: the last known position}
   \code{user_id} & \code{uuid}, primary key, references \code{profiles} \\
   \code{location} & \code{geography(point, 4326)}; a cell centre \\
-  \code{set_at} & \code{timestamptz}, default \code{now()}; rows older than 2 hours are deleted \\
+  \code{set_at} & \code{timestamptz}, default \code{now()}; used by the map for 2 hours, kept until replaced \\
   \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
   \tablehead{private.call\_counts: lookups in the current window}
   \code{user_id}, \code{fn} & \code{uuid} referencing \code{auth.users}, and \code{text}; together the primary key \\

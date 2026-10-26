@@ -2,7 +2,7 @@
 \label{ch:data-model}
 
 The database holds eight application tables in the \code{public} schema and nine tables in the
-\code{private} schema: the map position, short-lived logs and counters for the limits, and four lists
+\code{private} schema: the last known position, short-lived logs and counters for the limits, and four lists
 (blocked words, banned email addresses, throwaway email domains and sign-up addresses). Every public table
 references \code{profiles}, which has one row per account and itself
 references the Supabase Auth user. \Cref{fig:er} shows the tables, their columns and the foreign keys
@@ -144,9 +144,9 @@ block themselves. Although each row has a direction, the server applies a block 
 the report relates to, one of six reasons (\code{inappropriate-photo}, \code{harassment}, \code{unsafe},
 \code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. The columns
 \code{reviewed_at} and \code{action} record the owner's review: the owner sets them in the SQL editor
-while working through open reports, and \code{private.suspend_user} sets them on every open report of
-the person it suspends (\cref{sec:moderation}). \code{counts_toward_hide} records whether the report
-counted towards the automatic hide, and \code{reported_hash}, set by a trigger, is a SHA-256 of the
+while working through open reports, and \code{private.suspend_user} and \code{private.restore_user} set
+them on every open report of the person they act on (\cref{sec:moderation}). \code{counts_toward_hide}
+records whether the report counted towards the automatic hide, which only counts reports not yet reviewed, and \code{reported_hash}, set by a trigger, is a SHA-256 of the
 reported id. When either user deletes their account, their id in the report becomes null, and the hash
 still groups the reports about one person.
 
@@ -157,11 +157,13 @@ position, or moved more than 150 metres. It stores no position. \code{go_green} 
 \code{set_map_position} count the rows from the last ten minutes to limit how often a location may
 change, and the minute job deletes rows older than that (\cref{sec:relocation-limits}).
 
-\subsection{Map positions}
+\subsection{Last known positions}
 
-\code{private.map_positions} holds, for each user who opened the map in the last two hours, the centre
-of their cell and when it was set. \code{set_map_position} writes it; \code{events_near} and
-\code{join_event} measure from it; the minute job deletes it after two hours.
+\code{private.last_positions} holds, for each user, the centre of the cell of the newest position the
+server accepted from \code{set_map_position} or \code{go_green}, and when it was set. \code{events_near}
+and \code{join_event} measure from it for two hours after it was set. It is kept after that, and after
+going offline, until a newer position replaces it or the account is deleted, so that a new position can
+always be checked against it (\cref{sec:relocation-limits}).
 
 \subsection{Event posts}
 

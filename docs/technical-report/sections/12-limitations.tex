@@ -32,7 +32,7 @@ implemented.
   Foreground location only & Deliberate: the app never asks for background location, so it cannot notice a live user walking away; the session runs to its end or until the user goes offline. \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Security and privacy}}} \\
-  Relocation across sessions & A modified client can reappear anywhere by going offline and live again, up to three times in ten minutes. Accepted to keep the delete-on-offline promise (\cref{sec:trade-off}). \\
+  Relocation across sessions & A modified client can move its map position or a new session up to 5\,km plus 1000\,km/h from its last known position, up to three times in ten minutes, so it can claim to be somewhere it could have travelled to but is not (\cref{sec:trade-off}). \\
   Self-reported positions & The server stores only cells and limits how often and how fast a position changes, but it cannot verify the position the phone reports. A modified client can still send a fake position, within those limits, to see events or join one in another place; app attestation would be needed to close this. \\
   Signed URLs outlive visibility & A photo URL signed while its owner was visible works until it expires, up to fifteen minutes later, even after a block. \\
   Shared event chats & A block hides the blocked user's group messages from the blocker, but not the blocker's messages from the blocked user. \\

@@ -152,15 +152,16 @@ A live position follows a short, fixed path:
   \item Database functions use the stored centre only to compare distances. No function returns it, and no
     function returns a distance: \code{nearby} returns person cards, and the cards contain no location.
   \item \code{go_offline} deletes the row the moment the user goes offline, and the minute job deletes it
-    when the session ends. No copy is kept. \code{private.location_changes} keeps the time of each
-    location change for ten minutes, but never the place.
+    when the session ends. Only the cell centre is kept, as the user's last known position
+    (\code{private.last_positions}), until a newer one replaces it. \code{private.location_changes} keeps
+    the time of each location change for ten minutes, but never the place.
 \end{enumerate}
 
 The map works the same way. Before it lists events, and before joining one, the app sends the phone's
-position to \code{set_map_position}, which stores its cell centre in \code{private.map_positions} under the
-same limits as going live and keeps it for two hours. \code{events_near} and \code{join_event} take no
-position: they measure from the stored map position, or the live position when there is none, so a
-modified client cannot look at events in another city or join one from far away. Event locations are the
+position to \code{set_map_position}, which stores its cell centre in \code{private.last_positions}, as
+\code{go_green} does with a live position. \code{events_near} and \code{join_event} take no position:
+they measure from the newest of these, if it was set in the last two hours, so a modified client cannot
+look at events in another city or join one from far away. Event locations are the
 exception to all of this by design: they are places hosts choose to publish, and the map shows them to
 anyone whose own position is within the chosen radius.
 
@@ -179,7 +180,7 @@ movements either.
 
 A modified client could call \code{go_green} with arbitrary coordinates and then \code{nearby}, and so
 learn who is live at places the user is not. \code{go_green} and \code{set_map_position} limit this
-probing in three ways, and each takes a per-user lock first, so calls sent at once are counted one after
+probing in four ways, and each takes a per-user lock first, so calls sent at once are counted one after
 another:
 
 \begin{itemize}
@@ -188,14 +189,17 @@ another:
     up to a large move.
   \item \textbf{Speed.} While the user is live, a larger move must not exceed 150 metres plus walking pace,
     10 km/h, over the time since the stored position was set (\cref{lst:speed}).
+  \item \textbf{Reach.} A new map position, and going live when not live, must be within 5 kilometres plus
+    1000 km/h of the last known position, over the time since it was set, however long ago
+    (\code{location jumped}). This allows a commute or a flight but not hopping between cities, also
+    across separate live sessions.
   \item \textbf{Frequency.} Starting a session, setting a map position, or moving more than 150 metres,
     counts as a location change. At most three are allowed in any ten minutes, shared between the two
-    functions; going live where the map position already is, or the reverse, does not count again.
+    functions; going live where the last known position already is, or setting the map position where
+    the live position is, does not count again.
 \end{itemize}
 
-The map position's speed rule applies for two hours after it was set; after that it is forgotten and the
-next position counts as a new start. \code{nearby} and \code{events_near} also take at most 12 and 20
-calls a minute per user.
+\code{nearby} and \code{events_near} also take at most 12 and 20 calls a minute per user.
 
 \begin{lstlisting}[language=pgsql, caption={The speed check in \code{go_green}. \code{moved_m} is the distance from the stored position.}, label={lst:speed}]
 -- 10 km/h is 10000 m per 3600 s, counted from when your live position was set
@@ -203,18 +207,15 @@ allowed_m := 150 + 10000.0 / 3600 * extract(epoch from now() - previous.started_
 if moved_m > allowed_m then raise exception 'moving too fast'; end if;
 \end{lstlisting}
 
-\subsection{The delete-on-offline trade-off}
+\subsection{The last known position}
 \label{sec:trade-off}
 
-The go-live screen promises that the location is deleted when the user stops. Keeping that promise means
-the server holds no position once a user is offline, and so the speed check can apply only within one
-live session. A modified client can therefore go offline, go live somewhere else, and repeat, limited only
-by the frequency rule: three location changes in ten minutes, or about eighteen an hour. The alternative,
-keeping each user's last position after they go offline so that the speed rule could span sessions, would
-have broken the promise. The project chose to keep the promise and accept this residual risk; no cooldown
-was added.
-The map position does not close this gap: it is kept for two hours only so that the map cannot jump
-between cities, and its speed rule lapses when it is forgotten in the same way.
+An earlier version deleted every position when the user went offline, so the speed check could apply
+only within one live session: a modified client could go offline, go live in another city, and repeat,
+limited only by the frequency rule. The server now keeps one last known position per user, only the
+centre of its cell, after going offline and after the two hours the map uses it for, and checks every new
+map position and every new session against it with the reach rule. The go-live screen says so: when the
+user stops, only the area they were last in is kept.
 
 \section{Photo privacy}
 \label{sec:photo-privacy}
@@ -294,14 +295,16 @@ those messages, because the \code{messages} select policy removes them, and the 
 Unblocking deletes the row, and the person can appear again at the next refresh.
 
 A report records the reason and details, and whether it counts towards the automatic hide
-(\code{counts_toward_hide}). A report counts when the reporter is active and either met the reported
-person through the app (a request or chat between them, or an event both joined) or has an established
-account (at least three days old, with no open report against it). Reports from brand-new accounts that
-never met the person still reach the review queue but cannot hide anyone, so three throwaway accounts can
-no longer hide a real person. When three different users' counted reports name the same profile, the
-profile becomes \code{hidden}, and \code{private.end_activity} ends everything the person is in, as
-suspending does: their live session and map position, waiting requests and chats, and event
-memberships. A hidden profile disappears from nearby lists and cannot receive requests, and its owner is
+(\code{counts_toward_hide}). A report counts when the reporter is active and either really interacted
+with the reported person (a chat between them that was accepted or met, a say-hi the reported person
+sent them, or a message the reported person posted in a group chat both are in) or has an established
+account (at least three days old, with no open report against it). A say-hi the reporter sent that was
+never accepted, or only being in the same event, is not enough. Reports from brand-new accounts that
+never interacted with the person still reach the review queue but cannot hide anyone, so three throwaway
+accounts can no longer hide a real person. When three different users' counted reports that are not yet
+reviewed name the same profile, the profile becomes \code{hidden}, and \code{private.end_activity} ends
+everything the person is in, as suspending does: their live session, waiting requests and chats, and
+event memberships. A hidden profile disappears from nearby lists and cannot receive requests, and its owner is
 refused with \code{account restricted} when trying to go live, say hi, send messages, change the note, or
 create or join events, until the owner reviews it. The app then shows an \ui{account on hold} screen with
 the support address. Reports are kept when either user deletes their account: the user's id becomes
@@ -333,7 +336,7 @@ to at sign-up, say what is not allowed and that reports are reviewed within 24 h
     Reporting & 1 report per person per day; 10 people per day; exact for calls sent at once & \code{report_user} (a per-reporter lock) \\
     Storing photos & 16 files per user, 40 uploads a day, 1.5\,MB each; the counts are best-effort, as uploads sent at once can go a little past them & storage insert policy; bucket size limit \\
     Changing location & 3 changes in any 10 minutes, live and map together; exact for calls sent at once & \code{go_green}, \code{set_map_position} (a per-user lock) \\
-    Moving & 150\,m plus 10\,km/h since the position was set, while live or within 2 hours of setting the map position & \code{go_green}, \code{set_map_position} \\
+    Moving & 150\,m plus 10\,km/h since the position was set, while live; 5\,km plus 1000\,km/h from the last known position for a map position or a new session & \code{go_green}, \code{set_map_position} \\
     Looking up & \code{nearby} 12 and \code{events_near} 20 calls a minute & \code{private.count_call} \\
     Signing up & 20 accounts per IP address in 24 hours; no banned or throwaway addresses & \code{public.before_user_created} \\
     Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\

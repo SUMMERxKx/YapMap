@@ -172,6 +172,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'already waiting': 'You already have a request waiting. Wait for the answer, or cancel it first.',
   'moving too fast': 'Your location changed too quickly. Wait a few minutes, then try again.',
   'too many location changes': "You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again.",
+  'location jumped': 'Your location is too far from where Yap last saw you to have travelled there since. Try again later.',
   'too far away': 'You can join an event from within 5 km of it.',
   'objectionable text': "That has words Yap doesn't allow (see the community guidelines). Change them and try again.",
   'invalid title': 'Give your event a title on one line, without special characters.',
@@ -1050,17 +1051,14 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
   }));
 }
 
-// Refusals that only mean the server kept the position it already had for you.
-const POSITION_KEPT = new Set(['moving too fast', 'too many location changes']);
-
 /**
- * Tells the server where the phone is, for the map and joining events. The server only changes
- * your position as often and as fast as going live allows; when it keeps the one it has, the
- * map just uses that one.
+ * Tells the server where the phone is, for the map and joining events. The server refuses a
+ * position too far from the last one it holds, or too many changes in 10 minutes; that refusal
+ * is thrown as a sentence for the screen.
  */
 async function setMapPosition(position: { latitude: number; longitude: number }) {
   const { error } = await supabase.rpc('set_map_position', { lat: position.latitude, lng: position.longitude });
-  if (error && !POSITION_KEPT.has(error.message)) throw new Error(friendlyRpcError(error));
+  if (error) throw new Error(friendlyRpcError(error));
 }
 
 /**

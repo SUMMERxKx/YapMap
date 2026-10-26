@@ -108,7 +108,8 @@ word list is data, so changing it needs no migration.
 
 - `private.suspend_user` also puts the person's email address on `private.banned_identities`
   (as a hash of the normalised address), and so does deleting an account while it is hidden or
-  suspended. `private.restore_user(id)` makes an account active again and takes it off the list.
+  suspended. `private.restore_user(id)` makes an account active again, takes it off the list and
+  marks its open reports reviewed.
 - `private.disposable_email_domains` (loaded by `20261026083100_disposable_email_domains.sql`
   from the public-domain disposable-email-domains list) holds the throwaway domains the sign-up
   hook refuses. Both tables are data, so adding or removing a row needs no migration.

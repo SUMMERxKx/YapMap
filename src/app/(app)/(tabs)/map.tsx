@@ -13,6 +13,7 @@ import { Button, IconButton } from '@/components/ui/button';
 import { Mascot } from '@/components/mascot/mascot';
 import { EVENT_RADIUS_KM } from '@/data/constants';
 import { FIX_TIMEOUT_MS } from '@/hooks/use-foreground-location';
+import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { loadEvents, setEventRadius, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -84,11 +85,6 @@ async function findUser(): Promise<FindResult> {
   return { status: 'unavailable' };
 }
 
-/** Loads the events around a point. If it fails (offline), the map keeps the pins it has. */
-function loadEventsQuietly(center: { latitude: number; longitude: number }) {
-  loadEvents(center).catch(() => {});
-}
-
 /** A map region centred on a point that just fits a circle of `km` around it. */
 function regionAround(center: { latitude: number; longitude: number }, km: number): Region {
   // The circle's width plus a little room at the edges.
@@ -120,6 +116,16 @@ export default function EventsMap() {
   const userRegion = useRef<Region | null>(null);
   // Read when the app comes back to the front: only then is it worth asking the phone again.
   const wasDenied = useRef(false);
+  // Why the pins couldn't be loaded (offline, or the server refused the position); null when they were.
+  const [loadProblem, setLoadProblem] = useState<string | null>(null);
+
+  // Loads the pins; if that fails, the map keeps the ones it has and says why.
+  const showEvents = (load: Promise<void>) => {
+    load.then(
+      () => setLoadProblem(null),
+      (error) => setLoadProblem(errorMessage(error, "Events couldn't be loaded. Try again.")),
+    );
+  };
 
   const onMapReady = () => {
     if (userRegion.current) map.current?.animateToRegion(userRegion.current, 400);
@@ -135,7 +141,7 @@ export default function EventsMap() {
       setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
       userRegion.current = here;
       map.current?.animateToRegion(here, 400);
-      loadEventsQuietly(here);
+      showEvents(loadEvents(here));
       return;
     }
     setLocation(result);
@@ -169,7 +175,7 @@ export default function EventsMap() {
   const changeRadius = (km: number) => {
     setDraggedKm(null);
     map.current?.animateToRegion(regionAround(eventsCenter, km), 400);
-    setEventRadius(km).catch(() => {});
+    showEvents(setEventRadius(km));
   };
 
   // Coming back from the phone's Settings after turning location on: try again.
@@ -196,9 +202,18 @@ export default function EventsMap() {
     }
   };
 
-  // A short note under the banner when we couldn't centre on the user.
+  // A short note under the banner when we couldn't centre on the user or load the pins.
   let locationPrompt = null;
-  if (location.status === 'denied') {
+  if (location.status === 'found' && loadProblem !== null) {
+    locationPrompt = (
+      <View style={[styles.prompt, { gap: spacing.sm, marginTop: spacing.sm }]}>
+        <AppText variant="caption" color="textSecondary">
+          {loadProblem}
+        </AppText>
+        <Button label="Try again" variant="secondary" size="compact" onPress={centreOnUser} />
+      </View>
+    );
+  } else if (location.status === 'denied') {
     locationPrompt = (
       <View style={[styles.prompt, { gap: spacing.sm, marginTop: spacing.sm }]}>
         <AppText variant="caption" color="textSecondary">

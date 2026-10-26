@@ -6,9 +6,10 @@
 --     resize their own circle to measure how far away someone is. nearby() takes at most 12
 --     calls a minute per person, and location changes are counted one call at a time.
 --   * Reports (D2): a report only counts towards the automatic hide when the two people have
---     met through the app (a say-hi or chat between them, or an event they are both in), or
---     when it comes from an established account (at least 3 days old, active, with no open
---     report against it). Every report still lands in the review queue.
+--     really interacted (a chat between them, a say-hi from the reported person, or a message
+--     they posted in a group chat both are in), or when it comes from an established account
+--     (at least 3 days old, active, with no open report against it). Only reports not yet
+--     reviewed count. Every report still lands in the review queue.
 --   * Restricted accounts (D3, D9): the automatic hide now ends what the person is in, as
 --     suspend_user does (live session, waiting requests, chats, event memberships). Saying hi,
 --     sending chat and group messages and changing your note need an active account, and a
@@ -20,9 +21,11 @@
 --     list, and so does deleting an account while it is hidden or suspended. Reports are kept
 --     when either person deletes their account, with a hash of the reported id.
 --   * Events (D5, D6): the map lists events around the position the server holds for you
---     (set_map_position, changed under the same limits as going live), not any point the app
---     sends, at most 20 times a minute; joining an event checks that same position. A host's
---     photo is shown only to people who joined their event.
+--     (the newest one set_map_position or go_green stored), not any point the app sends, at
+--     most 20 times a minute; joining an event checks that same position. That last known
+--     position is kept, so a new one far from it is refused ('location jumped') unless it could
+--     have been reached since (5 km plus 1000 km/h), even after going offline. A host's photo
+--     is shown only to people who joined their event.
 --   * Photos (D7): at most 1.5 MB a file, 16 files in your folder and 40 uploads a day.
 --   * Event categories (D10): events.emoji must be one of the app's categories.
 --
@@ -185,39 +188,40 @@ $$;
 
 -- events: where you are -----------------------------------------------------------------
 
--- The position the map lists events around and joining checks, set by set_map_position from
--- the phone's position. Like a live position it is only the centre of a cell of about 100 m,
--- and it is forgotten 2 hours after it was set (the cron job removes it).
-create table private.map_positions (
+-- The last position the server holds for each person, set by set_map_position and go_green
+-- from the phone's position. Like a live position it is only the centre of a cell of about
+-- 100 m. The map lists events around it and joining checks it for 2 hours after it was set; it
+-- is kept after that (until a newer one replaces it), so a new position can always be checked
+-- against it.
+create table private.last_positions (
   user_id uuid primary key references public.profiles (id) on delete cascade,
   location extensions.geography (point, 4326) not null,
   set_at timestamptz not null default now()
 );
 
 -- Only the functions use it (as the owner). RLS with no policy denies everyone else.
-alter table private.map_positions enable row level security;
-revoke all on private.map_positions from public, anon, authenticated;
+alter table private.last_positions enable row level security;
+revoke all on private.last_positions from public, anon, authenticated;
 
--- Where the server holds `uid` to be: the map position if it is still kept, else the live
--- position. Null when there is neither.
+-- Where the server holds `uid` to be: the last position set_map_position or go_green stored, if
+-- it was set in the last 2 hours (a live session never runs longer than that since its last
+-- go_green). Null otherwise.
 create function private.my_position(uid uuid)
 returns extensions.geography
 language sql stable security definer set search_path = ''
 as $$
-  select coalesce(
-    (select m.location from private.map_positions m
-     where m.user_id = uid and m.set_at > now() - interval '2 hours'),
-    (select a.location from public.availability a
-     where a.user_id = uid and a.expires_at > now())
-  );
+  select p.location from private.last_positions p
+  where p.user_id = uid and p.set_at > now() - interval '2 hours';
 $$;
 
 revoke execute on function private.my_position (uuid) from public, anon, authenticated;
 
--- Sets the position the map uses, under the same limits as going live: a move of 150 m or less
--- is GPS wobble and changes nothing; a bigger move is a location change, at most 3 in 10
--- minutes (shared with go_green), and within 2 hours of the last one no faster than about
--- 10 km/h. Moving to where your live session already is doesn't count again.
+-- Sets the position the map uses. A move of 150 m or less from the last known position is GPS
+-- wobble: the position stays and is only renewed. A bigger move must be one you could have made
+-- since the last known position was set, however long ago: at most 5 km plus 1000 km/h, which
+-- allows a commute or a flight but not hopping between cities ('location jumped'). It is a
+-- location change, at most 3 in 10 minutes (shared with go_green); moving to where your live
+-- session already is doesn't count again.
 create function public.set_map_position(lat double precision, lng double precision)
 returns void
 language plpgsql security definer set search_path = ''
@@ -225,7 +229,7 @@ as $$
 declare
   uid uuid := (select auth.uid());
   here extensions.geography;
-  previous private.map_positions;
+  previous private.last_positions;
   moved_m double precision;
 begin
   perform private.require_active(uid);
@@ -237,16 +241,17 @@ begin
   -- one call at a time per person, so parallel calls can't all pass the limit below
   perform pg_advisory_xact_lock(hashtextextended('yap:location:' || uid::text, 0));
 
-  select * into previous
-  from private.map_positions
-  where user_id = uid and set_at > now() - interval '2 hours';
+  select * into previous from private.last_positions where user_id = uid;
   if found then
     moved_m := extensions.st_distance(previous.location, here);
     -- GPS wobble: stay where you were
-    if moved_m <= 150 then return; end if;
-    -- 10 km/h is 10000 m per 3600 s, counted from when the position was set
-    if moved_m > 150 + 10000.0 / 3600 * extract(epoch from now() - previous.set_at) then
-      raise exception 'moving too fast';
+    if moved_m <= 150 then
+      update private.last_positions set set_at = now() where user_id = uid;
+      return;
+    end if;
+    -- 1000 km/h is 1000000 m per 3600 s, counted from when the last position was set
+    if moved_m > 5000 + 1000000.0 / 3600 * extract(epoch from now() - previous.set_at) then
+      raise exception 'location jumped';
     end if;
   end if;
 
@@ -263,7 +268,7 @@ begin
     insert into private.location_changes (user_id) values (uid);
   end if;
 
-  insert into private.map_positions (user_id, location, set_at)
+  insert into private.last_positions (user_id, location, set_at)
   values (uid, private.cell_center(lat, lng), now())
   on conflict (user_id) do update set
     location = excluded.location,
@@ -278,8 +283,10 @@ grant execute on function public.set_map_position (double precision, double prec
 
 -- As before (20261022024832_server_rules.sql), plus: the stored position is the centre of its
 -- cell, the accuracy is kept between 0 and 50 m and changes nothing, a hidden or suspended
--- account is told 'account restricted', calls are counted one at a time, and going live where
--- your map position already is doesn't count as another location change.
+-- account is told 'account restricted', and calls are counted one at a time. Going live when
+-- you aren't must be a move set_map_position would allow from your last known position
+-- ('location jumped'), and going live where that position already is doesn't count as another
+-- location change. The live position becomes your last known position.
 create or replace function public.go_green(
   lat double precision,
   lng double precision,
@@ -295,6 +302,7 @@ declare
   here extensions.geography;
   live_at extensions.geography;  -- the position to store
   previous public.availability;
+  last_known private.last_positions;
   moved_m double precision;  -- how far from your live position; null when you're not live
   allowed_m double precision;
   set_at timestamptz := now();  -- when the stored live position was set
@@ -329,9 +337,17 @@ begin
       -- 10 km/h is 10000 m per 3600 s, counted from when your live position was set
       allowed_m := 150 + 10000.0 / 3600 * extract(epoch from now() - previous.started_at);
       if moved_m > allowed_m then raise exception 'moving too fast'; end if;
+    else
+      -- not live: 5 km plus 1000 km/h from the last known position, as in set_map_position
+      select * into last_known from private.last_positions where user_id = uid;
+      if found and extensions.st_distance(last_known.location, here)
+        > 5000 + 1000000.0 / 3600 * extract(epoch from now() - last_known.set_at)
+      then
+        raise exception 'location jumped';
+      end if;
     end if;
     if not exists (
-      select 1 from private.map_positions m
+      select 1 from private.last_positions m
       where m.user_id = uid and m.set_at > now() - interval '2 hours'
         and extensions.st_dwithin(m.location, here, 150)
     ) then
@@ -371,6 +387,12 @@ begin
     started_at = excluded.started_at,
     expires_at = excluded.expires_at
   returning * into saved;
+
+  insert into private.last_positions (user_id, location, set_at)
+  values (uid, live_at, now())
+  on conflict (user_id) do update set
+    location = excluded.location,
+    set_at = excluded.set_at;
 
   return jsonb_build_object(
     'startedAt', (extract(epoch from saved.started_at) * 1000)::bigint,
@@ -727,9 +749,10 @@ create trigger reports_reported_hash
 
 -- automatic hide (D2, D3) -------------------------------------------------------------
 
--- Ends everything `target` is in right now: their live session and map position, waiting
--- requests and chats (the other person goes back on nearby lists, as when a chat ends), and
--- their event memberships, so they can't post in group chats either.
+-- Ends everything `target` is in right now: their live session, waiting requests and chats
+-- (the other person goes back on nearby lists, as when a chat ends), and their event
+-- memberships, so they can't post in group chats either. Their last known position stays, so
+-- coming back after a review can't skip the check against it.
 create function private.end_activity(target uuid)
 returns void
 language plpgsql security definer set search_path = ''
@@ -744,7 +767,6 @@ begin
   where status in ('pending', 'accepted') and target in (from_user, to_user);
 
   delete from public.availability where user_id = target;
-  delete from private.map_positions where user_id = target;
   delete from public.event_members where user_id = target;
 end;
 $$;
@@ -753,11 +775,13 @@ revoke execute on function private.end_activity (uuid) from public, anon, authen
 
 -- As before (20261022103744_break_it_hardening.sql), plus: a report counts towards the
 -- automatic hide only when the reporter's account is active and either
---   * the two of you met through the app: a say-hi or chat between you, or an event you are
---     both in, or
+--   * the two of you really interacted: a chat between you (accepted or met), a say-hi they
+--     sent you, or a message they posted in a group chat you are both in, or
 --   * the reporter's account is established: at least 3 days old with no open report against it.
+-- A say-hi you sent that they never accepted, or only being in the same event, isn't enough.
 -- Other reports go to the review queue without hiding anyone. When three different people's
--- counted reports hide someone, everything they are in ends, as with suspend_user.
+-- counted reports that nobody has reviewed yet hide someone, everything they are in ends, as
+-- with suspend_user.
 create or replace function public.report_user(
   target uuid,
   reason text,
@@ -815,13 +839,15 @@ begin
   ) and (
     exists (
       select 1 from public.chat_requests r
-      where (r.from_user = uid and r.to_user = target) or (r.from_user = target and r.to_user = uid)
+      where (r.from_user = target and r.to_user = uid)
+        or (r.from_user = uid and r.to_user = target and r.status in ('accepted', 'met'))
     )
     or exists (
       select 1
-      from public.event_members mine
-      join public.event_members theirs on theirs.event_id = mine.event_id
-      where mine.user_id = uid and theirs.user_id = target
+      from public.messages m
+      join public.event_members mine on mine.event_id = m.event_id and mine.user_id = uid
+      join public.event_members theirs on theirs.event_id = m.event_id and theirs.user_id = target
+      where m.sender = target
     )
     or (
       exists (
@@ -839,14 +865,15 @@ begin
 
   -- one hide check at a time per reported person, so three reports at once still hide them
   perform pg_advisory_xact_lock(hashtextextended('yap:reported:' || target::text, 0));
-  -- three different reporters whose reports count hide the profile until a human reviews it
+  -- three different reporters whose reports count, and aren't reviewed yet, hide the profile
+  -- until a human reviews it
   update public.profiles
   set status = 'hidden'
   where id = target
     and status = 'active'
     and (
       select count(distinct r.reporter) from public.reports r
-      where r.reported = target and r.counts_toward_hide
+      where r.reported = target and r.counts_toward_hide and r.reviewed_at is null
     ) >= 3;
   if found then
     perform private.end_activity(target);
@@ -876,8 +903,9 @@ begin
 end;
 $$;
 
--- Undoes a suspension or an automatic hide after review: the account is active again and its
--- email address comes off the ban list. Run it from the SQL editor.
+-- Undoes a suspension or an automatic hide after review: the account is active again, its
+-- email address comes off the ban list, and its open reports are marked reviewed, so they
+-- don't hide it again. Run it from the SQL editor.
 create function private.restore_user(target uuid)
 returns void
 language plpgsql security definer set search_path = ''
@@ -888,6 +916,8 @@ begin
   end if;
 
   update public.profiles set status = 'active' where id = target;
+  update public.reports set reviewed_at = now(), action = 'restored'
+  where reported = target and reviewed_at is null;
   delete from private.banned_identities b
   using auth.users u
   where u.id = target and b.email_hash = private.email_hash(u.email);
@@ -972,8 +1002,8 @@ $$;
 drop function public.events_near (double precision, double precision, double precision);
 
 -- Events within `radius_m` (default 10 km, never more than 50 km) of where the server holds you
--- to be (private.my_position: set_map_position, or your live position). At most 20 calls a
--- minute. 'location needed' when the server has no position for you.
+-- to be (private.my_position: the last position set_map_position or go_green stored). At most
+-- 20 calls a minute. 'location needed' when the server has no position for you.
 create function public.events_near(radius_m double precision default 10000)
 returns setof jsonb
 language plpgsql security definer set search_path = ''
@@ -1238,8 +1268,8 @@ create policy photos_insert_own_folder on storage.objects
 
 -- housekeeping ------------------------------------------------------------------------
 
--- As before, plus forgetting map positions after 2 hours, call counts from old windows, and
--- sign-ups and photo uploads older than the day their limits look at.
+-- As before, plus forgetting call counts from old windows, and sign-ups and photo uploads older
+-- than the day their limits look at. Last known positions are kept (private.last_positions).
 create or replace function private.expire_stale()
 returns void
 language sql security definer set search_path = ''
@@ -1262,7 +1292,6 @@ as $$
     );
   delete from private.location_changes where changed_at <= now() - interval '10 minutes';
   delete from private.event_posts where posted_at <= now() - interval '24 hours';
-  delete from private.map_positions where set_at <= now() - interval '2 hours';
   delete from private.call_counts where window_start <= now() - interval '1 hour';
   delete from private.signup_ips where created_at <= now() - interval '24 hours';
   delete from private.photo_uploads where uploaded_at <= now() - interval '24 hours';

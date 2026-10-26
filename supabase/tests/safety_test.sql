@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(41);
+select plan(48);
 
 -- 40 people; who does what is written next to each section.
 insert into auth.users (id, email)
@@ -124,20 +124,24 @@ select lives_ok($$ select pg_temp.call_nearby(12) $$, 'twelve nearby lookups in 
 select throws_ok($$ select pg_temp.call_nearby(1) $$, 'too many lookups', 'a 13th in the same minute is refused');
 
 -- Reports (D2) and restricted accounts (D3, D9) ----------------------------------------------
--- 10 is reported. 11 is waiting on 10's say-hi. 12-14 never met 10; 15-17 did. 18 is an
--- established account and reports 19.
+-- 10 is reported. 11 is waiting on 10's say-hi. 12 said hi to 10 and got no answer, 13 is only
+-- in 10's event, 14 never met 10. 15 chatted with 10, 16 met 10, and 17 is in 10's event, where
+-- 10 posted. 18 is an established account and reports 19. 32 is hidden, then restored, by
+-- reports from the established accounts 33-36.
 
 select pg_temp.act_as(10);
 select public.go_green(49.8951, -97.1384, 5, 60, '');
 create temp table ten_event as
 select (public.create_event('☕', 'Coffee', '', 49.8951, -97.1384, (extract(epoch from now()) * 1000)::bigint) ->> 'id')::uuid as id;
 insert into public.chat_requests (from_user, to_user) values (pg_temp.id_of(10), pg_temp.id_of(11));
+insert into public.chat_requests (from_user, to_user) values (pg_temp.id_of(12), pg_temp.id_of(10));
+insert into public.event_members (event_id, user_id) select id, pg_temp.id_of(13) from ten_event;
 
 select pg_temp.act_as(n), public.report_user(pg_temp.id_of(10), 'spam-or-fake', '') from generate_series(12, 14) as n;
 select is(
   (select status from public.profiles where id = pg_temp.id_of(10)),
   'active',
-  'three brand-new accounts that never met someone can''t hide them'
+  'three brand-new accounts that only said hi, shared an event or never met someone can''t hide them'
 );
 select is(
   (select count(*) from public.reports where reported = pg_temp.id_of(10) and not counts_toward_hide)::int,
@@ -145,14 +149,21 @@ select is(
   'their reports still go to the review queue'
 );
 
--- 15-17 each had a say-hi with 10 that 10 declined.
 insert into public.chat_requests (from_user, to_user, status)
-select pg_temp.id_of(n), pg_temp.id_of(10), 'declined' from generate_series(15, 17) as n;
-select pg_temp.act_as(n), public.report_user(pg_temp.id_of(10), 'harassment', '') from generate_series(15, 17) as n;
+values (pg_temp.id_of(15), pg_temp.id_of(10), 'accepted'), (pg_temp.id_of(16), pg_temp.id_of(10), 'met');
+insert into public.event_members (event_id, user_id) select id, pg_temp.id_of(17) from ten_event;
+select pg_temp.act_as(10);
+select public.send_event_message((select id from ten_event), 'Welcome!');
+select pg_temp.act_as(n), public.report_user(pg_temp.id_of(10), 'harassment', '') from unnest(array[11, 15, 17, 16]) as n;
+select is(
+  (select count(*) from public.reports where reported = pg_temp.id_of(10) and counts_toward_hide)::int,
+  4,
+  'a say-hi from someone, a chat or meeting with them, or their message in a shared group chat makes a report count'
+);
 select is(
   (select status from public.profiles where id = pg_temp.id_of(10)),
   'hidden',
-  'three people who met someone through the app hide them'
+  'three people who really interacted with someone hide them'
 );
 select ok(
   not exists (select 1 from public.availability where user_id = pg_temp.id_of(10))
@@ -189,6 +200,22 @@ select public.report_user(pg_temp.id_of(19), 'other', '');
 select ok(
   (select counts_toward_hide from public.reports where reporter = pg_temp.id_of(18)),
   'a report from an account older than 3 days counts towards the hide'
+);
+
+update public.profiles set created_at = now() - interval '4 days' where id in (select pg_temp.id_of(n) from generate_series(33, 36) as n);
+select pg_temp.act_as(n), public.report_user(pg_temp.id_of(32), 'other', '') from generate_series(33, 35) as n;
+select is(
+  (select status from public.profiles where id = pg_temp.id_of(32)),
+  'hidden',
+  'three counted reports hide someone'
+);
+select private.restore_user(pg_temp.id_of(32));
+select pg_temp.act_as(36);
+select public.report_user(pg_temp.id_of(32), 'other', '');
+select is(
+  (select status from public.profiles where id = pg_temp.id_of(32)),
+  'active',
+  'after a review restores them, one more report doesn''t hide them again'
 );
 
 -- Coming back after a ban (D4) ---------------------------------------------------------------
@@ -239,13 +266,13 @@ select ok(
 select is(
   (select count(*) from public.reports
    where reported is null and reported_hash = encode(sha256(convert_to(pg_temp.id_of(10)::text, 'UTF8')), 'hex'))::int,
-  6,
+  7,
   'reports about a deleted account are kept'
 );
 
 -- Events (D5, D6) ----------------------------------------------------------------------------
 -- 20 hosts in Winnipeg, 21 in Vancouver. 22 looks from Winnipeg, 23 from Toronto. 24 moves a
--- lot, 25 asks a lot.
+-- lot, 25 asks a lot. 27 tries to jump to other cities, 28 commutes.
 
 update public.profiles set photo_path = pg_temp.id_of(20) || '/profile-1.jpg' where id = pg_temp.id_of(20);
 select pg_temp.act_as(20);
@@ -285,24 +312,50 @@ select pg_temp.act_as(23);
 select public.set_map_position(43.6532, -79.3832);
 select throws_ok(
   $$ select public.set_map_position(49.8951, -97.1384) $$,
-  'moving too fast', 'the map position can''t jump to another city'
+  'location jumped', 'the map position can''t jump to another city'
 );
 select throws_ok(
   $$ select public.join_event((select id from winnipeg_event)) $$,
   'too far away', 'joining is checked against the position the server holds'
 );
 
--- Each move made after the last position was forgotten, so only the 3-in-10-minutes limit applies.
+-- Each move made 3 hours after the last one, so only the 3-in-10-minutes limit applies.
 select pg_temp.act_as(24);
 select public.set_map_position(49.8951, -97.1384);
-update private.map_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
+update private.last_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
 select public.set_map_position(49.9951, -97.1384);
-update private.map_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
+update private.last_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
 select public.set_map_position(50.0951, -97.1384);
-update private.map_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
+update private.last_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(24);
 select throws_ok(
   $$ select public.set_map_position(50.1951, -97.1384) $$,
   'too many location changes', 'a 4th map position in 10 minutes is refused'
+);
+
+select pg_temp.act_as(27);
+select public.go_green(49.8951, -97.1384, 5, 60, '');
+select public.go_offline();
+select throws_ok(
+  $$ select public.go_green(43.6532, -79.3832, 5, 60, '') $$,
+  'location jumped', 'going offline and live again can''t jump to another city'
+);
+update private.last_positions set set_at = now() - interval '3 hours' where user_id = pg_temp.id_of(27);
+select throws_ok(
+  $$ select public.set_map_position(51.5072, -0.1276) $$,
+  'location jumped', 'nor can the map position once the last one is older than 2 hours'
+);
+
+-- Home, then 30 minutes later 15 km away on campus, then live 15 km further 30 minutes after that.
+select pg_temp.act_as(28);
+select public.set_map_position(49.8951, -97.1384);
+update private.last_positions set set_at = now() - interval '30 minutes' where user_id = pg_temp.id_of(28);
+select lives_ok($$ select public.set_map_position(50.0301, -97.1384) $$, 'a commute by bus or car moves the map position');
+update private.last_positions set set_at = now() - interval '30 minutes' where user_id = pg_temp.id_of(28);
+select public.go_green(50.1651, -97.1384, 5, 60, '');
+select is(
+  extensions.st_astext(private.my_position(pg_temp.id_of(28))::extensions.geometry),
+  extensions.st_astext(private.cell_center(50.1651, -97.1384)::extensions.geometry),
+  'going live moves the position the server holds, past an older map position'
 );
 
 select pg_temp.act_as(25);
