@@ -1,10 +1,10 @@
 // Pull the emailed code out of whatever was copied: just the code, or a whole sentence or
-// email around it. A run of exactly that many digits wins; otherwise the digits alone, if
-// there are exactly that many (a code copied with spaces or dashes in it).
+// email around it. The code must be one group of exactly that many digits, either unbroken
+// or split once in the middle by a space or a dash (1234 5678, 1234-5678).
 
 export function codeFromText(text: string, length: number) {
-  const run = text.match(/\d+/g)?.find((digits) => digits.length === length);
-  if (run) return run;
-  const digits = text.replace(/\D/g, '');
-  return digits.length === length ? digits : null;
+  const half = Math.floor(length / 2);
+  const group = new RegExp(`(?:^|\\D)(\\d{${half}})[ -]?(\\d{${length - half}})(?!\\d)`);
+  const match = text.match(group);
+  return match ? match[1] + match[2] : null;
 }
