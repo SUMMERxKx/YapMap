@@ -266,8 +266,10 @@ restart.
 \paragraph{Finding events} When the \ui{Map} tab opens, and each time its tab button is pressed, the
 screen finds the user. It asks for location permission only if the user has never decided, uses a
 position the phone recorded in the last two minutes if there is one, otherwise waits up to eight seconds
-for a fresh fix, and otherwise uses the last position the phone knows, however old. It then centres the
-map and loads the events within the chosen radius of that point: the API layer sends the position to
+for a fresh fix. If neither comes, it only centres the map on the last position the phone knows, however
+old, and shows that it could not find the user: an old position is never sent to the server, which would
+otherwise hold it as the user's last known position and refuse the real one. With a recent or fresh
+position it centres the map and loads the events within the chosen radius of that point: the API layer sends the position to
 \code{set_map_position} and then calls \code{events_near}, which lists events around the position the
 server holds (\cref{sec:location-privacy}). If the server refuses the new position because it is too
 far from the last known one or changed too often, the map keeps the pins it has and shows the refusal

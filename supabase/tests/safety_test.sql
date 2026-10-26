@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(48);
+select plan(50);
 
 -- 40 people; who does what is written next to each section.
 insert into auth.users (id, email)
@@ -127,7 +127,8 @@ select throws_ok($$ select pg_temp.call_nearby(1) $$, 'too many lookups', 'a 13t
 -- 10 is reported. 11 is waiting on 10's say-hi. 12 said hi to 10 and got no answer, 13 is only
 -- in 10's event, 14 never met 10. 15 chatted with 10, 16 met 10, and 17 is in 10's event, where
 -- 10 posted. 18 is an established account and reports 19. 32 is hidden, then restored, by
--- reports from the established accounts 33-36.
+-- reports from the established accounts 33-36. 37 said hi to 38, who accepted and then ended the
+-- chat; 39 said hi to 38 and took it back before an answer.
 
 select pg_temp.act_as(10);
 select public.go_green(49.8951, -97.1384, 5, 60, '');
@@ -216,6 +217,19 @@ select is(
   (select status from public.profiles where id = pg_temp.id_of(32)),
   'active',
   'after a review restores them, one more report doesn''t hide them again'
+);
+
+insert into public.chat_requests (from_user, to_user, status, responded_at, ended_at)
+values (pg_temp.id_of(37), pg_temp.id_of(38), 'cancelled', now(), now()),
+       (pg_temp.id_of(39), pg_temp.id_of(38), 'cancelled', null, now());
+select pg_temp.act_as(n), public.report_user(pg_temp.id_of(38), 'harassment', '') from unnest(array[37, 39]) as n;
+select ok(
+  (select counts_toward_hide from public.reports where reporter = pg_temp.id_of(37)),
+  'a report about a chat the other person accepted and then ended counts towards the hide'
+);
+select ok(
+  not (select counts_toward_hide from public.reports where reporter = pg_temp.id_of(39)),
+  'a say-hi taken back before an answer doesn''t'
 );
 
 -- Coming back after a ban (D4) ---------------------------------------------------------------

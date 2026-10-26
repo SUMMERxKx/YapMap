@@ -42,16 +42,19 @@ type LocationState =
   | { status: 'denied'; askAgain: boolean }
   | { status: 'unavailable' };
 
+// lastKnown: whatever position the phone last knew, however old, when it has no recent one.
 type FindResult =
   | { status: 'found'; latitude: number; longitude: number }
   | { status: 'denied'; askAgain: boolean }
-  | { status: 'unavailable' };
+  | { status: 'unavailable'; lastKnown?: { latitude: number; longitude: number } };
 
 /**
  * Finds the user. Asks for "while using the app" permission only when they haven't decided yet,
- * then uses a recent position the phone already has, or else asks for a fresh fix, and if that
- * fails too, uses whatever position the phone last knew, however old. Never throws: a phone that
- * can't answer (location services off, say) counts as unavailable.
+ * then uses a recent position the phone already has, or else asks for a fresh fix. If that fails
+ * too, the user counts as unavailable, with whatever position the phone last knew, however old:
+ * good enough to centre the map, but never sent to the server, which would then hold it as where
+ * the user is. Never throws: a phone that can't answer (location services off, say) counts as
+ * unavailable.
  */
 async function findUser(): Promise<FindResult> {
   let permission;
@@ -80,7 +83,10 @@ async function findUser(): Promise<FindResult> {
   }
   const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
   if (lastKnown) {
-    return { status: 'found', latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+    return {
+      status: 'unavailable',
+      lastKnown: { latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude },
+    };
   }
   return { status: 'unavailable' };
 }
@@ -131,7 +137,8 @@ export default function EventsMap() {
     if (userRegion.current) map.current?.animateToRegion(userRegion.current, 400);
   };
 
-  // Centres the map on the user when we found them, and loads the events there.
+  // Centres the map on the user when we found them, and loads the events there. A position the
+  // phone last knew, however old, only centres the map.
   const showResult = (result: FindResult) => {
     wasDenied.current = result.status === 'denied';
     if (result.status === 'found') {
@@ -143,6 +150,12 @@ export default function EventsMap() {
       map.current?.animateToRegion(here, 400);
       showEvents(loadEvents(here));
       return;
+    }
+    if (result.status === 'unavailable' && result.lastKnown) {
+      const there = { ...DEFAULT_REGION, ...result.lastKnown };
+      setRegion(there);
+      userRegion.current = there;
+      map.current?.animateToRegion(there, 400);
     }
     setLocation(result);
   };

@@ -85,8 +85,8 @@ change a few times in 10 minutes, and it is never shown to anyone.
 - **Reports you make** (who, the reason, any details you add) and reports made about you. We
   read reports to keep Yap safe (see our Community Guidelines). A profile is hidden until we
   have reviewed it when three different people report it who really interacted with that person
-  on Yap (a chat between them, a say-hi from that person, or a message that person posted in a
-  group chat they are both in) or have used Yap for at least 3 days.
+  on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
+  that person posted in a group chat they are both in) or have used Yap for at least 3 days.
 - **Banned email addresses.** If we suspend an account, or an account is deleted while it is
   hidden or suspended, we keep a scrambled (hashed) copy of its email address so it can't sign
   up again.

@@ -60,8 +60,10 @@ live or on the map, is refused unless it could have been reached from that cell 
 
 Safety follows the app stores' rules for apps where people post and meet. Every user agrees to community
 guidelines at sign-up, can report and block from every screen that shows another person, and cannot post
-slurs or abusive words, which the database refuses. Reports hide a profile automatically only when they
-come from people who met that person through the app or from established accounts. The owner reviews
+slurs or abusive words, which the database refuses. Reports not yet reviewed hide a profile
+automatically only when they come from people who really interacted with that person (a chat between
+them, even one that has ended, a say-hi from that person, or that person's message in a group chat both
+are in) or from established accounts. The owner reviews
 reports at least daily and can suspend an account, which also bans its email address from signing up
 again; a sign-up hook refuses banned and throwaway addresses. Continuous integration checks the app, the migration files and a database rebuilt
 from every migration on each pull request, and store builds are made with EAS Build.

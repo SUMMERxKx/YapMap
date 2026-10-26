@@ -80,13 +80,14 @@ connections are saved for real, so it deletes them at its start and end. Continu
 every file on every pull request, in the Database job. The photo limits of 16 files and 40 uploads a day
 have no such check: they are best-effort against uploads sent at once.
 
-The third file, \code{supabase/tests/safety_test.sql}, has 48 checks for the October 2026 safety
+The third file, \code{supabase/tests/safety_test.sql}, has 50 checks for the October 2026 safety
 migration, each something the QA report did before it: a live position is stored as a cell centre and the
 accuracy is clamped; changing only the accuracy never changes who is nearby; \code{nearby} and
 \code{events_near} refuse the thirteenth and twenty-first call in a minute; three brand-new accounts that
 only said hi, shared an event or never met someone cannot hide them, while a say-hi from the person, a
-chat or meeting with them, or their message in a shared group chat makes a report count, three such
-reports hide them, and the hide ends the person's live session, waiting request and event membership;
+chat or meeting with them, a chat they accepted and then ended, or their message in a shared group chat
+makes a report count (a say-hi taken back before an answer does not), three such reports hide them, and
+the hide ends the person's live session, waiting request and event membership;
 a person restored after review is not hidden again by one more report; a hidden account is refused with \code{account restricted}
 when it says hi, sends either kind of message, changes its note or goes live; the sign-up hook refuses a
 suspended person's address with a \code{+tag}, a throwaway subdomain and a twenty-first sign-up from one

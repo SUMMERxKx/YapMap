@@ -6,10 +6,10 @@
 --     resize their own circle to measure how far away someone is. nearby() takes at most 12
 --     calls a minute per person, and location changes are counted one call at a time.
 --   * Reports (D2): a report only counts towards the automatic hide when the two people have
---     really interacted (a chat between them, a say-hi from the reported person, or a message
---     they posted in a group chat both are in), or when it comes from an established account
---     (at least 3 days old, active, with no open report against it). Only reports not yet
---     reviewed count. Every report still lands in the review queue.
+--     really interacted (a chat between them, even one that has ended, a say-hi from the
+--     reported person, or a message they posted in a group chat both are in), or when it comes
+--     from an established account (at least 3 days old, active, with no open report against
+--     it). Only reports not yet reviewed count. Every report still lands in the review queue.
 --   * Restricted accounts (D3, D9): the automatic hide now ends what the person is in, as
 --     suspend_user does (live session, waiting requests, chats, event memberships). Saying hi,
 --     sending chat and group messages and changing your note need an active account, and a
@@ -775,8 +775,9 @@ revoke execute on function private.end_activity (uuid) from public, anon, authen
 
 -- As before (20261022103744_break_it_hardening.sql), plus: a report counts towards the
 -- automatic hide only when the reporter's account is active and either
---   * the two of you really interacted: a chat between you (accepted or met), a say-hi they
---     sent you, or a message they posted in a group chat you are both in, or
+--   * the two of you really interacted: a chat between you (accepted or met, or accepted and
+--     then ended), a say-hi they sent you, or a message they posted in a group chat you are
+--     both in, or
 --   * the reporter's account is established: at least 3 days old with no open report against it.
 -- A say-hi you sent that they never accepted, or only being in the same event, isn't enough.
 -- Other reports go to the review queue without hiding anyone. When three different people's
@@ -840,7 +841,10 @@ begin
     exists (
       select 1 from public.chat_requests r
       where (r.from_user = target and r.to_user = uid)
-        or (r.from_user = uid and r.to_user = target and r.status in ('accepted', 'met'))
+        or (
+          r.from_user = uid and r.to_user = target
+          and (r.status in ('accepted', 'met') or (r.status = 'cancelled' and r.responded_at is not null))
+        )
     )
     or exists (
       select 1
