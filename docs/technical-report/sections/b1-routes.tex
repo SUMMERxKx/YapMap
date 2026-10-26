@@ -29,7 +29,7 @@ does not appear in the URL. \Cref{sec:navigation} explains the guards.
   \code{(auth)/_layout.tsx} & --- & Stack; slide from the right on both platforms \\
   \code{(auth)/welcome.tsx} & --- & Product line; \ui{Create account}, \ui{Sign in}; social buttons behind a flag \\
   \code{(auth)/sign-up.tsx} & --- & Email, password, confirmation; links to the terms, guidelines and privacy policy; \code{signUp} \\
-  \code{(auth)/verify.tsx} & \code{email}, \code{purpose} (\code{signup} or \code{reset}) & Eight-digit code entry; confirms sign-up, or carries the reset code forward; resend after 60\,s \\
+  \code{(auth)/verify.tsx} & \code{email}, \code{purpose} (\code{signup} or \code{reset}) & Eight-digit code entry, typed, autofilled or pasted (\ui{Paste code}, or a long press); confirms sign-up, or carries the reset code forward; resend after 60\,s; a sign-up hint to sign in or reset the password when no code comes \\
   \code{(auth)/sign-in.tsx} & --- & Email and password; unconfirmed accounts go to \code{verify} \\
   \code{(auth)/forgot-password.tsx} & \code{email} (optional) & Sends the reset code \\
   \code{(auth)/new-password.tsx} & \code{email}, \code{code} & New password and confirmation; \code{finishPasswordReset} \\

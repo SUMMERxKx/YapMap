@@ -23,9 +23,9 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \bottomrule
   \endfoot
   \multicolumn{3}{@{}l}{\textsf{\textbf{Auth}}} \\
-  \code{signUp(email, password)} & \code{auth.signUp} & true if a code was emailed; throws for an existing address \\
+  \code{signUp(email, password)} & \code{auth.signUp} & true if a code was (or appears to have been) emailed; an existing address looks the same as a new one \\
   \code{verifySignUpCode(email, code)} & \code{auth.verifyOtp}, type \code{signup} & --- \\
-  \code{resendSignUpCode(email)} & \code{auth.resend}, type \code{signup} & --- \\
+  \code{resendSignUpCode(email)} & \code{auth.resend}, type \code{signup} & ---; an existing address looks like a code that was sent \\
   \code{signInWithPassword(email, password)} & \code{auth.signInWithPassword} & \code{'signed-in'} or \code{'unconfirmed'} \\
   \code{setPassword(password)} & \code{auth.updateUser} & --- \\
   \code{requestPasswordReset(email)} & \code{auth.resetPasswordForEmail} & --- \\

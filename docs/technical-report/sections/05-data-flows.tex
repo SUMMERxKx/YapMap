@@ -51,15 +51,19 @@ project sends carries an 8-digit code that the user types into the app (\cref{fi
 
 \paragraph{Creating an account} The sign-up screen checks that the password has at least eight
 characters and matches its confirmation, then calls \code{signUp}. Supabase creates the user and emails a
-confirmation code. If the email already belongs to an account, Supabase may return a user with no
-identities and send nothing; the API layer detects this and tells the user to sign in or use
-\ui{Forgot password} instead of waiting for a code that will not arrive. If \ui{Confirm email} were
+confirmation code. If the email already belongs to a confirmed account, Supabase returns a user with no
+identities and sends nothing. The app opens the code screen exactly as for a new email, and
+\ui{Resend code} behaves the same too, so sign-up never shows whether someone has an account; a note
+under the code says \ui{No code? If you already have an account, sign in or reset your password}, with
+both as links. If \ui{Confirm email} were
 switched off in the dashboard, sign-up would return a session at once and the code screen would be
 skipped.
 
 \paragraph{Confirming the email} The code screen accepts exactly eight digits through one hidden input
-behind eight boxes, which keeps pasting and the operating system's one-time-code autofill working. It
-submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
+behind eight boxes, which keeps the operating system's one-time-code autofill working. Because the input
+is hidden, \ui{Paste code} (or a long press on the boxes) reads the clipboard, keeps the eight-digit code
+from whatever was copied, and fills it in; if there is no code, it says so. The emails show the code on
+its own large line so it is easy to copy. The screen submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
 session; the store then loads the (missing) profile and the guards open profile setup. \ui{Resend code}
 is disabled for 60 seconds after each send, matching the hosted project's limit of one code per address
 per minute (\cref{tab:dashboard}). The local stack allows one per second, so the button's wait is the
