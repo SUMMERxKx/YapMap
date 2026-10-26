@@ -42,7 +42,8 @@ event's distance.
 Accounts are Supabase Auth users with an email address and a password of at least eight characters.
 Every new address is confirmed with an emailed 8-digit code before the account can sign in, and a
 forgotten password is reset with another emailed code. Supabase limits how often codes are sent; the app
-reports those limits as sentences.
+reports those limits as sentences, except when creating an account, which looks the same whether or not
+the email already has an account (\cref{sec:flow-account}).
 
 The Supabase client keeps the session in AsyncStorage, refreshes its access token automatically, and does
 not look for sessions in URLs. AsyncStorage is used rather than the platform's secure store because the
