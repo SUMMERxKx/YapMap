@@ -32,7 +32,9 @@ something new, update this file, `docs/legal/privacy-policy.md` and
    `supabase/migrations/` (`supabase/README.md`, step 4). As of October 22, 2026 it has all
    eleven, including `20261022100308_content_moderation.sql` (the word filter and
    `private.suspend_user` the stores ask for) and `20261022103744_break_it_hardening.sql`
-   (the text rules and daily limits). Check again before each release: after `supabase link`,
+   (the text rules and daily limits). `20261026083000_safety_fixes.sql` also needs the Before
+   User Created auth hook switched on in the dashboard (README, "Supabase dashboard setup").
+   Check again before each release: after `supabase link`,
    `supabase migration list` shows the same versions in the Local and Remote columns.
 6. **EAS (Expo's build service).** Builds run in Expo's cloud with your Expo account:
 
@@ -125,7 +127,7 @@ identity: yes**, **used for tracking: no**.
 | --- | --- | --- |
 | Contact Info | **Email Address** | Sign-in |
 | Contact Info | **Name** | First and last name on the profile |
-| Location | **Precise Location** | Position while live (deleted when you get off) |
+| Location | **Precise Location** | The phone's position while live or on the map, stored only as a square of about 100 m (deleted when you get off, the map's after 2 hours) |
 | User Content | **Photos or Videos** | Profile photos |
 | User Content | **Emails or Text Messages** | Chat and group messages |
 | User Content | **Other User Content** | Intro, interests, live note, events, reports |

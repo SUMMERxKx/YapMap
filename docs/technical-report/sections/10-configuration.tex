@@ -53,7 +53,7 @@ running \code{supabase config push}.
 \section{Database migrations}
 \label{sec:migrations}
 
-The schema is defined by eleven SQL migrations in \code{supabase/migrations}, listed by name in
+The schema is defined by thirteen SQL migrations in \code{supabase/migrations}, listed by name in
 \cref{app:migrations}. Each later migration replaces functions with \code{CREATE OR REPLACE}, which keeps
 their grants, or drops and recreates a function whose arguments or return type change and then grants it
 again in the same way as the original.
@@ -102,7 +102,8 @@ npm start          # expo start --go: scan the QR code with Expo Go on an iPhone
 The app runs in Expo Go against the hosted project. \code{npm start} runs \code{expo start --go}: plain
 \code{npx expo start} would serve a development build, because the project includes
 \code{expo-dev-client} for EAS development builds, and Expo Go cannot load that. Exercising the core loop needs two phones signed in
-with different email addresses, within about 100 metres of each other, both live. The native
+with different email addresses, close enough to be in the same cell of about 100 metres or a touching
+one (the same room always is), both live. The native
 \code{ios} and \code{android} folders are generated and not committed.
 
 The database can also run locally, with Docker and a current Supabase CLI. \code{supabase start} starts a
@@ -122,7 +123,7 @@ local stack and applies every migration; \code{supabase/config.toml} configures 
     Project ID; Postgres & \code{yapmap}; major version 17, as on the hosted project \\
     Ports & API 54321, database 54322, Studio 54323, mail viewer 54324 \\
     Email & Not sent: read in the local mail viewer at \code{http://127.0.0.1:54324} \\
-    Auth & Sign-up and email confirmation on; 8-digit codes valid for 3600\,s; one emailed code per address per second; minimum password length 8 \\
+    Auth & Sign-up and email confirmation on; 8-digit codes valid for 3600\,s; one emailed code per address per second; minimum password length 8; the Before User Created hook \code{public.before_user_created} on \\
     Email templates & \code{supabase/templates/confirmation.html} and \code{recovery.html}, showing the code \\
     Seed data; Edge Functions & Off; off \\
     \bottomrule

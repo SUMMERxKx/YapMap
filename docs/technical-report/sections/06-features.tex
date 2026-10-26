@@ -121,7 +121,7 @@ it has ended. While live, a prompt slides in at the top of any screen when someo
 \implemented
   {\code{(app)/(tabs)/nearby}; prompts in \code{(app)/_layout}}
   {\code{useNearbyPolling}, \code{useNearby}, \code{refreshNearby}, \code{useNearbyAlerts}, \code{NearbyToast}, \code{PersonCard}}
-  {\code{nearby}: live, open, active users within 100 to 150\,m, no blocks, at most 50, cards only}
+  {\code{nearby}: live, open, active users in the same cell of about 100\,m or a touching one, no blocks, at most 50, cards only, 12 calls a minute}
 
 \section{Person sheet and saying hi}
 
@@ -195,9 +195,9 @@ summarises who may do what.
     \toprule
     \textsf{\textbf{Action}} & \textsf{\textbf{Rule}} \\
     \midrule
-    See an event & Within the chosen radius of the map's centre, at most 50\,km; until three hours after its start; host active and not blocked either way \\
-    Create an event & Active adult profile; start from five minutes ago to seven days ahead; at most five per host in 24 hours \\
-    Join an event & Active adult profile; within 5\,km of the event; not blocked by or blocking the host \\
+    See an event & Within the chosen radius, at most 50\,km, of the position the server holds for the user; until three hours after its start; host active and not blocked either way; the host's photo only after joining \\
+    Create an event & Active adult profile; one of the twelve categories; start from five minutes ago to seven days ahead; at most five per host in 24 hours \\
+    Join an event & Active adult profile; within 5\,km of the position the server holds; not blocked by or blocking the host \\
     Read and write its chat & Members only; 1 to 1000 characters; at most 30 messages a minute \\
     Leave & A guest's membership ends; the app offers no \ui{Leave} to the host \\
     Delete & Host only, from the event sheet, after a confirmation; members and the group chat go with the event \\
@@ -208,7 +208,7 @@ summarises who may do what.
 \implemented
   {\code{(app)/(tabs)/map}, \code{(app)/event/new}, \code{(app)/event/[id]}, \code{(app)/group/[id]}}
   {\code{loadEvents}, \code{setEventRadius}, \code{createEvent}, \code{joinEvent}, \code{leaveEvent}, \code{deleteEvent}, \code{enterEventChat}, \code{sendGroupMessage}; \code{EventIcon}, \code{eventCategory}}
-  {\code{events_near}, \code{create_event}, \code{join_event}, \code{leave_event}, \code{delete_event}, \code{send_event_message}}
+  {\code{set_map_position}, \code{events_near}, \code{create_event}, \code{join_event}, \code{leave_event}, \code{delete_event}, \code{send_event_message}}
 
 \section{Blocking and reporting}
 \label{sec:feature-safety}
@@ -224,6 +224,15 @@ users by first name and last initial, with \ui{Unblock}. The server semantics ar
 \cref{sec:blocking-reporting}. Separately, the server refuses an introduction, interest, live note, event
 or message that contains a slur or abusive word from its list, and the app explains why
 (\cref{sec:word-filter}); the owner reviews reports and can suspend an account (\cref{sec:moderation}).
+A hidden or suspended user sees \ui{Your account is on hold} instead of the app, with \ui{Email support}
+and \ui{Use a different account}; the screen appears at launch, and as soon as the server refuses an
+action with \code{account restricted}, and is checked again at each catch-up, so a restored account comes
+back by itself.
+
+\implemented
+  {\code{account-restricted} (a root stack)}
+  {\code{restricted}, \code{checkRestricted}; \code{api.fetchMyAccount}, \code{api.onAccountRestricted}}
+  {\code{private.require_active} in every function a user acts through}
 
 \implemented
   {\code{SafetyMenu}, \code{(app)/report/[id]}, \code{(app)/blocked}, long press in \code{(app)/group/[id]}}
@@ -245,7 +254,8 @@ the app version.
 \ui{Community guidelines} lists the rules everyone agrees to (adults only, be respectful, keep it clean, be
 yourself, nothing illegal or dangerous, meet safely) and what happens when someone breaks them: reports
 are reviewed within 24 hours, content that breaks the rules is removed, people who break them are
-suspended or removed, a profile reported by three people is hidden straight away, and slurs and abusive
+suspended or removed and cannot sign up again with the same email, a profile reported by three people who
+met the person on Yap (or have used it for a few days) is hidden straight away, and slurs and abusive
 words are refused when posted. \ui{Acknowledgements} shows Yap's copyright and every open-source package
 the app ships, each with its licence text, from the list \code{npm run licenses} generates.
 

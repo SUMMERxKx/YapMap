@@ -39,10 +39,11 @@ limit what each channel delivers.
     \toprule
     \textsf{\textbf{Item}} & \textsf{\textbf{Definition}} \\
     \midrule
-    Bucket \code{photos} & private (\code{public = false}); file size limit 5\,242\,880 bytes; MIME types \code{image/jpeg}, \code{image/png}, \code{image/webp} \\
+    Bucket \code{photos} & private (\code{public = false}); file size limit 1\,572\,864 bytes (1.5\,MiB); MIME types \code{image/jpeg}, \code{image/png}, \code{image/webp} \\
     Object names & \code{<user-id>/<slot>-<milliseconds>.jpg}; slot \code{profile} or \code{photo0} to \code{photo5}; the profile picture's copy ends in \code{-small.jpg} \\
     \code{photos_read_visible} & select, \code{authenticated}: bucket \code{photos} and (first folder is the user's ID, or \code{private.can_see_photo(name)}) \\
-    \code{photos_insert_own_folder} & insert, \code{authenticated}: bucket \code{photos}, directly in the folder named by the user's ID (no sub-folders), and fewer than 24 files there already (\code{private.my_photo_count()}) \\
+    \code{photos_insert_own_folder} & insert, \code{authenticated}: bucket \code{photos}, directly in the folder named by the user's ID (no sub-folders), fewer than 16 files there already (\code{private.my_photo_count()}), and fewer than 40 uploads in the last day (\code{private.my_uploads_today()}) \\
+    \code{photos_record_upload} & trigger after insert on \code{storage.objects} in bucket \code{photos}: records the upload in \code{private.photo_uploads} (\code{private.record_photo_upload}) \\
     \code{photos_update_own_folder} & update, \code{authenticated}: bucket \code{photos} and first folder is the user's ID \\
     \code{photos_delete_own_folder} & delete, \code{authenticated}: same condition as update \\
     Removed policy & \code{photos_read_signed_in}, which let any signed-in user read every photo, was dropped by the \code{server_rules} migration \\
@@ -61,7 +62,7 @@ limit what each channel delivers.
     \toprule
     \textsf{\textbf{Job}} & \textsf{\textbf{Schedule}} & \textsf{\textbf{Command and effect}} \\
     \midrule
-    \code{yap-expire-stale} & \texttt{* * * * *} & \code{select private.expire_stale()}: delete ended live sessions; expire pending requests whose time is up or whose sender is not live; cancel accepted chats in which neither person is live; delete location changes older than 10 minutes \\
+    \code{yap-expire-stale} & \texttt{* * * * *} & \code{select private.expire_stale()}: delete ended live sessions; expire pending requests whose time is up or whose sender is not live; cancel accepted chats in which neither person is live; delete location changes older than 10 minutes, event posts, sign-up addresses and photo uploads older than a day, map positions older than 2 hours, and call counts from windows more than an hour old \\
     \bottomrule
   \end{tabularx}
 \end{table}

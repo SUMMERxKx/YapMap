@@ -38,6 +38,7 @@ type State = {
   myId: string | null;
   session: { email: string } | null;
   profile: Profile | null;
+  restricted: boolean; // the account is hidden after reports or suspended: show the restricted screen
   availability: Availability | null;
   availabilityExpired: boolean; // shows "Your time's up" until dismissed
   offlinePending: boolean; // tapped to get off, but the server didn't hear it yet
@@ -63,6 +64,7 @@ const initialState: State = {
   myId: null,
   session: null,
   profile: null,
+  restricted: false,
   availability: null,
   availabilityExpired: false,
   offlinePending: false,
@@ -179,6 +181,9 @@ export async function init() {
   if (initStarted) return;
   initStarted = true;
 
+  // The server refused something because the account is hidden or suspended.
+  api.onAccountRestricted(() => void checkRestricted());
+
   api.onAuthStateChange((signedIn) => {
     // Sign-out (from anywhere, including account deletion) resets the app.
     if (!signedIn) {
@@ -228,12 +233,13 @@ async function refreshAfterAuth() {
 
   // Load the profile before setting `session`: a session with no profile means "new
   // account" to the root layout, which then shows profile setup.
-  const profile = await api.fetchMyProfile();
+  const { profile, restricted } = await api.fetchMyAccount();
   const prefs = await loadPrefs(user.id);
   set({
     myId: user.id,
     session: { email: user.email ?? '' },
     profile,
+    restricted,
     loadFailed: false,
     safetyTipViews: prefs.safetyTipViews,
     eventRadiusKm: prefs.eventRadiusKm,
@@ -346,6 +352,11 @@ async function catchUpOnce() {
     return;
   }
   if (!state.profile) return; // signed out, or still setting up
+  if (state.restricted) {
+    // Maybe reviewed and restored meanwhile.
+    await checkRestricted();
+    return;
+  }
 
   const chatIdBefore = state.chat?.id ?? null;
   await retryGoOffline();
@@ -362,6 +373,31 @@ async function catchUpOnce() {
   await checkForMissedRequest();
   // Messages sent while away. A chat opened just now loads them when its channel joins.
   if (chatIdBefore !== null && state.chat?.id === chatIdBefore) await syncChatMessages();
+}
+
+/**
+ * Asks the server whether the account is hidden or suspended. The server has already ended
+ * everything a restricted account was in (live session, requests, chat, events), so the app lets
+ * go of them too; the root layout then shows the restricted screen instead of the app.
+ */
+async function checkRestricted() {
+  const myId = state.myId;
+  let restricted;
+  try {
+    ({ restricted } = await api.fetchMyAccount());
+  } catch {
+    return; // offline; the next catch-up tries again
+  }
+  if (state.myId !== myId || restricted === state.restricted) return;
+  if (restricted) {
+    stopChat?.();
+    stopEventMessages?.();
+    stopChat = null;
+    stopEventMessages = null;
+    clearLiveState(false);
+    set({ incoming: null, chat: null, events: [] });
+  }
+  set({ restricted });
 }
 
 /** Re-checks with the server that I'm still live and that the open chat is still on. */
@@ -1044,6 +1080,8 @@ export async function joinEvent(id: string, position: { latitude: number | null;
     if (event.joined) return {};
     return { joined: true, memberCount: event.memberCount + 1 };
   });
+  // The host's photo is only sent to people who joined, so load the pins again to get it.
+  if (lastEventsCenter) void loadEvents(lastEventsCenter).catch(() => {});
 }
 
 export async function leaveEvent(id: string) {

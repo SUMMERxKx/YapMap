@@ -67,8 +67,9 @@ export default function Guidelines() {
         <AppText color="textSecondary">
           Tap ··· on their profile or in your chat, or long-press their message in a group chat, to report or block
           them. Blocking is instant: you stop seeing each other. Every report is reviewed within 24 hours. Content
-          that breaks these rules is removed, and people who break them are suspended or removed from Yap. A profile
-          reported by three different people is hidden straight away until it has been reviewed.
+          that breaks these rules is removed, and people who break them are suspended or removed from Yap and can't
+          sign up again with the same email. A profile reported by three different people who met them on Yap (or who
+          have used Yap for a few days) is hidden straight away until it has been reviewed.
         </AppText>
         <AppText color="textSecondary">
           Slurs and abusive words are refused when you post them. There is zero tolerance for objectionable content

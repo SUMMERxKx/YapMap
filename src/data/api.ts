@@ -9,6 +9,8 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import { serverNow, syncServerClock } from '@/lib/server-clock';
 
+import { SUPPORT_EMAIL } from '@/config/links';
+
 import { INTEREST_RANGE, PASSWORD_MIN_LENGTH } from './constants';
 import { supabase } from './supabase-client';
 
@@ -155,6 +157,9 @@ const SERVER_REFUSALS: Record<string, string> = {
   'cannot block yourself': "You can't block yourself.",
   'cannot report yourself': "You can't report yourself.",
   'profile not ready': 'Finish your profile first.',
+  'account restricted': `Your account is on hold, so you can't do this right now. Email ${SUPPORT_EMAIL} if you think it's a mistake.`,
+  'too many lookups': "You're refreshing too fast. Wait a moment and try again.",
+  'location needed': 'Yap needs your location for this. Turn on location and try again.',
   'invalid location': "We couldn't use your location. Try again in a moment.",
   'invalid duration': 'Choose 30, 60 or 120 minutes.',
   'note too long': 'Notes can be up to 60 characters long.',
@@ -183,10 +188,21 @@ const CHECK_REFUSALS: Record<string, string> = {
   profiles_interests_valid: `Pick ${INTEREST_RANGE.min} to ${INTEREST_RANGE.max} different interests.`,
   availability_note_text: 'Notes are one line, without special characters.',
   messages_body_text: 'Messages need some text, without special characters.',
+  events_emoji_category: 'Pick one of the event types.',
 };
+
+// Called when the server refuses something because the account is hidden or suspended, so the
+// store can show the account-restricted screen. Set by the store.
+let onRestricted: (() => void) | null = null;
+
+/** Runs `listener` each time the server says the account is restricted (hidden or suspended). */
+export function onAccountRestricted(listener: () => void) {
+  onRestricted = listener;
+}
 
 /** Turns a database or storage error into a sentence for the screen, never raw database text. */
 function friendlyRpcError(error: { code?: string; message: string }) {
+  if (error.message === 'account restricted') onRestricted?.();
   const refusal = SERVER_REFUSALS[error.message];
   if (refusal) return refusal;
   // 23505 is a unique-index violation. The one people can hit is a second say-hi while
@@ -202,8 +218,8 @@ function friendlyRpcError(error: { code?: string; message: string }) {
     const constraint = error.message.match(/check constraint "([^"]+)"/)?.[1] ?? '';
     return CHECK_REFUSALS[constraint] ?? "Some of what you typed can't be saved. Remove any unusual characters and try again.";
   }
-  // Storage refusals: the photos bucket takes JPEG, PNG and WebP up to 5 MB, and at most 24
-  // files in your folder (more than the app ever keeps).
+  // Storage refusals: the photos bucket takes JPEG, PNG and WebP up to 1.5 MB, at most 16 files
+  // in your folder (twice what the app keeps) and 40 uploads a day.
   if (/exceeded the maximum allowed size/i.test(error.message)) {
     return 'That photo is too big. Choose a different one.';
   }
@@ -268,10 +284,11 @@ function subscribeAsMe(channel: RealtimeChannel, onSubscribed?: () => void) {
 // sign someone else's photo while the user can see that person (see can_see_photo).
 // Each profile picture also has a small copy next to it (<name>-small.jpg) for avatars.
 
-const SIGNED_URL_SECONDS = 60 * 60;
+// Short, so a link stops working soon after the owner blocks you or stops being visible to you.
+const SIGNED_URL_SECONDS = 15 * 60;
 // A signed URL is reused until it has less than this long left, so the same photo keeps
 // the same URL and the image cache doesn't download it again on every refresh.
-const SIGNED_URL_MIN_LEFT_MS = 10 * 60 * 1000;
+const SIGNED_URL_MIN_LEFT_MS = 5 * 60 * 1000;
 // A photo that couldn't be signed is asked for again after this long, so it shows up soon
 // after its owner becomes visible to you.
 const UNSIGNED_RETRY_MS = 60 * 1000;
@@ -280,8 +297,11 @@ const UNSIGNED_RETRY_MS = 60 * 1000;
 // is cut down too. Thumbnails the same way.
 const PHOTO_MAX_WIDTH = 1080;
 const THUMB_WIDTH = 320;
-// The photos bucket refuses anything bigger.
-const UPLOAD_MAX_BYTES = 5 * 1024 * 1024;
+// The photos bucket refuses anything bigger (1.5 MB). A 1080 px JPEG is usually far smaller;
+// one that isn't is saved again at a lower quality.
+const UPLOAD_MAX_BYTES = 1.5 * 1024 * 1024;
+const JPEG_QUALITY = 0.8;
+const JPEG_QUALITY_SMALLER = 0.6;
 
 // Storage path -> its signed URL, and when that URL stops working. The URL is null when the
 // file doesn't exist (e.g. a small copy of a photo uploaded before small copies existed) or
@@ -371,7 +391,7 @@ function urlsForPaths(urls: Record<string, string>, paths: string[]): string[] {
  * A picked photo as JPEG bytes, at most `maxWidth` wide and 16:9 tall (never larger than it
  * was). Throws a sentence for the screen when the file can't be opened (a broken or unusual file).
  */
-async function encodeJpeg(uri: string, maxWidth: number): Promise<Uint8Array> {
+async function encodeJpeg(uri: string, maxWidth: number, quality: number): Promise<Uint8Array> {
   let savedUri: string;
   try {
     let image = await ImageManipulator.manipulate(uri).renderAsync();
@@ -381,7 +401,7 @@ async function encodeJpeg(uri: string, maxWidth: number): Promise<Uint8Array> {
       // Resizes the image already loaded above instead of reading the file again.
       image = await ImageManipulator.manipulate(image).resize({ width: Math.round(image.width * scale) }).renderAsync();
     }
-    const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+    const saved = await image.saveAsync({ compress: quality, format: SaveFormat.JPEG });
     savedUri = saved.uri;
   } catch {
     throw new Error("That photo couldn't be opened. Choose a different one.");
@@ -391,7 +411,10 @@ async function encodeJpeg(uri: string, maxWidth: number): Promise<Uint8Array> {
 
 /** Re-encode a picked photo as a small JPEG (see encodeJpeg) and upload it. */
 async function uploadJpeg(uri: string, maxWidth: number, path: string) {
-  const bytes = await encodeJpeg(uri, maxWidth);
+  let bytes = await encodeJpeg(uri, maxWidth, JPEG_QUALITY);
+  if (bytes.length > UPLOAD_MAX_BYTES) {
+    bytes = await encodeJpeg(uri, maxWidth, JPEG_QUALITY_SMALLER);
+  }
   if (bytes.length > UPLOAD_MAX_BYTES) {
     throw new Error('That photo is too big. Choose a different one.');
   }
@@ -448,14 +471,18 @@ async function removeUnusedPhotos(userId: string, keep: string[]) {
 
 // ---------------------------------------------------------------- profile
 
-export async function fetchMyProfile(): Promise<Profile | null> {
+/**
+ * My profile (null until it is first saved), and whether my account is restricted: hidden after
+ * reports until they are reviewed, or suspended.
+ */
+export async function fetchMyAccount(): Promise<{ profile: Profile | null; restricted: boolean }> {
   const userId = await requireUserId();
   const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
   if (error) throw new Error(friendlyRpcError(error));
-  if (!data) return null;
+  if (!data) return { profile: null, restricted: false };
 
   const urls = await signPaths([data.photo_path ?? '', ...data.photo_paths]);
-  return {
+  const profile: Profile = {
     id: data.id,
     firstName: data.first_name,
     lastName: data.last_name,
@@ -468,6 +495,12 @@ export async function fetchMyProfile(): Promise<Profile | null> {
     isAdult: data.is_adult,
     verified: data.verified,
   };
+  return { profile, restricted: data.status !== 'active' };
+}
+
+export async function fetchMyProfile(): Promise<Profile | null> {
+  const { profile } = await fetchMyAccount();
+  return profile;
 }
 
 /** Uploads any new photos, saves the row, and returns the stored profile. */
@@ -476,7 +509,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   if (!values.photoUri) throw new Error('A profile picture is required.');
 
   // The saved row, if any. Files left over from an earlier save that failed halfway are
-  // removed first: the storage only takes 24 files per person.
+  // removed first: the storage only takes 16 files per person.
   const existing = await supabase.from('profiles').select('photo_path, photo_paths').eq('id', userId).maybeSingle();
   if (existing.error) throw new Error(friendlyRpcError(existing.error));
   let filesInUse: string[] = [];
@@ -589,7 +622,7 @@ export async function goGreen(args: {
   const { data, error } = await supabase.rpc('go_green', {
     lat: args.latitude,
     lng: args.longitude,
-    // 0 means a perfect fix; the server adds the accuracy to its 100 m base radius.
+    // 0 means a perfect fix. The server only keeps it (as 0 to 50 m); it doesn't change who is nearby.
     accuracy: args.accuracy ?? 0,
     minutes: args.minutes,
     note: args.note,
@@ -1017,20 +1050,31 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
   }));
 }
 
+// Refusals that only mean the server kept the position it already had for you.
+const POSITION_KEPT = new Set(['moving too fast', 'too many location changes']);
+
 /**
- * Events around a point, within `radiusM` metres. Leave it out for the server's default of
- * 10 km; the server never goes beyond 50 km.
+ * Tells the server where the phone is, for the map and joining events. The server only changes
+ * your position as often and as fast as going live allows; when it keeps the one it has, the
+ * map just uses that one.
+ */
+async function setMapPosition(position: { latitude: number; longitude: number }) {
+  const { error } = await supabase.rpc('set_map_position', { lat: position.latitude, lng: position.longitude });
+  if (error && !POSITION_KEPT.has(error.message)) throw new Error(friendlyRpcError(error));
+}
+
+/**
+ * Events within `radiusM` metres of the phone's position, which is sent first (setMapPosition):
+ * the server lists events only around the position it holds for you. Leave the radius out for
+ * the server's default of 10 km; the server never goes beyond 50 km.
  */
 export async function eventsNear(
-  center: { latitude: number; longitude: number },
+  position: { latitude: number; longitude: number },
   radiusM?: number,
 ): Promise<MapEvent[]> {
+  await setMapPosition(position);
   // An undefined radius is left out of the request, so the server's default applies.
-  const { data, error } = await supabase.rpc('events_near', {
-    lat: center.latitude,
-    lng: center.longitude,
-    radius_m: radiusM,
-  });
+  const { data, error } = await supabase.rpc('events_near', { radius_m: radiusM });
   if (error) throw new Error(friendlyRpcError(error));
   return toEvents((data ?? []) as EventCard[]);
 }
@@ -1058,7 +1102,8 @@ export async function createEvent(input: {
 }
 
 /**
- * Join an event from where the phone is; the server only allows it within about 5 km.
+ * Join an event from where the phone is (sent first, as for eventsNear); the server only allows
+ * it within about 5 km of the position it holds for you.
  * Returns 'event-deleted' when the host already deleted it.
  */
 export async function joinEvent(
@@ -1068,11 +1113,8 @@ export async function joinEvent(
   if (position.latitude === null || position.longitude === null) {
     throw new Error(NO_LOCATION);
   }
-  const { error } = await supabase.rpc('join_event', {
-    event_id: eventId,
-    lat: position.latitude,
-    lng: position.longitude,
-  });
+  await setMapPosition({ latitude: position.latitude, longitude: position.longitude });
+  const { error } = await supabase.rpc('join_event', { event_id: eventId });
   if (error && error.message === 'no such event') return 'event-deleted';
   if (error) throw new Error(friendlyRpcError(error));
 }

@@ -309,35 +309,41 @@ export type Database = {
       reports: {
         Row: {
           action: string | null;
+          counts_toward_hide: boolean;
           created_at: string;
           details: string;
           id: string;
           reason: string;
-          reported: string;
-          reporter: string;
+          reported: string | null;
+          reported_hash: string;
+          reporter: string | null;
           request_id: string | null;
           reviewed_at: string | null;
         };
         ComputedFields: never;
         Insert: {
           action?: string | null;
+          counts_toward_hide?: boolean;
           created_at?: string;
           details?: string;
           id?: string;
           reason: string;
-          reported: string;
-          reporter: string;
+          reported?: string | null;
+          reported_hash: string;
+          reporter?: string | null;
           request_id?: string | null;
           reviewed_at?: string | null;
         };
         Update: {
           action?: string | null;
+          counts_toward_hide?: boolean;
           created_at?: string;
           details?: string;
           id?: string;
           reason?: string;
-          reported?: string;
-          reporter?: string;
+          reported?: string | null;
+          reported_hash?: string;
+          reporter?: string | null;
           request_id?: string | null;
           reviewed_at?: string | null;
         };
@@ -370,6 +376,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      before_user_created: { Args: { event: Json }; Returns: Json };
       block_user: { Args: { target: string }; Returns: undefined };
       blocked_list: { Args: Record<PropertyKey, never>; Returns: Json[] };
       cancel_request: { Args: { request_id: string }; Returns: undefined };
@@ -380,10 +387,10 @@ export type Database = {
       delete_account: { Args: Record<PropertyKey, never>; Returns: undefined };
       delete_event: { Args: { event_id: string }; Returns: undefined };
       end_chat: { Args: { outcome: string; request_id: string }; Returns: undefined };
-      events_near: { Args: { lat: number; lng: number; radius_m?: number }; Returns: Json[] };
+      events_near: { Args: { radius_m?: number }; Returns: Json[] };
       go_green: { Args: { accuracy: number; lat: number; lng: number; minutes: number; note?: string }; Returns: Json };
       go_offline: { Args: Record<PropertyKey, never>; Returns: undefined };
-      join_event: { Args: { event_id: string; lat: number; lng: number }; Returns: undefined };
+      join_event: { Args: { event_id: string }; Returns: undefined };
       leave_event: { Args: { event_id: string }; Returns: undefined };
       my_status: { Args: Record<PropertyKey, never>; Returns: Json };
       nearby: { Args: Record<PropertyKey, never>; Returns: Json[] };
@@ -396,6 +403,7 @@ export type Database = {
       send_chat_message: { Args: { body: string; request_id: string }; Returns: Json };
       send_event_message: { Args: { body: string; event_id: string }; Returns: Json };
       send_request: { Args: { target: string }; Returns: Json };
+      set_map_position: { Args: { lat: number; lng: number }; Returns: undefined };
       update_note: { Args: { note: string }; Returns: undefined };
     };
     Enums: {

@@ -33,11 +33,12 @@ implemented.
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Security and privacy}}} \\
   Relocation across sessions & A modified client can reappear anywhere by going offline and live again, up to three times in ten minutes. Accepted to keep the delete-on-offline promise (\cref{sec:trade-off}). \\
-  Self-reported join position & \code{join_event} checks the distance to the position the phone sends and applies no relocation limit, so a modified client can join a distant event. \\
-  Signed URLs outlive visibility & A photo URL signed while its owner was visible works until it expires, up to an hour later. \\
+  Self-reported positions & The server stores only cells and limits how often and how fast a position changes, but it cannot verify the position the phone reports. A modified client can still send a fake position, within those limits, to see events or join one in another place; app attestation would be needed to close this. \\
+  Signed URLs outlive visibility & A photo URL signed while its owner was visible works until it expires, up to fifteen minutes later, even after a block. \\
   Shared event chats & A block hides the blocked user's group messages from the blocker, but not the blocker's messages from the blocked user. \\
   Self-declared age & The 18+ confirmation is not verified. \\
-  Manual moderation & Three reports hide a profile at once. The rest is done by hand in the Supabase SQL editor: reviewing reports, restoring a hidden profile (setting its status back to \code{active}), removing content and suspending with \code{private.suspend_user}, as \code{docs/legal/moderation.md} describes. There is no moderator screen, and the daily review depends on the owner doing it. \\
+  Manual moderation & Three counted reports hide a profile at once. The rest is done by hand in the Supabase SQL editor: reviewing reports, restoring a hidden profile with \code{private.restore_user}, removing content and suspending with \code{private.suspend_user}, as \code{docs/legal/moderation.md} describes. There is no moderator screen, and the daily review depends on the owner doing it. \\
+  Cheap accounts & An account needs only an email address and a code. The sign-up hook refuses throwaway domains, banned addresses and more than 20 accounts a day from one IP address, and new accounts' reports cannot hide anyone on their own, but every other limit is per account; there is no CAPTCHA, social sign-in or device check yet. \\
   Narrow word filter & The filter refuses only whole words from a short list of slurs and abuse, also with look-alike digits. Other spellings, abuse without listed words and offensive photos get through; reports and blocks are the main defence. Names and report details are not filtered. \\
   Session storage & The session is kept in AsyncStorage, which is not encrypted, because it is too large for the platform's secure store. \\
   \midrule

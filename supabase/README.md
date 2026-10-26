@@ -31,16 +31,22 @@ supabase test db      # runs the pgTAP checks in supabase/tests against the loca
 ```
 
 `supabase/tests/` holds SQL checks for server rules a modified app could otherwise get around
-(typed text, double say-hi, reports, the event limit, photo uploads). Each file runs in a
+(typed text, double say-hi, reports, the event limit, photo uploads, and in `safety_test.sql`
+the nearby cells, report trust, restricted accounts, the sign-up hook and the event position). Each file runs in a
 transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
 from separate connections (dblink) to show the daily event and report limits hold; the people it
 signs up there are saved for real, so it deletes them at its start and end. CI runs them too
 (the Database job), but run them yourself after changing those rules.
 
-The 24-files-per-person photo limit is best-effort: the storage policy counts the folder, and
-uploads sent at the same moment can't see each other, so together they can go a little past it.
-Each file is still at most 5 MB and only in the person's own folder. The event and report limits
-are exact, because `create_event` and `report_user` take a per-person lock before counting.
+The photo limits (16 files in a person's folder, 40 uploads a day) are best-effort: the storage
+policy counts them, and uploads sent at the same moment can't see each other, so together they
+can go a little past. Each file is still at most 1.5 MB and only in the person's own folder. The
+event, report, location-change and lookup limits (`nearby` 12 and `events_near` 20 a minute) are
+exact, because those functions take a per-person lock or row before counting.
+
+`supabase/config.toml` switches on the Before User Created auth hook
+(`public.before_user_created`) for the local stack, so local sign-ups are checked against the
+ban list, the throwaway-domain list and the 20-a-day limit per IP address like hosted ones.
 
 ## 3. Regenerate the app's types
 
@@ -77,6 +83,11 @@ hosted history stay identical. Rename it with `git mv` and change nothing inside
 Migration files check in CI accepts a rename only when the contents are byte-for-byte the
 same. `supabase db push` keeps the file's own version, so no rename is needed.
 
+Some migrations also need a one-time dashboard step, which the hosted project doesn't get from
+`db push`. `20261026083000_safety_fixes.sql` needs **Authentication -> Hooks -> Before User
+Created** switched on, as a Postgres function, `public.before_user_created` (see the main
+README).
+
 As of October 22, 2026 the hosted project has all eleven migrations, under exactly the
 versions the files in `supabase/migrations/` are named with. After linking,
 `supabase migration list` shows the same versions in the Local and Remote columns.
@@ -92,3 +103,15 @@ of slurs and abuse; intros, interests, notes, event text and messages are refuse
 contain one, names are not) and `private.suspend_user(id, note)` for acting on a report.
 [`docs/legal/moderation.md`](../docs/legal/moderation.md) has the daily review queries. The
 word list is data, so changing it needs no migration.
+
+`20261026083000_safety_fixes.sql` adds the rest of the moderation tools:
+
+- `private.suspend_user` also puts the person's email address on `private.banned_identities`
+  (as a hash of the normalised address), and so does deleting an account while it is hidden or
+  suspended. `private.restore_user(id)` makes an account active again and takes it off the list.
+- `private.disposable_email_domains` (loaded by `20261026083100_disposable_email_domains.sql`
+  from the public-domain disposable-email-domains list) holds the throwaway domains the sign-up
+  hook refuses. Both tables are data, so adding or removing a row needs no migration.
+- Reports are kept when either person deletes their account (`reporter` or `reported` becomes
+  null; `reported_hash` still ties together the reports about one person), and
+  `counts_toward_hide` says whether a report counted towards the automatic hide.

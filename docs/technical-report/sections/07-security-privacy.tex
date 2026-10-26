@@ -32,10 +32,25 @@ bypass it:
     and \code{end_chat}, for example, check neither.
 \end{itemize}
 
-The server must accept two inputs it cannot verify: the position the phone reports, and the GPS accuracy,
-which widens the nearby radius by at most 50 metres. The relocation limits bound how a live position may
-change (\cref{sec:relocation-limits}); the position sent to join an event is checked only against the
-event's distance.
+The server must accept one input it cannot verify: the position the phone reports. It stores only the
+centre of the cell of about 100 metres that the position falls in, and the relocation limits bound how
+often and how fast that stored position may change (\cref{sec:relocation-limits}). The GPS accuracy the
+phone also reports is clamped to 0--50 metres and stored, but no rule uses it.
+
+\section{Sign-up checks}
+\label{sec:signup-checks}
+
+Supabase Auth calls the Postgres function \code{public.before_user_created} before it creates any
+account (the \emph{Before User Created} auth hook), and shows its message to the person when it refuses.
+It refuses an email address whose normalised form (lowercase, without a \code{+tag}, and for Gmail
+without dots) has a SHA-256 hash in \code{private.banned_identities}; an address at one of about ten
+thousand throwaway domains in \code{private.disposable_email_domains}, or at a subdomain of one; and a
+twenty-first account in 24 hours from the same IP address, counted by a hash of the address in
+\code{private.signup_ips}. The per-address limit is generous because a campus network puts many
+students behind one address. Suspending a person adds their address to the ban list, and so does
+deleting an account while it is hidden or suspended, so a banned person cannot delete the account and
+sign up again with the same address. The hook is switched on in \code{supabase/config.toml} for the local
+stack and in the dashboard for the hosted project.
 
 \section{Authentication and sessions}
 
@@ -77,8 +92,8 @@ signed-in user may do directly; everything else happens inside a database functi
     \code{events}, \code{event_members} & --- & --- & --- \\
     \code{blocks} & blocks the user made & --- & blocks the user made \\
     \code{reports} & --- & --- & --- \\
-    \code{location_changes}, \code{event_posts}, \code{blocked_words} & --- & --- & --- \\
-    \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & directly in own folder, at most 24 files & own folder \\
+    Every table in \code{private} & --- & --- & --- \\
+    \code{storage.objects} (\code{photos}) & own folder, or a photo of someone the user can see & directly in own folder, at most 16 files and 40 uploads a day & own folder \\
     \bottomrule
   \end{tabularx}
 \end{table}
@@ -101,13 +116,16 @@ can do nothing outside its intended trigger.
 \begin{description}
   \item[Identity.] Every function acts as \code{auth.uid()}; a user cannot request, block or report
     themselves.
-  \item[Profile standing.] Going live, creating and joining events require an active adult profile;
-    only active users can be found or sent a request.
+  \item[Profile standing.] Going live, changing the live note, saying hi, sending chat and group messages,
+    setting the map position, and creating and joining events require an active adult profile; a hidden
+    or suspended caller is refused with \code{account restricted}. Only active users can be found or sent a
+    request.
   \item[State.] A request can be answered only while it is \code{pending} and addressed to the caller; a
     chat can be ended or written to only while it is \code{accepted} and the caller takes part in it;
     one request may wait per sender and one chat may run per user; only its host can delete an event.
-  \item[Proximity.] Nearby lists and requests require both users to be live within 100 to 150 metres,
-    and so does seeing a stranger's photos; joining an event requires being within 5 kilometres of it.
+  \item[Proximity.] Nearby lists and requests require both users to be live in the same cell of about
+    100 metres or a touching one, and so does seeing a stranger's photos; listing events and joining one
+    use the position the server holds for the caller, and joining requires being within 5 kilometres.
   \item[Blocks.] Any block between two users, in either direction, stops every interaction between
     them (\cref{sec:blocking-reporting}).
   \item[Limits.] Lengths, durations, start times and rates (\cref{tab:rate-limits}).
@@ -127,29 +145,42 @@ A live position follows a short, fixed path:
   \item The app asks for \emph{while using the app} permission only, never background location. It reads a
     position when the user taps \ui{Go live} or \ui{Join}, and when the \ui{Map} tab centres on the user. It
     does not follow the user's movements.
-  \item \code{go_green} stores the position in the user's \code{availability} row, which no client can read.
-  \item Database functions use the position only to compare distances. No function returns it, and no
+  \item \code{go_green} stores only the centre of the cell the position falls in
+    (\code{private.cell_center}) in the user's \code{availability} row, which no client can read. Rows of
+    cells are 100 metres of latitude tall, and each row is cut into cells 100 metres wide at its own middle
+    latitude, so a cell's centre depends only on the position itself.
+  \item Database functions use the stored centre only to compare distances. No function returns it, and no
     function returns a distance: \code{nearby} returns person cards, and the cards contain no location.
   \item \code{go_offline} deletes the row the moment the user goes offline, and the minute job deletes it
     when the session ends. No copy is kept. \code{private.location_changes} keeps the time of each
     location change for ten minutes, but never the place.
 \end{enumerate}
 
-The positions sent to \code{events_near} (the centre of the map, usually the user's position) and to
-\code{join_event} are used for one query each and are not stored. Event locations
-are the exception to all of this by design: they are places hosts choose to publish, and the map shows
-them to anyone within the chosen radius.
+The map works the same way. Before it lists events, and before joining one, the app sends the phone's
+position to \code{set_map_position}, which stores its cell centre in \code{private.map_positions} under the
+same limits as going live and keeps it for two hours. \code{events_near} and \code{join_event} take no
+position: they measure from the stored map position, or the live position when there is none, so a
+modified client cannot look at events in another city or join one from far away. Event locations are the
+exception to all of this by design: they are places hosts choose to publish, and the map shows them to
+anyone whose own position is within the chosen radius.
 
-The nearby radius is deliberately coarse. A user appears to others only as ``nearby'', within 100 metres
-plus the viewer's reported accuracy and never beyond 150 metres, and moves of 150 metres or less do not
-change the stored position at all (\cref{sec:relocation-limits}), so the list cannot be used to track
-someone's small movements.
+Nearby is deliberately coarse. Two live users are nearby when their cell centres are at most 150 metres
+apart: the same cell or one touching it, which puts them between a few metres and about 280 metres
+apart. The answer depends only on which cells the two users are in and the distance is the same for
+everyone, so no number of calls, accounts or reported accuracies can narrow a position down to less
+than a cell. An earlier rule used 100 metres plus the caller's reported accuracy, up to 150 metres; a
+modified client could change only its accuracy, watch someone appear and disappear, and so measure their
+distance and position to within centimetres. Moves of 150 metres or less do not change the stored
+position at all (\cref{sec:relocation-limits}), so the list cannot be used to track someone's small
+movements either.
 
 \subsection{Relocation limits}
 \label{sec:relocation-limits}
 
 A modified client could call \code{go_green} with arbitrary coordinates and then \code{nearby}, and so
-learn who is live at places the user is not. \code{go_green} limits this probing in three ways:
+learn who is live at places the user is not. \code{go_green} and \code{set_map_position} limit this
+probing in three ways, and each takes a per-user lock first, so calls sent at once are counted one after
+another:
 
 \begin{itemize}
   \item \textbf{GPS wobble is ignored.} If the user is live and the new position is within 150 metres of
@@ -157,9 +188,14 @@ learn who is live at places the user is not. \code{go_green} limits this probing
     up to a large move.
   \item \textbf{Speed.} While the user is live, a larger move must not exceed 150 metres plus walking pace,
     10 km/h, over the time since the stored position was set (\cref{lst:speed}).
-  \item \textbf{Frequency.} Starting a session, or moving more than 150 metres, counts as a location
-    change. At most three are allowed in any ten minutes.
+  \item \textbf{Frequency.} Starting a session, setting a map position, or moving more than 150 metres,
+    counts as a location change. At most three are allowed in any ten minutes, shared between the two
+    functions; going live where the map position already is, or the reverse, does not count again.
 \end{itemize}
+
+The map position's speed rule applies for two hours after it was set; after that it is forgotten and the
+next position counts as a new start. \code{nearby} and \code{events_near} also take at most 12 and 20
+calls a minute per user.
 
 \begin{lstlisting}[language=pgsql, caption={The speed check in \code{go_green}. \code{moved_m} is the distance from the stored position.}, label={lst:speed}]
 -- 10 km/h is 10000 m per 3600 s, counted from when your live position was set
@@ -177,6 +213,8 @@ by the frequency rule: three location changes in ten minutes, or about eighteen 
 keeping each user's last position after they go offline so that the speed rule could span sessions, would
 have broken the promise. The project chose to keep the promise and accept this residual risk; no cooldown
 was added.
+The map position does not close this gap: it is kept for two hours only so that the map cannot jump
+between cities, and its speed rule lapses when it is forgotten in the same way.
 
 \section{Photo privacy}
 \label{sec:photo-privacy}
@@ -184,7 +222,9 @@ was added.
 Photos are the most identifying data in Yap, and their protection has four layers.
 
 \paragraph{A private bucket} The \code{photos} bucket is private, so no photo has a public address.
-Clients see a photo only through a signed URL, valid for one hour.
+Clients see a photo only through a signed URL, valid for fifteen minutes. The bucket takes files of at
+most 1.5\,MB; a user's folder holds at most 16 files, and a user may upload at most 40 a day
+(\code{private.photo_uploads}, filled by a trigger on \code{storage.objects}).
 
 \paragraph{Own folder only} Storage policies let a user upload, overwrite and delete only inside the
 folder named after their own user ID. Check constraints on \code{profiles} require the profile picture and
@@ -201,12 +241,13 @@ allows a photo only if all of the following hold:
   \item neither user has blocked the other;
   \item and one of these is true: the owner is on the user's nearby list right now (owner active, live and
     open, and both near each other); a request between them is waiting, or they are chatting or met; or
-    the file is the owner's profile picture and the owner hosts an event the map shows.
+    the file is the owner's profile picture and the user has joined an event the owner hosts. Event cards
+    carry the host's photo path only for the host and the people who joined.
 \end{itemize}
 
 \paragraph{Short-lived URLs} The policy is checked when a URL is signed. A URL signed while its owner was
-visible stays usable until it expires, at most one hour later, even if the owner stops being visible in
-the meantime.
+visible stays usable until it expires, at most fifteen minutes later, even if the owner stops being
+visible or blocks the user in the meantime.
 
 \section{What other users can see}
 
@@ -222,13 +263,14 @@ the meantime.
     \textsf{\textbf{Data}} & \textsf{\textbf{Visible to others}} \\
     \midrule
     First name, last initial & On the person card, in event cards (host) and with every message sent \\
+    Host's profile picture & In event cards and through a signed URL, only to the people who joined the event \\
     Last name, email address & Never \\
     Gender & On the person card, only if the owner chose to show it and did not choose \ui{Prefer not to say} \\
     Introduction, interests & On the person card \\
     Photos & Through signed URLs, only while the owner is visible to the viewer (\cref{sec:photo-privacy}) \\
     Live note & On the person card while the owner is live; through \code{request_person} only while the request or chat is still going \\
     Live position, distance & Never \\
-    Event location & To anyone whose map radius covers it, by design \\
+    Event location & To anyone whose own position's map radius covers it, by design \\
     Being live & Only to other live users nearby, and only while the owner is \code{open} \\
     Blocks and reports & Never; a reported user is not told who reported them \\
     \bottomrule
@@ -251,14 +293,24 @@ blocked user can still write in an event both have joined, but the user who bloc
 those messages, because the \code{messages} select policy removes them, and the app filters them again.
 Unblocking deletes the row, and the person can appear again at the next refresh.
 
-A report records the reason and details. When three different users have reported the same profile, the
-profile becomes \code{hidden}: it disappears from nearby lists, cannot receive requests, and its owner can
-no longer go live or create or join events, until the owner reviews it. The owner reviews open reports at
+A report records the reason and details, and whether it counts towards the automatic hide
+(\code{counts_toward_hide}). A report counts when the reporter is active and either met the reported
+person through the app (a request or chat between them, or an event both joined) or has an established
+account (at least three days old, with no open report against it). Reports from brand-new accounts that
+never met the person still reach the review queue but cannot hide anyone, so three throwaway accounts can
+no longer hide a real person. When three different users' counted reports name the same profile, the
+profile becomes \code{hidden}, and \code{private.end_activity} ends everything the person is in, as
+suspending does: their live session and map position, waiting requests and chats, and event
+memberships. A hidden profile disappears from nearby lists and cannot receive requests, and its owner is
+refused with \code{account restricted} when trying to go live, say hi, send messages, change the note, or
+create or join events, until the owner reviews it. The app then shows an \ui{account on hold} screen with
+the support address. Reports are kept when either user deletes their account: the user's id becomes
+null, and \code{reported_hash}, a hash of the reported id, still groups the reports about one person. The owner reviews open reports at
 least once every 24 hours, as the app stores require, from the Supabase SQL editor with the queries in
 \code{docs/legal/moderation.md}, and records each outcome in \code{reviewed_at} and \code{action}. A
 profile that broke the guidelines is suspended with \code{private.suspend_user}, which also ends
-everything the person is part of (\cref{sec:moderation}); a hidden profile found harmless is set back to
-\code{active}. There is no moderator screen in the app. The community guidelines, which every user agrees
+everything the person is part of and bans their email address (\cref{sec:moderation}); a hidden profile
+found harmless is made active again with \code{private.restore_user}. There is no moderator screen in the app. The community guidelines, which every user agrees
 to at sign-up, say what is not allowed and that reports are reviewed within 24 hours.
 
 \section{Rate limits and abuse controls}
@@ -279,9 +331,11 @@ to at sign-up, say what is not allowed and that reports are reviewed within 24 h
     Sending messages & 30 per sender per minute, both chat kinds & \code{send_chat_message}, \code{send_event_message} \\
     Creating events & 5 per host in any 24 hours, deleted events included; exact for calls sent at once & \code{create_event} (a per-host lock); \code{private.event_posts} \\
     Reporting & 1 report per person per day; 10 people per day; exact for calls sent at once & \code{report_user} (a per-reporter lock) \\
-    Storing photos & 24 files per user; best-effort, as uploads sent at once can go a little past it & storage insert policy \\
-    Changing location & 3 changes in any 10 minutes & \code{go_green} \\
-    Moving while live & 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
+    Storing photos & 16 files per user, 40 uploads a day, 1.5\,MB each; the counts are best-effort, as uploads sent at once can go a little past them & storage insert policy; bucket size limit \\
+    Changing location & 3 changes in any 10 minutes, live and map together; exact for calls sent at once & \code{go_green}, \code{set_map_position} (a per-user lock) \\
+    Moving & 150\,m plus 10\,km/h since the position was set, while live or within 2 hours of setting the map position & \code{go_green}, \code{set_map_position} \\
+    Looking up & \code{nearby} 12 and \code{events_near} 20 calls a minute & \code{private.count_call} \\
+    Signing up & 20 accounts per IP address in 24 hours; no banned or throwaway addresses & \code{public.before_user_created} \\
     Email codes & 1 per address per minute on the hosted project; 1 per second on the local stack & Supabase Auth: a dashboard setting; \code{max_frequency} in \code{supabase/config.toml} \\
     Auth requests & Supabase's per-project limits & Supabase Auth \\
     \bottomrule

@@ -21,7 +21,7 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \endhead
   \bottomrule
   \endfoot
-  \code{not signed in} & \code{go_green}, \code{send_request}, \code{cancel_request}, \code{block_user}, \code{report_user}, \code{delete_account}, \code{create_event}, \code{join_event}, \code{delete_event} & Your session has ended. Sign in again. \\
+  \code{not signed in} & \code{go_green}, \code{update_note}, \code{nearby}, \code{send_request}, \code{cancel_request}, both send functions, \code{block_user}, \code{report_user}, \code{delete_account}, \code{set_map_position}, \code{events_near}, \code{create_event}, \code{join_event}, \code{delete_event} & Your session has ended. Sign in again. \\
   \code{cannot request yourself} & \code{send_request} & You can't say hi to yourself. \\
   \code{not available} & \code{send_request}, \code{respond}, \code{send_chat_message}, \code{join_event} & They're not available right now. \\
   \code{not nearby} & \code{send_request} & They're not nearby any more. \\
@@ -35,12 +35,15 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \code{too many messages} & both send functions & You're sending messages too fast. Wait a moment and try again. \\
   \code{cannot block yourself} & \code{block_user} & You can't block yourself. \\
   \code{cannot report yourself} & \code{report_user} & You can't report yourself. \\
-  \code{profile not ready} & \code{go_green}, \code{create_event}, \code{join_event} & Finish your profile first. \\
-  \code{invalid location} & \code{go_green}, \code{create_event}, \code{join_event} & We couldn't use your location. Try again in a moment. \\
+  \code{profile not ready} & the functions that call \code{private.require_active}: \code{go_green}, \code{update_note}, \code{send_request}, both send functions, \code{set_map_position}, \code{create_event}, \code{join_event} & Finish your profile first. \\
+  \code{account restricted} & the same functions, for a hidden or suspended account & Your account is on hold, so you can't do this right now. Email support@samarxkx.dev if you think it's a mistake. (The app also switches to the \ui{account on hold} screen.) \\
+  \code{invalid location} & \code{go_green}, \code{set_map_position}, \code{create_event} & We couldn't use your location. Try again in a moment. \\
+  \code{location needed} & \code{events_near}, \code{join_event} & Yap needs your location for this. Turn on location and try again. \\
+  \code{too many lookups} & \code{nearby}, \code{events_near} & You're refreshing too fast. Wait a moment and try again. \\
   \code{invalid duration} & \code{go_green} & Choose 30, 60 or 120 minutes. \\
   \code{note too long} & \code{go_green}, \code{update_note} & Notes can be up to 60 characters long. \\
-  \code{moving too fast} & \code{go_green} & Your location changed too quickly. Wait a few minutes, then try again. \\
-  \code{too many location changes} & \code{go_green} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. \\
+  \code{moving too fast} & \code{go_green}, \code{set_map_position} & Your location changed too quickly. Wait a few minutes, then try again. (From \code{set_map_position} it is not shown: the map keeps the position the server holds.) \\
+  \code{too many location changes} & \code{go_green}, \code{set_map_position} & You've gone live or moved too often in the last 10 minutes. Wait a few minutes, then try again. (Not shown from \code{set_map_position}, as above.) \\
   \code{invalid start time} & \code{create_event} & Pick a start time within the next 7 days. \\
   \code{too many events} & \code{create_event} & You've posted as many events as you can today. Try again tomorrow. \\
   \code{invalid title} & \code{create_event} & Give your event a title on one line, without special characters. \\
@@ -48,7 +51,7 @@ expired sessions and, finally, anything else (\cref{tab:other-errors}).
   \code{invalid reason} & \code{report_user} & Pick a reason for the report. \\
   \code{too many reports} & \code{report_user} & You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you. \\
   \code{objectionable text} & the word-filter triggers, so profile saves, \code{go_green}, \code{update_note}, \code{create_event} and both send functions & That has words Yap doesn't allow (see the community guidelines). Change them and try again. \\
-  check constraint 23514 & direct profile writes and the functions that save typed text & A sentence for the rule's name (for example \code{messages_body_text}: Messages need some text, without special characters.), or a general one for any other rule \\
+  check constraint 23514 & direct profile writes and the functions that save typed text or an event category & A sentence for the rule's name (for example \code{messages_body_text}: Messages need some text, without special characters; \code{events_emoji_category}: Pick one of the event types.), or a general one for any other rule \\
   \code{no such event} & \code{join_event}, \code{delete_event} & This event has ended. (A join instead shows \ui{This event was deleted}; a delete counts it as done.) \\
   \code{not the host} & \code{delete_event} & Only the host can delete this event. \\
   \code{too far away} & \code{join_event} & You can join an event from within 5 km of it. \\
@@ -79,3 +82,9 @@ Supabase Auth errors are mapped separately by \code{friendlyAuthError}: wrong cr
 account, a weak or unchanged password, a password change that needs a fresh sign-in, rate limits on
 requests and on emails, and network failures each have their own sentence, and an invalid or expired code
 always reads \ui{Invalid or expired code. Please request a new one.}
+
+The sign-up hook (\cref{sec:signup-checks}) refuses with its own sentences, which Supabase Auth passes to
+the app and \code{friendlyAuthError} shows as they are: \ui{This email address can't be used for Yap. If
+you think that's a mistake, email support@samarxkx.dev.} for a banned address, \ui{Use an email address
+you'll keep. Temporary email addresses can't be used for Yap.} for a throwaway domain, and \ui{Too many
+accounts were made from this network today. Try again tomorrow.} for the per-address limit.

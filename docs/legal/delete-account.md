@@ -23,8 +23,12 @@ days, then reply to let you know.
 
 Everything linked to your account: your email address and password, your profile and all your
 photos, your live session, every say-hi request and chat you were part of and their messages,
-the events you host and their group chats, your event memberships and group messages, the
-people you blocked, and reports made by you or about you.
+the events you host and their group chats, your event memberships and group messages, and the
+people you blocked.
+
+Safety reports made by you or about you are kept, without your account linked to them, so we
+can still act on them. If your account was hidden or suspended when you deleted it, we keep a
+scrambled (hashed) copy of your email address so it can't be used to sign up again.
 
 Copies in our hosting provider's backups are overwritten within a short time (see the
 [Privacy Policy](https://samarxkx.dev/yap/privacy)). Nothing is kept after that.

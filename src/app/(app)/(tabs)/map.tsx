@@ -17,7 +17,8 @@ import { eventCategory } from '@/lib/event-category';
 import { loadEvents, setEventRadius, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
-// Used until we know where the user is (or if they don't share location).
+// Where the map starts, until we know where the user is. Events are only ever listed around the
+// user's own position, which the server holds, so this place never loads any.
 const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitudeDelta: 0.04, longitudeDelta: 0.04 };
 
 // A position the phone already knows is good enough if it is at most this old.
@@ -107,7 +108,7 @@ export default function EventsMap() {
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [location, setLocation] = useState<LocationState>({ status: 'checking' });
-  // Where events are loaded around: the user once found, Vancouver until then.
+  // Where events are loaded around: the user once found.
   const [eventsCenter, setEventsCenter] = useState({
     latitude: DEFAULT_REGION.latitude,
     longitude: DEFAULT_REGION.longitude,
@@ -117,8 +118,6 @@ export default function EventsMap() {
   // Where the map was last asked to centre on the user. A move asked for before the map is
   // ready is ignored, so onMapReady makes it again.
   const userRegion = useRef<Region | null>(null);
-  // Events are loaded around Vancouver only once, if we never find the user.
-  const loadedFallback = useRef(false);
   // Read when the app comes back to the front: only then is it worth asking the phone again.
   const wasDenied = useRef(false);
 
@@ -140,10 +139,6 @@ export default function EventsMap() {
       return;
     }
     setLocation(result);
-    if (!loadedFallback.current) {
-      loadedFallback.current = true;
-      loadEventsQuietly(DEFAULT_REGION);
-    }
   };
 
   // The map stays usable while this runs.
@@ -207,7 +202,7 @@ export default function EventsMap() {
     locationPrompt = (
       <View style={[styles.prompt, { gap: spacing.sm, marginTop: spacing.sm }]}>
         <AppText variant="caption" color="textSecondary">
-          Showing events around Vancouver. Turn on location to see the ones near you.
+          Turn on location to see the events near you.
         </AppText>
         <Button label="Turn on location" variant="secondary" size="compact" onPress={turnOnLocation} />
       </View>

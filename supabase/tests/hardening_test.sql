@@ -1,5 +1,6 @@
 -- Checks for the rules added in 20261022103744_break_it_hardening.sql: each test is something a
--- modified app did successfully before that migration. Run against the local stack:
+-- modified app did successfully before that migration. (The photo limit is 16 files since
+-- 20261026083000_safety_fixes.sql.) Run against the local stack:
 --
 --   supabase start
 --   supabase test db
@@ -155,10 +156,10 @@ select throws_ok(
   '42501', null, 'a photo in a sub-folder of your own folder is refused'
 );
 insert into storage.objects (bucket_id, name)
-select 'photos', pg_temp.id_of(1) || '/photo-' || n || '.jpg' from generate_series(1, 24) as n;
+select 'photos', pg_temp.id_of(1) || '/photo-' || n || '.jpg' from generate_series(1, 16) as n;
 select throws_ok(
-  $$ insert into storage.objects (bucket_id, name) values ('photos', pg_temp.id_of(1) || '/photo-25.jpg') $$,
-  '42501', null, 'a 25th file in your folder is refused'
+  $$ insert into storage.objects (bucket_id, name) values ('photos', pg_temp.id_of(1) || '/photo-17.jpg') $$,
+  '42501', null, 'a 17th file in your folder is refused'
 );
 reset role;
 

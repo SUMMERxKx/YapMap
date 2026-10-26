@@ -6,10 +6,12 @@
     one-to-one chat until the chat ends.
   \item[API function] An exported function in \code{src/data/api.ts}, the client's only route to the
     backend.
-  \item[Availability] The database row that records that a user is live: position, accuracy, note, state
+  \item[Availability] The database row that records that a user is live: cell centre, accuracy, note, state
     and the session's start and end.
   \item[Caller] The signed-in user on whose behalf a database function runs, identified by
     \code{auth.uid()}.
+  \item[Cell] A square of about 100 metres. A live or map position is stored only as the centre of its
+    cell, and two users are nearby when their cells are the same or touch.
   \item[Catch-up] The store procedure that asks the server where things stand after the app returns to the
     foreground, reconnects, or a channel re-joins.
   \item[Chat] A one-to-one conversation between two users, opened when a request is accepted. Distinct from
@@ -29,8 +31,10 @@
   \item[Go offline] To end a live session early. The interface calls it \ui{get off}.
   \item[Group chat] The chat of an event, open to its members.
   \item[Guard] A Boolean in the root layout that decides which stack of screens may be shown.
-  \item[Hidden] The status of a profile that three different users have reported. A hidden profile is left
-    out of nearby lists and event lists and cannot go live, until the owner reviews it.
+  \item[Hidden] The status of a profile that three different users' counted reports name: reports from
+    people who met the person through the app or from established accounts. A hidden profile is left out
+    of nearby lists and event lists, everything it was in ends, and it cannot go live, say hi or send
+    messages, until the owner reviews it.
   \item[Helper] A function in the \code{private} schema, shared by database functions or used by policies,
     and not callable through the Data API.
   \item[Host] The user who created an event: its first member, and the only user who can delete it.
@@ -38,11 +42,13 @@
     lists.
   \item[Live note] An optional text of up to 60 characters shown to nearby users while its author is live,
     often saying where to find them.
+  \item[Map position] The cell centre the server holds for a user who opened the map in the last two hours;
+    events are listed and joined from it.
   \item[Member] A user who has joined an event and may read and write its group chat.
   \item[Minute job] The \code{pg_cron} job \code{yap-expire-stale}, which runs \code{private.expire_stale}
     every minute.
-  \item[Nearby] Within 100 metres plus the reported GPS accuracy of the first user's phone, and never more
-    than 150 metres, with both users live.
+  \item[Nearby] In the same cell or touching cells (cell centres at most 150 metres apart), with both users
+    live.
   \item[Not this time] What the sender sees when a request is declined, expires or is withdrawn by the
     server. The three cannot be told apart.
   \item[Open] The live state of a user who can appear on nearby lists and receive requests.
@@ -64,8 +70,8 @@
     caller's. Yap's database functions use it to perform writes that row-level security forbids to clients
     directly, after checking the rules themselves.
   \item[Suspended] The status the owner gives a profile with \code{private.suspend_user} after reviewing
-    reports. It ends the person's live session, requests, chats and event memberships; setting the status
-    back to \code{active} lifts it.
+    reports. It ends the person's live session, requests, chats and event memberships, and puts their email
+    address on the ban list; \code{private.restore_user} lifts it.
   \item[Signed URL] A time-limited address for a file in the private photo bucket, created only for a user
     allowed to read the file.
   \item[Small copy] The 320-pixel copy of a profile picture, stored next to it with the suffix

@@ -24,6 +24,7 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{myId} & string or null; null & The signed-in user's ID \\
   \code{session} & \texttt{\{email\}} or null; null & The signed-in account \\
   \code{profile} & \code{Profile} or null; null & The user's own profile, photos as signed URLs \\
+  \code{restricted} & Boolean; false & The account is hidden or suspended: the root layout shows the \ui{account on hold} screen \\
   \code{availability} & \code{Availability} or null; null & The live session: \code{minutes}, \code{note}, \code{startedAt}, \code{expiresAt} \\
   \code{availabilityExpired} & Boolean; false & Shows \ui{Your time's up} until dismissed \\
   \code{offlinePending} & Boolean; false & Going offline has not reached the server yet \\

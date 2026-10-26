@@ -32,8 +32,8 @@ you off the app}. The app is built around a short, repeated loop:
   \item \textbf{Go live.} A user taps the large \ui{YAP} button, chooses how long to be visible (30, 60 or
     120 minutes) and may add a note of up to 60 characters, such as where to find them. The phone sends
     its position once, and the user becomes \term{live}.
-  \item \textbf{See who is nearby.} While live, the user sees a list of the other live users within about
-    100 metres. The list shows a photo, first name and last initial, the note, an introduction and
+  \item \textbf{See who is nearby.} While live, the user sees a list of the other live users in the same
+    cell of about 100 metres or a touching one. The list shows a photo, first name and last initial, the note, an introduction and
     interests. It never shows a location or a distance.
   \item \textbf{Say hi.} The user opens one person's profile and sends a \term{say-hi request}. The
     recipient has five minutes to answer. A sender can have only one request waiting at a time.
@@ -127,10 +127,11 @@ cannot be bypassed.
   \multicolumn{3}{@{}l}{\textsf{\textbf{Going live and nearby}}} \\
   Live duration & 30, 60 or 120 minutes & \code{go_green}; \code{DURATIONS} in \code{constants.ts} \\
   Live note length & 0 to 60 characters on one line & check constraints; \code{go_green}, \code{update_note} \\
-  Nearby radius & 100\,m plus the caller's reported GPS accuracy, at most 150\,m & \code{nearby}, \code{private.near_each_other} \\
+  Nearby & the same cell of about 100\,m or a touching one (cell centres at most 150\,m apart); the reported accuracy is stored as 0--50\,m and changes nothing & \code{nearby}, \code{private.near_each_other}, \code{private.cell_center} \\
   Nearby list size & at most 50 people & \code{nearby} \\
+  Nearby lookups & at most 12 per minute & \code{nearby} \\
   Nearby refresh & every 20\,s while live and on screen & \code{NEARBY_REFRESH_MS}, \code{useNearbyPolling} \\
-  Location changes & at most 3 in any 10 minutes & \code{go_green} \\
+  Location changes & at most 3 in any 10 minutes, live and map together & \code{go_green}, \code{set_map_position} \\
   Movement while live & at most 150\,m plus 10\,km/h since the position was set & \code{go_green} \\
   GPS wobble & moves of 150\,m or less are ignored & \code{go_green} \\
   \midrule
@@ -144,12 +145,15 @@ cannot be bypassed.
   Chat history loaded & newest 200 messages & \code{HISTORY_LIMIT} in \code{api.ts} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
-  Map radius & 1 to 50\,km, default 10\,km & slider and \code{EVENT_RADIUS_KM}; \code{events_near} caps at 50\,km \\
+  Map radius & 1 to 50\,km around the position the server holds, default 10\,km & slider and \code{EVENT_RADIUS_KM}; \code{events_near} caps at 50\,km \\
+  Map position & kept 2 hours; changes under the live limits & \code{set_map_position} \\
+  Event lookups & at most 20 per minute & \code{events_near} \\
   Visibility after start & 3 hours & \code{events_near} \\
   Start time & now to 7 days ahead (server allows 5 minutes in the past) & event form; \code{create_event} \\
   Events created & at most 5 per host in any 24 hours, deleted ones included & \code{create_event}, \code{private.event_posts} \\
   Events listed & at most 50 & \code{events_near} \\
-  Join distance & within 5\,km & \code{join_event} \\
+  Join distance & within 5\,km of the position the server holds & \code{join_event} \\
+  Category & one of the 12 in \code{EVENT_CATEGORIES} & \code{events_emoji_category} check constraint \\
   Title and description & 1 to 60 (one line, something visible) and 0 to 200 characters & \code{create_event}; check constraints; form limits \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Profiles and photos}}} \\
@@ -159,16 +163,17 @@ cannot be bypassed.
   Text people type & no control characters, direction overrides or more than 3 stacked accents & check constraints (\code{private.is_clean_text}); \code{src/lib/clean-text.ts} \\
   Extra photos & 4 to 6 in the app; at most 6 on the server & forms; \code{profiles_photo_paths_max} \\
   Picked photo & a photo (not a video), at most 50 megapixels and 50\,MB & \code{photoProblem} in \code{src/lib/picked-photo.ts} \\
-  Uploaded photo & JPEG, at most 1080\,px wide and 1920\,px tall, quality 0.8 & \code{uploadJpeg} \\
+  Uploaded photo & JPEG, at most 1080\,px wide and 1920\,px tall, quality 0.8 (0.6 if that is over 1.5\,MiB) & \code{uploadJpeg} \\
   Avatar copy & JPEG, at most 320\,px wide and 569\,px tall & \code{uploadJpeg} \\
-  Storage object & at most 5\,MiB; JPEG, PNG or WebP & \code{photos} bucket settings \\
-  Files per user & at most 24 (best-effort against uploads sent at once), directly in the user's folder & \code{photos_insert_own_folder} policy \\
-  Signed photo URL & valid 1 hour; reused until 10 minutes remain & \code{SIGNED_URL_SECONDS}, \code{SIGNED_URL_MIN_LEFT_MS} \\
+  Storage object & at most 1.5\,MiB; JPEG, PNG or WebP & \code{photos} bucket settings \\
+  Files per user & at most 16 and 40 uploads a day (best-effort against uploads sent at once), directly in the user's folder & \code{photos_insert_own_folder} policy \\
+  Signed photo URL & valid 15 minutes; reused until 5 minutes remain & \code{SIGNED_URL_SECONDS}, \code{SIGNED_URL_MIN_LEFT_MS} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Accounts and safety}}} \\
   Password & at least 8 characters & \code{PASSWORD_MIN_LENGTH}; Supabase Auth setting \\
   Emailed code & 8 digits; resend after 60\,s & email templates; \code{verify.tsx} \\
-  Automatic hiding & 3 distinct reporters & \code{report_user} \\
+  Automatic hiding & 3 distinct reporters who met the person through the app or whose accounts are at least 3 days old with no open report & \code{report_user} \\
+  Sign-ups & at most 20 per IP address in 24 hours; no banned or throwaway email addresses & \code{public.before_user_created} (auth hook) \\
   Report details & at most 500 characters & \code{report_user}; check constraints \\
   Reports & 1 per person reported per day (a repeat keeps the first); at most 10 people a day & \code{report_user} \\
   Word filter & whole words from \code{private.blocked_words}, also with look-alike digits and symbols; intro, interests, live note, event title and details, messages & word-filter triggers (\code{private.refuse_blocked_words}) \\

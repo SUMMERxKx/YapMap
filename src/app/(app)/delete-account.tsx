@@ -18,13 +18,13 @@ import { deleteAccount, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Everything that goes with the account: the photos first, then the database rows (each of these
-// is linked to the account and deleted with it).
+// is linked to the account and deleted with it). Safety reports stay, without the account linked.
 const DELETED = [
   'Your profile: name, gender, intro, interests and every photo',
   'Your live status, note and location',
   'Every say-hi request and 1:1 chat, with their messages',
   'Events you host and their group chats, and your messages in other events',
-  'Your block list and the reports linked to your account',
+  'Your block list',
   'Your sign-in: your email address and password',
 ];
 

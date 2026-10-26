@@ -112,8 +112,9 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
     \midrule
     \code{(auth)} & not signed in & Welcome, sign-up, sign-in, emailed codes, password reset \\
     \code{profile-setup} & signed in and no profile row & The 18+ confirmation and six setup steps \\
-    \code{verify-face} & signed in, profile, not verified & Selfie check (switched off) \\
-    \code{(app)} & signed in, profile, verified & The app itself \\
+    \code{account-restricted} & signed in, profile, hidden or suspended & Explains the hold, with the support email and a sign-out \\
+    \code{verify-face} & signed in, profile, active, not verified & Selfie check (switched off) \\
+    \code{(app)} & signed in, profile, active, verified & The app itself \\
     \bottomrule
   \end{tabularx}
 \end{table}

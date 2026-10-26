@@ -6,16 +6,16 @@
 
 # Yap Privacy Policy
 
-**Last updated:** 22 October 2026
+**Last updated:** 26 October 2026
 
 Yap is an app for meeting people who are nearby, in person. It is made by Samar Khajuria
 ("we", "us"). This policy explains what Yap keeps about you, why, who helps us run it, how
 long it is kept and how to delete it.
 
 The short version: we keep what you put in your profile, the chats and events you take part
-in, and your safety reports and blocks, for as long as you have an account. Your exact location
-is only used while you are live and is deleted as soon as you stop. Nobody else ever sees
-where you are. We don't sell your data, show ads, or track you across other apps.
+in, and your safety reports and blocks, for as long as you have an account. We only ever store
+your location as an area of about 100 metres, only while you are live or using the map, and
+delete it soon after. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
 
 Questions or requests: **support@samarxkx.dev**.
 
@@ -27,6 +27,10 @@ Questions or requests: **support@samarxkx.dev**.
   stored only as a secure hash by our sign-in provider; we can never read it.
 - **The 8-digit codes we email you** to confirm your address or reset your password. They
   expire after a short time.
+- **When you sign up,** we check your email address against a list of temporary-email services
+  and against our list of banned addresses, and we keep a scrambled (hashed) copy of the IP
+  address it came from for one day, so one network can't make more than 20 accounts a day. The
+  hash can't be turned back into the IP address.
 
 ### Your profile
 
@@ -40,10 +44,12 @@ Questions or requests: **support@samarxkx.dev**.
 
 ### When you go live
 
-- **Your precise location** (latitude, longitude and how accurate your phone says it is), the
-  **note** you add ("How to find me"), and when your session started and ends. We use the
-  location only to work out who is within about 100 metres of you. It is **never shown to
-  anyone**, and it is **deleted when you get off or your time runs out** (within a minute).
+- **Your area:** your phone sends its location, and we store only the centre of the square of
+  about 100 metres it falls in, never the exact point (plus how accurate your phone says the
+  location is, between 0 and 50 metres). We also keep the **note** you add ("How to find me")
+  and when your session started and ends. We use the area only to work out who is in the same
+  square as you or one next to it. It is **never shown to anyone**, and it is **deleted when you
+  get off or your time runs out** (within a minute).
 - **The times you started a session or moved** (not where), kept for 10 minutes so the app can
   limit how often a live location can change. This stops people from hopping around to find
   out who is live where.
@@ -64,15 +70,21 @@ These are kept until either person deletes their account.
 - **Who joined each event** and **the group chat messages**.
 
 Events and their group chats are kept until the host deletes the event or their account.
-When you use the map, your phone's location is sent with the search to find events near you
-and to check you are within 5 km when you join one; it is not stored.
+When you use the map, your phone sends its location and we store your **area** (the centre of
+the square of about 100 metres it falls in) for up to 2 hours. The map lists events around that
+area, and joining an event checks you are within 5 km of it. Like a live location, it can only
+change a few times in 10 minutes, and it is never shown to anyone.
 
 ### Safety
 
 - **People you block**, so you never see each other.
 - **Reports you make** (who, the reason, any details you add) and reports made about you. We
-  read reports to keep Yap safe (see our Community Guidelines). A profile reported by three
-  different people is hidden until we have reviewed it.
+  read reports to keep Yap safe (see our Community Guidelines). A profile is hidden until we
+  have reviewed it when three different people report it who met that person on Yap (a say-hi,
+  a chat or an event they both joined) or have used Yap for at least 3 days.
+- **Banned email addresses.** If we suspend an account, or an account is deleted while it is
+  hidden or suspended, we keep a scrambled (hashed) copy of its email address so it can't sign
+  up again.
 - **Text checks.** Intros, interests, notes, event text and messages are checked against a
   short list of slurs and abusive words when you save or send them. Text that fails is
   refused, not stored.
@@ -97,8 +109,8 @@ no microphone, and no payment details. Yap has no ads and no in-app purchases.
   see your location or distance.
 - **Someone you said hi to, or who said hi to you**, sees your profile while the request is
   waiting and during and after a chat.
-- **People who can see an event you host** see your first name, last initial and profile
-  photo.
+- **People who can see an event you host** (on the map within 50 km of their own area) see
+  your first name and last initial. Only **people who joined the event** see your profile photo.
 - **Nobody** sees you while either of you has blocked the other.
 
 ## Who helps us run Yap
@@ -125,9 +137,13 @@ someone's safety.
 
 | Data | Kept until |
 | --- | --- |
-| Live location and note | You get off, or your time runs out (deleted within a minute) |
+| Live area and note | You get off, or your time runs out (deleted within a minute) |
+| Map area | 2 hours after it was set |
 | Location-change times | 10 minutes |
-| Profile, photos, chats, messages, events, blocks, reports | You delete your account (or we remove it for breaking the rules) |
+| Scrambled IP addresses of sign-ups, and photo upload times | 1 day |
+| Profile, photos, chats, messages, events, blocks | You delete your account (or we remove it for breaking the rules) |
+| Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
+| Banned email addresses (hashed) | Until we lift the ban |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
 | Backups | Overwritten by our hosting provider, within `[OWNER: the backup retention of your Supabase plan, e.g. 7 days]` |
@@ -138,8 +154,10 @@ In the app: **Profile → Settings (gear) → Delete account**, then confirm the
 deletes, straight away:
 your account and email address, your profile and all your photos, your live session, every
 say-hi request and chat you were part of and their messages, the events you host and their
-group chats, your event memberships and group messages, your blocks, and the reports you made
-or that were made about you.
+group chats, your event memberships and group messages, and your blocks. Safety reports you
+made or that were made about you are kept without your account linked to them. If your account
+was hidden or suspended when you deleted it, a scrambled copy of your email address is kept so
+it can't be used to sign up again.
 
 If you can't use the app, email **support@samarxkx.dev** from the address you signed up with
 and we'll delete your account within 30 days. The steps are also at
@@ -169,7 +187,7 @@ using Yap, report them in the app or email us.
 
 Every connection to Yap is encrypted (HTTPS). Database rules let each person read only what
 they are allowed to see, every change goes through checks on our server, and photos are
-stored privately and shown through links that expire within an hour. No system is perfect, so
+stored privately and shown through links that expire within 15 minutes. No system is perfect, so
 please use a password you don't use anywhere else.
 
 ## Changes

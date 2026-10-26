@@ -35,7 +35,9 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{signOut()} & \code{auth.signOut} & --- \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Profile and photos}}} \\
-  \code{fetchMyProfile()} & select own \code{profiles} row; storage \code{createSignedUrls} & \code{Profile} or null \\
+  \code{fetchMyAccount()} & select own \code{profiles} row; storage \code{createSignedUrls} & \texttt{\{profile, restricted\}}: the \code{Profile} or null, and whether the status is not \code{active} \\
+  \code{fetchMyProfile()} & \code{fetchMyAccount} & \code{Profile} or null \\
+  \code{onAccountRestricted(fn)} & none; the refusal mapper calls it on \code{account restricted} & --- \\
   \code{saveProfile(values)} & select own row; storage \code{list} and \code{remove} files the saved row doesn't use; storage \code{upload} for new photos and the 320\,px copy; insert or update; \code{list} and \code{remove} unused files again; then \code{fetchMyProfile} & \code{Profile} \\
   \code{signPhotos(paths)} & storage \code{createSignedUrls} for uncached paths & display URLs \\
   \code{forgetSession()} & none; clears the URL cache and removes every Realtime channel & --- \\
@@ -75,9 +77,9 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{deleteAccount()} & storage \code{list} (pages of 100) and \code{remove}; rpc \code{delete_account}; \code{auth.signOut} & --- \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
-  \code{eventsNear(centre, radiusM?)} & rpc \code{events_near}; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
+  \code{eventsNear(position, radiusM?)} & rpc \code{set_map_position} (a refusal for moving too far or too often is ignored), then \code{events_near}; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
   \code{createEvent(input)} & rpc \code{create_event} & \code{MapEvent} \\
-  \code{joinEvent(id, position)} & rpc \code{join_event}; throws first if there is no position & \code{'event-deleted'} on \code{no such event} \\
+  \code{joinEvent(id, position)} & rpc \code{set_map_position} as above, then \code{join_event}; throws first if there is no position & \code{'event-deleted'} on \code{no such event} \\
   \code{leaveEvent(id)} & rpc \code{leave_event} & --- \\
   \code{deleteEvent(id)} & rpc \code{delete_event}; \code{no such event} counts as done & --- \\
 \end{longtable}

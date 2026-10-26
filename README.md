@@ -46,8 +46,8 @@ Testing against the real backend:
   then you choose a new password. Accounts created before passwords existed (when sign-in
   was by emailed code only) have no password yet: they use "Forgot password" once to set
   one. A signed-in user can change their password in Settings (the gear on the Profile tab).
-- The core loop needs two phones signed in with different emails, within ~100 m of each
-  other (same room counts), both live.
+- The core loop needs two phones signed in with different emails, close to each other (the
+  same room always counts: the server compares squares of about 100 m), both live.
 
 ## Supabase dashboard setup (owner, one time)
 
@@ -65,6 +65,10 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
   into the app's code screen.
 - **Magic link** template: no longer used by the app, since sign-in by emailed code alone
   was replaced by email and password.
+- **Authentication -> Hooks -> Before User Created**: enabled, type **Postgres**, function
+  `public.before_user_created` (from `20261026083000_safety_fixes.sql`). It refuses banned and
+  throwaway email addresses and more than 20 sign-ups a day from one IP address. The local stack
+  switches it on in `supabase/config.toml`.
 
 ## Code tour
 

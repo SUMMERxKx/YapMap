@@ -31,7 +31,7 @@ string, which the client parses with \code{Date.parse}.
   \code{go_green(lat double precision, lng double precision, accuracy double precision, minutes integer, note text default '')} & \code{jsonb} & plpgsql; \texttt{\{startedAt, expiresAt\}} \\
   \code{update_note(note text)} & \code{void} & plpgsql \\
   \code{go_offline()} & \code{void} & sql \\
-  \code{nearby()} & \code{setof jsonb} & sql, stable; person cards \\
+  \code{nearby()} & \code{setof jsonb} & plpgsql (volatile: it counts the call); person cards \\
   \code{send_request(target uuid)} & \code{jsonb} & plpgsql; \texttt{\{id, expiresAt\}} \\
   \code{cancel_request(request_id uuid)} & \code{void} & plpgsql \\
   \code{respond(request_id uuid, accept boolean)} & \code{void} & plpgsql \\
@@ -43,12 +43,14 @@ string, which the client parses with \code{Date.parse}.
   \code{blocked_list()} & \code{setof jsonb} & sql, stable; \texttt{\{id, firstName, lastInitial\}} \\
   \code{report_user(target uuid, reason text, details text default '', request_id uuid default null)} & \code{void} & plpgsql \\
   \code{delete_account()} & \code{void} & plpgsql \\
-  \code{events_near(lat double precision, lng double precision, radius_m double precision default 10000)} & \code{setof jsonb} & sql, stable; event cards \\
+  \code{set_map_position(lat double precision, lng double precision)} & \code{void} & plpgsql \\
+  \code{events_near(radius_m double precision default 10000)} & \code{setof jsonb} & plpgsql (volatile: it counts the call); event cards \\
   \code{create_event(emoji text, title text, description text, lat double precision, lng double precision, starts_at_ms bigint)} & \code{jsonb} & plpgsql; an event card \\
-  \code{join_event(event_id uuid, lat double precision, lng double precision)} & \code{void} & plpgsql \\
+  \code{join_event(event_id uuid)} & \code{void} & plpgsql \\
   \code{leave_event(event_id uuid)} & \code{void} & plpgsql \\
   \code{delete_event(event_id uuid)} & \code{void} & plpgsql \\
   \code{send_event_message(event_id uuid, body text)} & \code{jsonb} & plpgsql; the saved \code{messages} row \\
+  \code{before_user_created(event jsonb)} & \code{jsonb} & plpgsql, definer; the Before User Created auth hook, executable only by \code{supabase_auth_admin}; \texttt{\{\}} or \texttt{\{error: \{http\_code, message\}\}} \\
 \end{longtable}
 \endgroup
 
@@ -69,6 +71,14 @@ string, which the client parses with \code{Date.parse}.
   \code{private.blocked_between(a uuid, b uuid)} & \code{boolean} & sql, stable, definer; no API role \\
   \code{private.person_card(target uuid)} & \code{jsonb} & sql, stable, definer; no API role \\
   \code{private.near_each_other(a uuid, b uuid)} & \code{boolean} & sql, stable, definer; no API role \\
+  \code{private.cell_center(lat double precision, lng double precision)} & \code{geography} & sql, immutable, not definer; no API role \\
+  \code{private.require_active(uid uuid)} & \code{void} & plpgsql, stable, definer; no API role \\
+  \code{private.count_call(uid uuid, list_name text, max_calls integer, per interval)} & \code{void} & plpgsql, definer; no API role \\
+  \code{private.my_position(uid uuid)} & \code{geography} & sql, stable, definer; no API role \\
+  \code{private.end_activity(target uuid)} & \code{void} & plpgsql, definer; no API role \\
+  \code{private.normalised_email(email text)}, \code{private.email_hash(email text)} & \code{text} & sql, immutable, not definer; no API role \\
+  \code{private.ban_email_of(target uuid, reason text)} & \code{void} & sql, definer; no API role \\
+  \code{private.set_reported_hash()} & \code{trigger} & plpgsql, not definer; no API role; before insert on \code{reports} \\
   \code{private.event_card(ev uuid, viewer uuid)} & \code{jsonb} & sql, stable, definer; no API role \\
   \code{private.is_chat_participant(req uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\
   \code{private.is_event_member(ev uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\
@@ -78,10 +88,13 @@ string, which the client parses with \code{Date.parse}.
   \code{private.is_clean_text(value text, multiline boolean)} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by check constraints) \\
   \code{private.valid_interests(interests text[])} & \code{boolean} & sql, immutable, not definer; \code{authenticated}, \code{service_role} (used by a check constraint) \\
   \code{private.my_photo_count()} & \code{bigint} & sql, stable, definer; \code{authenticated} (used by a storage policy) \\
+  \code{private.my_uploads_today()} & \code{bigint} & sql, stable, definer; \code{authenticated} (used by a storage policy) \\
+  \code{private.record_photo_upload()} & \code{trigger} & plpgsql, definer; no API role; after insert on \code{storage.objects} \\
   \code{private.expire_stale()} & \code{void} & sql, definer; no API role; run by \code{pg_cron} \\
   \code{private.has_blocked_word(input text)} & \code{boolean} & sql, stable, definer; no API role (used by the word filter) \\
   \code{private.refuse_blocked_words()} & \code{trigger} & plpgsql, definer; no API role; the four word-filter triggers pass it the column names \\
   \code{private.suspend_user(target uuid, note text default 'suspended')} & \code{void} & plpgsql, definer; no API role; run by the owner in the SQL editor \\
+  \code{private.restore_user(target uuid)} & \code{void} & plpgsql, definer; no API role; run by the owner in the SQL editor \\
 \end{longtable}
 \endgroup
 
@@ -98,8 +111,8 @@ platform function \code{public.rls_auto_enable()} has \code{EXECUTE} revoked fro
     \texttt{photoPath}, \texttt{photoPaths}, \texttt{note} (empty when not live), \texttt{verified}.
   \item[Event card] \texttt{id}, \texttt{emoji}, \texttt{title}, \texttt{description}, \texttt{latitude},
     \texttt{longitude}, \texttt{startsAt}, \texttt{host} (\texttt{id}, \texttt{firstName},
-    \texttt{lastInitial}, \texttt{photoPath}), \texttt{memberCount}, \texttt{joined} (whether the viewer is
-    a member).
+    \texttt{lastInitial}, \texttt{photoPath}, null unless the viewer is a member), \texttt{memberCount},
+    \texttt{joined} (whether the viewer is a member).
   \item[Message row] \texttt{id}, \texttt{request\_id}, \texttt{event\_id}, \texttt{sender},
     \texttt{sender\_name} (first name, space, last initial, full stop), \texttt{body},
     \texttt{created\_at} (an ISO~8601 string, not milliseconds).

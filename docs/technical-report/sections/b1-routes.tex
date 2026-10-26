@@ -20,7 +20,8 @@ does not appear in the URL. \Cref{sec:navigation} explains the guards.
   \bottomrule
   \endfoot
   \multicolumn{3}{@{}l}{\textsf{\textbf{Root}}} \\
-  \code{_layout.tsx} & --- & Theme, \code{init()}, the four guarded stacks, \ui{Can't reach Yap}, the offline banner \\
+  \code{_layout.tsx} & --- & Theme, \code{init()}, the five guarded stacks, \ui{Can't reach Yap}, the offline banner \\
+  \code{account-restricted.tsx} & --- & \ui{Your account is on hold} for a hidden or suspended account: \ui{Email support}, \ui{Use a different account} \\
   \code{verify-face.tsx} & --- & Selfie check with a random pose; reached only when \code{FEATURES.selfieVerification} is on \\
   \code{guidelines.tsx} & --- & Community guidelines: the rules, what happens when someone breaks them, the word filter; opened from sign-up and Settings, signed in or out \\
   \code{acknowledgements.tsx} & --- & Yap's copyright and every open-source package the app ships, each with its licence text (\code{src/data/third-party-licenses.json}) \\

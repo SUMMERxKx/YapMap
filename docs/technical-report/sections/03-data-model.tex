@@ -1,12 +1,14 @@
 \chapter{Data model}
 \label{ch:data-model}
 
-The database holds eight application tables in the \code{public} schema and three tables in the
-\code{private} schema: two logs and the word filter's list. Every table except that list references
-\code{profiles}, which has one row per account and itself
+The database holds eight application tables in the \code{public} schema and nine tables in the
+\code{private} schema: the map position, short-lived logs and counters for the limits, and four lists
+(blocked words, banned email addresses, throwaway email domains and sign-up addresses). Every public table
+references \code{profiles}, which has one row per account and itself
 references the Supabase Auth user. \Cref{fig:er} shows the tables, their columns and the foreign keys
 between them. Every foreign key to a user cascades on delete, so removing an Auth user removes everything
-that belongs to that user (\cref{sec:flow-delete}).
+that belongs to that user (\cref{sec:flow-delete}). The one exception is \code{reports}: its two user
+keys become null, so a report outlives both accounts.
 
 \begin{figure}[p]
   \centering
@@ -14,8 +16,9 @@ that belongs to that user (\cref{sec:flow-delete}).
   \caption{Entity-relationship diagram. Each box lists a table's columns. Lines are foreign keys,
     labelled with the referencing columns, with the cardinality at each end. The dashed box is the
     Storage table that holds photos; it is linked to \code{profiles} by folder name, not by a foreign
-    key. The two dashed tables are in the \code{private} schema; the third private table,
-    \code{blocked_words}, has no foreign key and is not drawn.}
+    key. The two dashed tables are in the \code{private} schema; the other private tables
+    (\cref{sec:private-tables}) are not drawn. Unlike every other link to \code{profiles}, the two in
+    \code{reports} are set to null when the account is deleted, so 0 or 1 profile stands at that end.}
   \label{fig:er}
 \end{figure}
 
@@ -33,10 +36,12 @@ file directly inside the owner's own folder (\cref{sec:photo-privacy}).
 
 Three columns are controlled by the server. \code{is_adult} records the 18+ confirmation and must be
 true when the row is inserted. \code{verified} is reserved for the selfie check; clients cannot write it.
-\code{status} is \code{active}, \code{hidden} or \code{suspended}; reports set it to \code{hidden}
-automatically, the owner sets it to \code{suspended} with \code{private.suspend_user} after reviewing
-reports, and setting it back to \code{active} restores the profile (\cref{sec:blocking-reporting}). Only an \code{active} profile can go live, appear in
-lists, create or join events, or receive a request.
+\code{status} is \code{active}, \code{hidden} or \code{suspended}; counted reports set it to
+\code{hidden} automatically, the owner sets it to \code{suspended} with \code{private.suspend_user} after
+reviewing reports, and \code{private.restore_user} sets it back to \code{active}
+(\cref{sec:blocking-reporting}). Only an \code{active} profile can go live, appear in lists, say hi, send
+messages, create or join events, or receive a request; the app shows any other status the
+\ui{account on hold} screen.
 
 Other users never read this table. What they may see of a profile is built by the helper
 \code{private.person_card} (\cref{sec:person-card}).
@@ -44,7 +49,8 @@ Other users never read this table. What they may see of a profile is built by th
 \subsection{Availability}
 
 \code{availability} holds one row for each user who is live right now, and nothing else. The row stores
-the position as a PostGIS \code{geography(point, 4326)}, the accuracy the phone reported, the live note
+the centre of the user's cell of about 100 metres as a PostGIS \code{geography(point, 4326)}
+(\cref{sec:location-privacy}), the accuracy the phone reported clamped to 0--50 metres, the live note
 (up to 60 characters), a state of \code{open} or \code{chatting}, and the start and end of the session.
 Rows are deleted when the user goes offline and by the minute job when the session ends, so the table
 stays small however many accounts exist, and its spatial index stays fast. No client can read the table;
@@ -124,8 +130,9 @@ cannot read the sender's profile row to look the name up.
 \code{events} holds the public events on the map. Each has a host, a category, a title (1 to 60
 characters), a description (up to 200 characters), a position and a start time. The position is a place
 the host chose on the map and is, by design, the one location in the system that other users are meant
-to see. The \code{emoji} column stores the category as one of twelve emoji values; the client maps each
-value to an icon and a name (\cref{tab:event-categories}). \code{event_members} records who has joined
+to see. The \code{emoji} column stores the category as one of twelve emoji values, and a check
+constraint (\code{events_emoji_category}) refuses anything else; the client maps each value to an icon
+and a name (\cref{tab:event-categories}). \code{event_members} records who has joined
 which event. The host is added as a member when the event is created, and only the host can delete the
 event (\code{delete_event}); its members and messages are deleted with it.
 
@@ -138,14 +145,23 @@ the report relates to, one of six reasons (\code{inappropriate-photo}, \code{har
 \code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. The columns
 \code{reviewed_at} and \code{action} record the owner's review: the owner sets them in the SQL editor
 while working through open reports, and \code{private.suspend_user} sets them on every open report of
-the person it suspends (\cref{sec:moderation}).
+the person it suspends (\cref{sec:moderation}). \code{counts_toward_hide} records whether the report
+counted towards the automatic hide, and \code{reported_hash}, set by a trigger, is a SHA-256 of the
+reported id. When either user deletes their account, their id in the report becomes null, and the hash
+still groups the reports about one person.
 
 \subsection{Location changes}
 
-\code{private.location_changes} records the time at which each user started a live session or moved more
-than 150 metres while live. It stores no position. \code{go_green} counts the rows from the last ten
-minutes to limit how often a location may change, and the minute job deletes rows older than that
-(\cref{sec:relocation-limits}).
+\code{private.location_changes} records the time at which each user started a live session, set a map
+position, or moved more than 150 metres. It stores no position. \code{go_green} and
+\code{set_map_position} count the rows from the last ten minutes to limit how often a location may
+change, and the minute job deletes rows older than that (\cref{sec:relocation-limits}).
+
+\subsection{Map positions}
+
+\code{private.map_positions} holds, for each user who opened the map in the last two hours, the centre
+of their cell and when it was set. \code{set_map_position} writes it; \code{events_near} and
+\code{join_event} measure from it; the minute job deletes it after two hours.
 
 \subsection{Event posts}
 
@@ -160,10 +176,20 @@ about twenty unambiguous slurs and words of abuse aimed at a person. Only the fi
 It is data rather than code, so the owner changes it in the SQL editor without a migration
 (\cref{sec:word-filter}).
 
+\subsection{Other private tables}
+\label{sec:private-tables}
+
+The sign-up hook (\cref{sec:signup-checks}) reads \code{private.banned_identities}, SHA-256 hashes of
+normalised email addresses with a reason; \code{private.disposable_email_domains}, about ten thousand
+throwaway domains from a public-domain list; and \code{private.signup_ips}, a hash of the IP address and
+the time of each sign-up it let through, kept for a day. \code{private.call_counts} keeps one row per user
+and looked-up list with the calls in the current window, and \code{private.photo_uploads} the time of
+each photo upload, kept for a day. None of them is readable by any client.
+
 \subsection{Photos in Storage}
 
 Photo files are objects in the Storage bucket \code{photos}, which is private, accepts JPEG, PNG and
-WebP, and limits each file to 5\,MiB. The app names every object
+WebP, and limits each file to 1.5\,MiB. The app names every object
 \code{<user-id>/<slot>-<milliseconds>.jpg}, where the slot is \code{profile} for the profile picture and
 \code{photo0} to \code{photo5} for the others. The profile picture also has a 320-pixel copy at the same
 path with the suffix \code{-small.jpg}, used for small avatars.
@@ -195,8 +221,10 @@ path with the suffix \code{-small.jpg}, used for small avatars.
     \code{messages (event_id, created_at)} & Group chat history \\
     \code{messages (sender, created_at)} & The rate limit on sending messages \\
     \code{blocks (blocked)} & Block checks in the reverse direction \\
-    \code{reports (reported)}, \code{(reporter)}, \code{(request_id)} & Counting reporters; cascades \\
-    \code{private.location_changes (user_id, changed_at)} & The relocation limit in \code{go_green} \\
+    \code{reports (reported)}, \code{(reporter)}, \code{(request_id)} & Counting reporters; clearing ids on deletion \\
+    \code{private.location_changes (user_id, changed_at)} & The relocation limit in \code{go_green} and \code{set_map_position} \\
+    \code{private.signup_ips (ip_hash, created_at)} & The sign-up limit per IP address \\
+    \code{private.photo_uploads (user_id, uploaded_at)} & The daily upload limit \\
     \code{private.event_posts (user_id, posted_at)} & The event limit in \code{create_event} \\
     \bottomrule
   \end{tabularx}
@@ -240,14 +268,15 @@ interests, the storage paths of the profile picture and other photos, the live n
 a full profile (\code{nearby}, \code{request_person}, \code{my_status}) returns person cards, so this helper
 is the single definition of what a profile reveals. Two places return less: \code{blocked_list} returns
 only ID, first name and last initial, and an event card's host adds only the profile picture's path to
-those.
+those, and only for the people who joined the event.
 
 \subsection{Event categories}
 
 The category of an event is stored as an emoji value in \code{events.emoji}. The app shows an icon and a
 name instead; the table \code{EVENT_CATEGORIES} in \code{src/data/constants.ts} maps one to the other
-(\cref{tab:event-categories}). A value missing from the table, for example one written by a newer app,
-falls back to a calendar icon named \ui{Event}. The database default is the first value, Coffee.
+(\cref{tab:event-categories}). The database accepts only these values; a value missing from the app's
+table, for example one added by a newer app, falls back to a calendar icon named \ui{Event}. The database
+default is the first value, Coffee.
 
 \begin{table}[ht]
   \centering
