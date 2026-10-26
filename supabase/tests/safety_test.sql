@@ -1,4 +1,4 @@
--- Checks for the rules added in 20261026083000_safety_fixes.sql: each test is something the
+-- Checks for the rules added in 20261026180208_safety_fixes.sql: each test is something the
 -- October 2026 QA report did successfully before that migration. Run against the local stack:
 --
 --   supabase start

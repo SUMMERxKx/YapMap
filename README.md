@@ -66,7 +66,7 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
 - **Magic link** template: no longer used by the app, since sign-in by emailed code alone
   was replaced by email and password.
 - **Authentication -> Hooks -> Before User Created**: enabled, type **Postgres**, function
-  `public.before_user_created` (from `20261026083000_safety_fixes.sql`). It refuses banned and
+  `public.before_user_created` (from `20261026180208_safety_fixes.sql`). It refuses banned and
   throwaway email addresses and more than 20 sign-ups a day from one IP address. The local stack
   switches it on in `supabase/config.toml`.
 

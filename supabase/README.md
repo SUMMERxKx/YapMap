@@ -84,7 +84,7 @@ Migration files check in CI accepts a rename only when the contents are byte-for
 same. `supabase db push` keeps the file's own version, so no rename is needed.
 
 Some migrations also need a one-time dashboard step, which the hosted project doesn't get from
-`db push`. `20261026083000_safety_fixes.sql` needs **Authentication -> Hooks -> Before User
+`db push`. `20261026180208_safety_fixes.sql` needs **Authentication -> Hooks -> Before User
 Created** switched on, as a Postgres function, `public.before_user_created` (see the main
 README).
 
@@ -104,13 +104,13 @@ contain one, names are not) and `private.suspend_user(id, note)` for acting on a
 [`docs/legal/moderation.md`](../docs/legal/moderation.md) has the daily review queries. The
 word list is data, so changing it needs no migration.
 
-`20261026083000_safety_fixes.sql` adds the rest of the moderation tools:
+`20261026180208_safety_fixes.sql` adds the rest of the moderation tools:
 
 - `private.suspend_user` also puts the person's email address on `private.banned_identities`
   (as a hash of the normalised address), and so does deleting an account while it is hidden or
   suspended. `private.restore_user(id)` makes an account active again, takes it off the list and
   marks its open reports reviewed.
-- `private.disposable_email_domains` (loaded by `20261026083100_disposable_email_domains.sql`
+- `private.disposable_email_domains` (loaded by `20261026180218_disposable_email_domains.sql`
   from the public-domain disposable-email-domains list) holds the throwaway domains the sign-up
   hook refuses. Both tables are data, so adding or removing a row needs no migration.
 - Reports are kept when either person deletes their account (`reporter` or `reported` becomes

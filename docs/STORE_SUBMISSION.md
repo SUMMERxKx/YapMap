@@ -32,7 +32,7 @@ something new, update this file, `docs/legal/privacy-policy.md` and
    `supabase/migrations/` (`supabase/README.md`, step 4). As of October 22, 2026 it has all
    eleven, including `20261022100308_content_moderation.sql` (the word filter and
    `private.suspend_user` the stores ask for) and `20261022103744_break_it_hardening.sql`
-   (the text rules and daily limits). `20261026083000_safety_fixes.sql` also needs the Before
+   (the text rules and daily limits). `20261026180208_safety_fixes.sql` also needs the Before
    User Created auth hook switched on in the dashboard (README, "Supabase dashboard setup").
    Check again before each release: after `supabase link`,
    `supabase migration list` shows the same versions in the Local and Remote columns.
