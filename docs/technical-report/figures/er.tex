@@ -30,7 +30,7 @@
   \node[entity=30mm, anchor=north] (blocks) at (1.75,-8.4) {\textbf{blocks}\nodepart{two}
     blocker\pkfk\\ blocked\pkfk\\ created\_at};
   \node[entity=30mm, anchor=north] (reports) at (1.75,-10.8) {\textbf{reports}\nodepart{two}
-    id\pk\\ reporter\fk\\ reported\fk\\ request\_id\fk\\ reason\\ details\\ created\_at\\ reviewed\_at\\ action};
+    id\pk\\ reporter\fk\\ reported\fk\\ reported\_hash\\ request\_id\fk\\ reason\\ details\\ counts\_toward\_hide\\ created\_at\\ reviewed\_at\\ action};
 
   % ---------------------------------------------------------------- column C
   \node[entity=30mm, anchor=north] (requests) at (14.1,-0.6) {\textbf{chat\_requests}\nodepart{two}

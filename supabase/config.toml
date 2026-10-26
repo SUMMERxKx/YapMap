@@ -69,6 +69,13 @@ content_path = "./supabase/templates/confirmation.html"
 subject = "Reset your Yap password"
 content_path = "./supabase/templates/recovery.html"
 
+# Before an account is created: refuses email addresses on the ban list, throwaway email
+# domains and more than 20 sign-ups a day from one IP address (public.before_user_created).
+# The hosted project switches it on in the dashboard: Authentication -> Hooks.
+[auth.hook.before_user_created]
+enabled = true
+uri = "pg-functions://postgres/public/before_user_created"
+
 [edge_runtime]
 enabled = false
 

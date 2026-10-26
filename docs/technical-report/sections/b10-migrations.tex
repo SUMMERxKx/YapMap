@@ -1,7 +1,7 @@
 \chapter{Migration history}
 \label{app:migrations}
 
-The database is defined by eleven migrations in \code{supabase/migrations}. Each file is named
+The database is defined by thirteen migrations in \code{supabase/migrations}. Each file is named
 \code{<version>_<name>.sql}, and the migrations apply in version order. This report refers to each by its
 name (\cref{tab:migrations}), listed in the order they apply, with its version below it. Later migrations
 replace earlier definitions; the descriptions in this report always refer to the latest one.
@@ -12,7 +12,9 @@ tool are recorded under the time they ran, so \code{content_moderation} and \cod
 were renamed after they were applied, from \code{20261022082408} and \code{20261022083815}; their
 contents did not change. The Migration files check in CI (\code{scripts/check-migrations.sh}) allows such
 a rename only when the file stays byte for byte the same, and fails any edit or deletion of an existing
-migration.
+migration. The two migrations of 26 October 2026 are applied to the hosted project with
+\code{supabase db push}, which keeps the file versions, together with switching on the Before User
+Created hook in the dashboard.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{60mm}L{\dimexpr\linewidth-60mm-2\tabcolsep\relax}@{}}
@@ -39,5 +41,7 @@ migration.
   \code{delete_event}\newline{\scriptsize 20261022064812} & \code{delete_event}, which lets an event's host delete it; members and group-chat messages go with it by cascade \\
   \code{content_moderation}\newline{\scriptsize 20261022100308} & The word filter: \code{private.blocked_words} with its first list of slurs and abuse, \code{has_blocked_word}, and \code{refuse_blocked_words} with triggers on \code{profiles} (intro, interests), \code{availability} (note), \code{events} (title, description) and \code{messages} (body); \code{private.suspend_user} for acting on reports from the SQL editor \\
   \code{break_it_hardening}\newline{\scriptsize 20261022103744} & Check constraints on typed text (\code{has_visible_text}, \code{is_clean_text}, \code{valid_interests}); \code{send_request} returning the request already waiting on the same person; \code{report_user} keeping a day's first report per person, limiting reports to 10 people a day and checking reason, details and the attached request; \code{create_event} validating title, details and start time and counting deleted events through \code{private.event_posts}; a per-person lock in both so parallel calls can't pass the daily limits; the photo insert policy limited to 24 files directly in the user's folder (\code{my_photo_count}); \code{my_status} returning the server clock; \code{expire_stale} pruning the event-post log \\
+  \code{safety_fixes}\newline{\scriptsize 20261026083000} & The October 2026 QA report's fixes: live positions stored as cell centres (\code{cell_center}) and a fixed nearby distance, the accuracy clamped, \code{nearby} and \code{events_near} limited per minute (\code{call_counts}, \code{count_call}); \code{require_active} and \code{account restricted} in every function a user acts through; unreviewed reports counting towards the automatic hide only after a real interaction or from an established account (\code{counts_toward_hide}), with the hide ending everything the person is in (\code{end_activity}); reports kept after a deletion (\code{reported_hash}); the ban list, the throwaway-domain table, the per-IP sign-up log and the Before User Created hook \code{before_user_created}; suspension and deletion while restricted banning the email, and \code{restore_user}; the last known position (\code{last_positions}, written by \code{set_map_position} and \code{go_green}, read by \code{my_position}) used by \code{events_near} and \code{join_event}, which lose their position arguments, and checked by the reach rule; host photos only for members; the \code{events_emoji_category} check; photos limited to 1.5\,MiB, 16 files and 40 uploads a day (\code{photo_uploads}); \code{expire_stale} pruning the new tables \\
+  \code{disposable_email_domains}\newline{\scriptsize 20261026083100} & About 9\,900 throwaway email domains from the public-domain disposable-email-domains list, loaded into \code{private.disposable_email_domains} \\
 \end{longtable}
 \endgroup

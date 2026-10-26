@@ -46,7 +46,7 @@ export function useForegroundLocation() {
       ok: true,
       latitude: position.coords.latitude,
       longitude: position.coords.longitude,
-      // The server widens the "nearby" radius a little when the fix is poor.
+      // The server keeps it (as 0 to 50 m); it doesn't change who is nearby.
       accuracy: position.coords.accuracy,
     };
   }, []);

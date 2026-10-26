@@ -24,6 +24,7 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{myId} & string or null; null & The signed-in user's ID \\
   \code{session} & \texttt{\{email\}} or null; null & The signed-in account \\
   \code{profile} & \code{Profile} or null; null & The user's own profile, photos as signed URLs \\
+  \code{restricted} & Boolean; false & The account is hidden or suspended: the root layout shows the \ui{account on hold} screen \\
   \code{availability} & \code{Availability} or null; null & The live session: \code{minutes}, \code{note}, \code{startedAt}, \code{expiresAt} \\
   \code{availabilityExpired} & Boolean; false & Shows \ui{Your time's up} until dismissed \\
   \code{offlinePending} & Boolean; false & Going offline has not reached the server yet \\
@@ -96,10 +97,10 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \code{reportUser(id, reason, details)} & Call \code{report_user} \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Events}}} \\
-  \code{loadEvents(centre)} & Load events around a point with the saved radius; a newer load wins \\
-  \code{setEventRadius(km)} & Clamp to 1--50\,km, save, reload around the last centre \\
+  \code{loadEvents(position)} & Send a position the map just found (\code{setMapPosition}), then list the events around the position the server holds with the saved radius; a newer load wins \\
+  \code{setEventRadius(km)} & Clamp to 1--50\,km, save, list the events again without sending a position \\
   \code{createEvent(input)} & Call \code{create_event}; put the new event first \\
-  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member once, or, if the event is gone, remove it and return \code{'event-deleted'} \\
+  \code{joinEvent(id, position)} & Call \code{join_event}; mark joined and count the member once, then list the events again without sending a position, or, if the event is gone, remove it and return \code{'event-deleted'} \\
   \code{leaveEvent(id)} & Call \code{leave_event}; remove the event if the user hosts it, else mark it left (counted once) \\
   \code{deleteEvent(id)} & Call \code{delete_event}; remove the event from the map and lists \\
   \code{enterEventChat(id)}, \code{leaveEventChat()} & Open or close the group chat's channel; history loads on each join \\
