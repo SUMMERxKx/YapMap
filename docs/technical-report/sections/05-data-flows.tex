@@ -269,17 +269,18 @@ position the phone recorded in the last two minutes if there is one, otherwise w
 for a fresh fix. If neither comes, it only centres the map on the last position the phone knows, however
 old, and shows that it could not find the user: an old position is never sent to the server, which would
 otherwise hold it as the user's last known position and refuse the real one. With a recent or fresh
-position it centres the map and loads the events within the chosen radius of that point: the API layer sends the position to
-\code{set_map_position} and then calls \code{events_near}, which lists events around the position the
-server holds (\cref{sec:location-privacy}). If the server refuses the new position because it is too
+position it centres the map and loads the events within the chosen radius of that point: the store sends
+the position to \code{set_map_position} and then calls \code{events_near}, which lists events around the
+position the server holds (\cref{sec:location-privacy}). If the server refuses the new position because it is too
 far from the last known one or changed too often, the map keeps the pins it has and shows the refusal
 under the banner with a \ui{Try again} button. Without a position, the
 map loads no events and shows a note and a button to turn location on; when the user returns from the
 phone's settings, the map tries again.
 
 The radius is chosen with a slider from 1 to 50 kilometres (default 10) and drawn on the map as a circle.
-Releasing the slider saves the value for the account, fits the map to the circle, and reloads the events
-for the same centre. \code{events_near} applies the radius on the server and never searches beyond 50
+Releasing the slider saves the value for the account, fits the map to the circle, and lists the events
+again with \code{events_near} alone, around the position the server already holds: no position is sent
+again, so one the phone found a while ago can never replace a newer one. \code{events_near} applies the radius on the server and never searches beyond 50
 kilometres. Each event becomes a pin showing its category icon and title; events the user has joined are
 drawn in green. If none are in range, a note suggests widening the distance or creating an event.
 
@@ -294,8 +295,8 @@ the event card, and the app opens the event's group chat.
 chat} requests the phone's position, sends it to \code{set_map_position}, and calls \code{join_event},
 which accepts the user only within five kilometres of the position the server holds. A user therefore
 sees events up to 50 kilometres from their own position, but only someone nearby can join one and read
-its chat. The host's photo is sent only to people who joined, so after a join the app loads the pins
-again to show it. If the host has deleted the event in the meantime, the server
+its chat. The host's photo is sent only to people who joined, so after a join the app lists the pins
+again with \code{events_near} alone to show it. If the host has deleted the event in the meantime, the server
 answers \code{no such event}; the app takes the event off the map and the sheet shows \ui{This event was
 deleted}.
 

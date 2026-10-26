@@ -143,7 +143,7 @@ function forgetAccount() {
   nearbyRefreshes += 1;
   eventLoads += 1;
   eventChatVisits += 1;
-  lastEventsCenter = null; // where the last account was looking
+  eventsListed = false;
   set({ ...initialState, booted: true, appActive: state.appActive });
 }
 
@@ -1011,17 +1011,28 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 
 // ---------------------------------------------------------------- map events
 
-// Where events were last loaded around, so a new distance can reload the same spot.
-let lastEventsCenter: { latitude: number; longitude: number } | null = null;
+// Whether the map has sent a position for this account, so a new distance or a join can list
+// the events again around the position the server holds, without sending an old one.
+let eventsListed = false;
 // Counts loads, so a slow answer never replaces a newer one.
 let eventLoads = 0;
 
-export async function loadEvents(center: { latitude: number; longitude: number }) {
-  lastEventsCenter = center;
+/**
+ * Sends a position the phone just found to the server, then lists the events around it. Only
+ * the map's recent or fresh fixes come here.
+ */
+export async function loadEvents(position: { latitude: number; longitude: number }) {
+  eventsListed = true;
+  await api.setMapPosition(position);
+  await listEvents();
+}
+
+/** Lists the events around the position the server already holds for you. */
+async function listEvents() {
   eventLoads += 1;
   const thisLoad = eventLoads;
   const radiusKm = state.eventRadiusKm;
-  const nearby = await api.eventsNear(center, radiusKm * 1000);
+  const nearby = await api.eventsNear(radiusKm * 1000);
   if (thisLoad !== eventLoads) return;
   // Keep the loaded chat history of events we're in; refresh everything else.
   const events = nearby.map((event) => {
@@ -1036,7 +1047,7 @@ export async function loadEvents(center: { latitude: number; longitude: number }
 export async function setEventRadius(km: number) {
   set({ eventRadiusKm: clampRadiusKm(km) });
   rememberPrefs();
-  if (lastEventsCenter) await loadEvents(lastEventsCenter);
+  if (eventsListed) await listEvents();
 }
 
 export async function createEvent(input: {
@@ -1081,7 +1092,7 @@ export async function joinEvent(id: string, position: { latitude: number | null;
     return { joined: true, memberCount: event.memberCount + 1 };
   });
   // The host's photo is only sent to people who joined, so load the pins again to get it.
-  if (lastEventsCenter) void loadEvents(lastEventsCenter).catch(() => {});
+  if (eventsListed) void listEvents().catch(() => {});
 }
 
 export async function leaveEvent(id: string) {

@@ -77,9 +77,10 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{deleteAccount()} & storage \code{list} (pages of 100) and \code{remove}; rpc \code{delete_account}; \code{auth.signOut} & --- \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\
-  \code{eventsNear(position, radiusM?)} & rpc \code{set_map_position} (a refusal is thrown as a sentence), then \code{events_near}; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
+  \code{setMapPosition(position)} & rpc \code{set_map_position}; a refusal is thrown as a sentence. Only for a fix the phone just found & --- \\
+  \code{eventsNear(radiusM?)} & rpc \code{events_near}, around the position the server holds; storage \code{createSignedUrls} for host photos & \code{MapEvent[]} \\
   \code{createEvent(input)} & rpc \code{create_event} & \code{MapEvent} \\
-  \code{joinEvent(id, position)} & rpc \code{set_map_position} as above, then \code{join_event}; throws first if there is no position & \code{'event-deleted'} on \code{no such event} \\
+  \code{joinEvent(id, position)} & \code{setMapPosition}, then rpc \code{join_event}; throws first if there is no position & \code{'event-deleted'} on \code{no such event} \\
   \code{leaveEvent(id)} & rpc \code{leave_event} & --- \\
   \code{deleteEvent(id)} & rpc \code{delete_event}; \code{no such event} counts as done & --- \\
 \end{longtable}

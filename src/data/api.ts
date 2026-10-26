@@ -1052,25 +1052,22 @@ async function toEvents(cards: EventCard[]): Promise<MapEvent[]> {
 }
 
 /**
- * Tells the server where the phone is, for the map and joining events. The server refuses a
- * position too far from the last one it holds, or too many changes in 10 minutes; that refusal
+ * Tells the server where the phone is, for the map and joining events. Send only a fix the phone
+ * just took or recorded in the last few minutes: the server keeps it as where you are. It refuses
+ * a position too far from the last one it holds, or too many changes in 10 minutes; that refusal
  * is thrown as a sentence for the screen.
  */
-async function setMapPosition(position: { latitude: number; longitude: number }) {
+export async function setMapPosition(position: { latitude: number; longitude: number }) {
   const { error } = await supabase.rpc('set_map_position', { lat: position.latitude, lng: position.longitude });
   if (error) throw new Error(friendlyRpcError(error));
 }
 
 /**
- * Events within `radiusM` metres of the phone's position, which is sent first (setMapPosition):
- * the server lists events only around the position it holds for you. Leave the radius out for
+ * Events within `radiusM` metres of the position the server holds for you (sent with
+ * setMapPosition; refused with 'location needed' when it holds none). Leave the radius out for
  * the server's default of 10 km; the server never goes beyond 50 km.
  */
-export async function eventsNear(
-  position: { latitude: number; longitude: number },
-  radiusM?: number,
-): Promise<MapEvent[]> {
-  await setMapPosition(position);
+export async function eventsNear(radiusM?: number): Promise<MapEvent[]> {
   // An undefined radius is left out of the request, so the server's default applies.
   const { data, error } = await supabase.rpc('events_near', { radius_m: radiusM });
   if (error) throw new Error(friendlyRpcError(error));
@@ -1100,7 +1097,7 @@ export async function createEvent(input: {
 }
 
 /**
- * Join an event from where the phone is (sent first, as for eventsNear); the server only allows
+ * Join an event from where the phone is (sent first with setMapPosition); the server only allows
  * it within about 5 km of the position it holds for you.
  * Returns 'event-deleted' when the host already deleted it.
  */
