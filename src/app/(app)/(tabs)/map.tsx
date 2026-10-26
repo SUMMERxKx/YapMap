@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { router, useNavigation } from 'expo-router';
 import type { BottomTabNavigationProp } from 'expo-router/js-tabs';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -126,12 +126,12 @@ export default function EventsMap() {
   const [loadProblem, setLoadProblem] = useState<string | null>(null);
 
   // Loads the pins; if that fails, the map keeps the ones it has and says why.
-  const showEvents = (load: Promise<void>) => {
+  const showEvents = useCallback((load: Promise<void>) => {
     load.then(
       () => setLoadProblem(null),
       (error) => setLoadProblem(errorMessage(error, "Events couldn't be loaded. Try again.")),
     );
-  };
+  }, []);
 
   const onMapReady = () => {
     if (userRegion.current) map.current?.animateToRegion(userRegion.current, 400);
@@ -139,26 +139,29 @@ export default function EventsMap() {
 
   // Centres the map on the user when we found them, and loads the events there. A position the
   // phone last knew, however old, only centres the map.
-  const showResult = (result: FindResult) => {
-    wasDenied.current = result.status === 'denied';
-    if (result.status === 'found') {
-      const here = { ...DEFAULT_REGION, latitude: result.latitude, longitude: result.longitude };
-      setLocation({ status: 'found' });
-      setRegion(here);
-      setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
-      userRegion.current = here;
-      map.current?.animateToRegion(here, 400);
-      showEvents(loadEvents(here));
-      return;
-    }
-    if (result.status === 'unavailable' && result.lastKnown) {
-      const there = { ...DEFAULT_REGION, ...result.lastKnown };
-      setRegion(there);
-      userRegion.current = there;
-      map.current?.animateToRegion(there, 400);
-    }
-    setLocation(result);
-  };
+  const showResult = useCallback(
+    (result: FindResult) => {
+      wasDenied.current = result.status === 'denied';
+      if (result.status === 'found') {
+        const here = { ...DEFAULT_REGION, latitude: result.latitude, longitude: result.longitude };
+        setLocation({ status: 'found' });
+        setRegion(here);
+        setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
+        userRegion.current = here;
+        map.current?.animateToRegion(here, 400);
+        showEvents(loadEvents(here));
+        return;
+      }
+      if (result.status === 'unavailable' && result.lastKnown) {
+        const there = { ...DEFAULT_REGION, ...result.lastKnown };
+        setRegion(there);
+        userRegion.current = there;
+        map.current?.animateToRegion(there, 400);
+      }
+      setLocation(result);
+    },
+    [showEvents],
+  );
 
   // The map stays usable while this runs.
   const centreOnUser = async () => {
@@ -182,7 +185,7 @@ export default function EventsMap() {
       cancelled = true;
       unsubscribe();
     };
-  }, [navigation]);
+  }, [navigation, showResult]);
 
   // Letting go of the slider: remember the distance, reload the pins and fit the map to it.
   const changeRadius = (km: number) => {
@@ -199,7 +202,7 @@ export default function EventsMap() {
       }
     });
     return () => subscription.remove();
-  }, []);
+  }, [showResult]);
 
   // "Turn on location": ask again if the phone still allows it, otherwise open Settings.
   const turnOnLocation = async () => {

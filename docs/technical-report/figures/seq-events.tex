@@ -7,7 +7,7 @@
   \participant[serveractor]{rt}{13.6}{Realtime}
 
   \msg{ui}{loc}{0.8}{permission (asked once) and position}
-  \msg[reply]{loc}{ui}{1.4}{recent, fresh or last known position}
+  \msg[reply]{loc}{ui}{1.4}{recent or fresh position}
   \msg{ui}{store}{2.0}{\code{loadEvents}(position)}
   \msg{store}{db}{2.6}{\code{set_map_position}, then \code{events_near}(radius 1--50\,km)}
   \msg[reply]{db}{store}{3.2}{up to 50 event cards}
