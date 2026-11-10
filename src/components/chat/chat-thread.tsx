@@ -55,7 +55,7 @@ export function ChatThread({
   // Inverted so the newest message sits at the bottom and the list starts there.
   const newestFirst = [...messages].reverse();
 
-  let footer = null;
+  let footer: ReactElement | undefined;
   if (header) {
     footer = <View style={{ marginBottom: spacing.lg }}>{header}</View>;
   }

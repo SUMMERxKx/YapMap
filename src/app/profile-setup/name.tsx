@@ -2,7 +2,7 @@
 
 import { router } from 'expo-router';
 import { useRef } from 'react';
-import type { TextInput } from 'react-native';
+import type { TextInputInstance } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { SetupStep } from '@/components/profile/setup-step';
@@ -13,7 +13,7 @@ import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
 
 export default function NameStep() {
   const { draft, update } = useProfileDraft();
-  const lastNameInput = useRef<TextInput>(null);
+  const lastNameInput = useRef<TextInputInstance>(null);
   const ready = hasVisibleText(draft.firstName) && hasVisibleText(draft.lastName);
   const next = () => {
     if (ready) router.push('/profile-setup/gender');

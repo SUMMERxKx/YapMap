@@ -21,7 +21,8 @@ function TabIcon({ focused, color, size, filled, outline }: TabIconProps) {
   if (focused) {
     name = filled;
   }
-  return <Ionicons name={name} size={size} color={color} />;
+  // The tab bar passes our tint colours from the theme, which are always strings.
+  return <Ionicons name={name} size={size} color={color as string} />;
 }
 
 // Go live (the button), Nearby (the list), Map (events) and Profile.

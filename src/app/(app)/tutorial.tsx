@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { FlatList, StyleSheet, useWindowDimensions, View, type ViewToken } from 'react-native';
+import { FlatList, StyleSheet, useWindowDimensions, View, type ListViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AppText } from '@/components/ui/app-text';
@@ -60,7 +60,7 @@ export default function Tutorial() {
   const [index, setIndex] = useState(0);
   const last = index === PAGES.length - 1;
 
-  const onViewable = useCallback(({ viewableItems }: { viewableItems: ViewToken<Page>[] }) => {
+  const onViewable = useCallback(({ viewableItems }: { viewableItems: ListViewToken[] }) => {
     const first = viewableItems[0];
     if (first?.index != null) setIndex(first.index);
   }, []);
