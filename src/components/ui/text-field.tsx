@@ -2,7 +2,7 @@
 // optional accessory inside the input on the right (e.g. a show/hide password button).
 
 import { useState, type ReactNode, type Ref } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { StyleSheet, TextInput, View, type TextInputInstance, type TextInputProps } from 'react-native';
 
 import { useTheme } from '@/theme';
 
@@ -10,7 +10,7 @@ import { AppText } from '@/components/ui/app-text';
 import { FieldLabel } from '@/components/ui/form-section';
 
 type Props = Omit<TextInputProps, 'style'> & {
-  ref?: Ref<TextInput>;
+  ref?: Ref<TextInputInstance>;
   label: string;
   required?: boolean;
   error?: string | null;

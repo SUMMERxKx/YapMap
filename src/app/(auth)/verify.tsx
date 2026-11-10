@@ -6,7 +6,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type TextInputInstance } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
 import { Button, IconButton } from '@/components/ui/button';
@@ -27,7 +27,7 @@ const RESEND_SECONDS = 60; // Supabase sends at most one code per minute
 export default function Verify() {
   const { email = '', purpose = 'signup' } = useLocalSearchParams<{ email: string; purpose: 'signup' | 'reset' }>();
   const { colors, radius, spacing, type } = useTheme();
-  const input = useRef<TextInput>(null);
+  const input = useRef<TextInputInstance>(null);
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);

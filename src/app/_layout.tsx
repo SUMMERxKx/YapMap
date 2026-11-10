@@ -2,7 +2,7 @@
 // (sign in -> profile setup -> selfie check, when enabled -> the app) with guarded stacks.
 // A hidden or suspended account sees the account-restricted screen instead of the app.
 
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, ThemeProvider, type Href } from 'expo-router';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { View } from 'react-native';
@@ -31,6 +31,19 @@ export default function RootLayout() {
   const showRestricted = signedIn && hasProfile && restricted;
   const showSelfieCheck = signedIn && hasProfile && !restricted && !verified;
   const showApp = signedIn && hasProfile && !restricted && verified;
+
+  // Where a blocked screen sends the person: the first screen of the step they're on.
+  // Without this the router falls back to the group's own path, and `(auth)` has no index.
+  let currentStep: Href = '/welcome';
+  if (showProfileSetup) {
+    currentStep = '/profile-setup';
+  } else if (showRestricted) {
+    currentStep = '/account-restricted';
+  } else if (showSelfieCheck) {
+    currentStep = '/verify-face';
+  } else if (showApp) {
+    currentStep = '/';
+  }
 
   let navTheme = DefaultTheme;
   let statusBarStyle: 'light' | 'dark' = 'dark';
@@ -69,20 +82,20 @@ export default function RootLayout() {
           {loadFailed && <CantLoad />}
           {!loadFailed && (
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
-              <Stack.Protected guard={showSignIn}>
+              <Stack.Protected guard={showSignIn} redirectTo={currentStep}>
                 <Stack.Screen name="(auth)" />
               </Stack.Protected>
               {/* Exactly one of these is allowed at a time, so the app always lands on the right step. */}
-              <Stack.Protected guard={showProfileSetup}>
+              <Stack.Protected guard={showProfileSetup} redirectTo={currentStep}>
                 <Stack.Screen name="profile-setup" />
               </Stack.Protected>
-              <Stack.Protected guard={showRestricted}>
+              <Stack.Protected guard={showRestricted} redirectTo={currentStep}>
                 <Stack.Screen name="account-restricted" />
               </Stack.Protected>
-              <Stack.Protected guard={showSelfieCheck}>
+              <Stack.Protected guard={showSelfieCheck} redirectTo={currentStep}>
                 <Stack.Screen name="verify-face" />
               </Stack.Protected>
-              <Stack.Protected guard={showApp}>
+              <Stack.Protected guard={showApp} redirectTo={currentStep}>
                 <Stack.Screen name="(app)" />
               </Stack.Protected>
               {/* Reading pages, open whether signed in or not (sign-up and Settings link to them). */}
