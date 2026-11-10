@@ -5,7 +5,7 @@
 
 # Yap Terms of Service
 
-**Last updated:** 22 October 2026
+**Last updated:** 26 October 2026
 
 These terms are an agreement between you and Samar Khajuria ("we", "us"), who makes Yap. By
 creating an account or using Yap, you agree to them, to our
@@ -33,7 +33,8 @@ When you use Yap you agree to follow the Community Guidelines. In short:
 
 **There is zero tolerance for objectionable content or abusive users.** We review every
 report within 24 hours, remove content that breaks the rules, and suspend or remove the
-people who post it. Slurs and abusive words are refused automatically.
+people who post it. Someone who is suspended can't sign up again with the same email address,
+including by deleting their account. Slurs and abusive words are refused automatically.
 
 ## 3. Your content
 

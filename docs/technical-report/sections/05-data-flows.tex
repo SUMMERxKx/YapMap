@@ -51,15 +51,19 @@ project sends carries an 8-digit code that the user types into the app (\cref{fi
 
 \paragraph{Creating an account} The sign-up screen checks that the password has at least eight
 characters and matches its confirmation, then calls \code{signUp}. Supabase creates the user and emails a
-confirmation code. If the email already belongs to an account, Supabase may return a user with no
-identities and send nothing; the API layer detects this and tells the user to sign in or use
-\ui{Forgot password} instead of waiting for a code that will not arrive. If \ui{Confirm email} were
+confirmation code. If the email already belongs to a confirmed account, Supabase returns a user with no
+identities and sends nothing. The app opens the code screen exactly as for a new email, and
+\ui{Resend code} behaves the same too, so sign-up never shows whether someone has an account; a note
+under the code says \ui{No code? If you already have an account, sign in or reset your password}, with
+both as links. If \ui{Confirm email} were
 switched off in the dashboard, sign-up would return a session at once and the code screen would be
 skipped.
 
 \paragraph{Confirming the email} The code screen accepts exactly eight digits through one hidden input
-behind eight boxes, which keeps pasting and the operating system's one-time-code autofill working. It
-submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
+behind eight boxes, which keeps the operating system's one-time-code autofill working. Because the input
+is hidden, \ui{Paste code} (or a long press on the boxes) reads the clipboard, keeps the eight-digit code
+from whatever was copied, and fills it in; if there is no code, it says so. The emails show the code on
+its own large line so it is easy to copy. The screen submits as soon as the eighth digit arrives. Verifying the code with type \code{signup} returns a
 session; the store then loads the (missing) profile and the guards open profile setup. \ui{Resend code}
 is disabled for 60 seconds after each send, matching the hosted project's limit of one code per address
 per minute (\cref{tab:dashboard}). The local stack allows one per second, so the button's wait is the
@@ -262,14 +266,21 @@ restart.
 \paragraph{Finding events} When the \ui{Map} tab opens, and each time its tab button is pressed, the
 screen finds the user. It asks for location permission only if the user has never decided, uses a
 position the phone recorded in the last two minutes if there is one, otherwise waits up to eight seconds
-for a fresh fix, and otherwise uses the last position the phone knows, however old. It then centres the
-map and loads the events within the chosen radius of that point. Without a position, the map shows the
-events around Vancouver, the default centre, with a note and a button to turn location on; when the user
-returns from the phone's settings, the map tries again.
+for a fresh fix. If neither comes, it only centres the map on the last position the phone knows, however
+old, and shows that it could not find the user: an old position is never sent to the server, which would
+otherwise hold it as the user's last known position and refuse the real one. With a recent or fresh
+position it centres the map and loads the events within the chosen radius of that point: the store sends
+the position to \code{set_map_position} and then calls \code{events_near}, which lists events around the
+position the server holds (\cref{sec:location-privacy}). If the server refuses the new position because it is too
+far from the last known one or changed too often, the map keeps the pins it has and shows the refusal
+under the banner with a \ui{Try again} button. Without a position, the
+map loads no events and shows a note and a button to turn location on; when the user returns from the
+phone's settings, the map tries again.
 
 The radius is chosen with a slider from 1 to 50 kilometres (default 10) and drawn on the map as a circle.
-Releasing the slider saves the value for the account, fits the map to the circle, and reloads the events
-for the same centre. \code{events_near} applies the radius on the server and never searches beyond 50
+Releasing the slider saves the value for the account, fits the map to the circle, and lists the events
+again with \code{events_near} alone, around the position the server already holds: no position is sent
+again, so one the phone found a while ago can never replace a newer one. \code{events_near} applies the radius on the server and never searches beyond 50
 kilometres. Each event becomes a pin showing its category icon and title; events the user has joined are
 drawn in green. If none are in range, a note suggests widening the distance or creating an event.
 
@@ -281,9 +292,11 @@ the event card, and the app opens the event's group chat.
 
 \paragraph{Joining} Tapping a pin opens the event sheet with the category, title, start time
 (\ui{Starts in 25 min}, \ui{Started 10 min ago}), number of members, details and host. \ui{Join and open
-chat} requests the phone's position and calls \code{join_event}, which accepts the user only within five
-kilometres of the event. Anyone may therefore see events up to 50 kilometres away, but only someone
-nearby can join one and read its chat. If the host has deleted the event in the meantime, the server
+chat} requests the phone's position, sends it to \code{set_map_position}, and calls \code{join_event},
+which accepts the user only within five kilometres of the position the server holds. A user therefore
+sees events up to 50 kilometres from their own position, but only someone nearby can join one and read
+its chat. The host's photo is sent only to people who joined, so after a join the app lists the pins
+again with \code{events_near} alone to show it. If the host has deleted the event in the meantime, the server
 answers \code{no such event}; the app takes the event off the map and the sheet shows \ui{This event was
 deleted}.
 
@@ -318,8 +331,8 @@ takes a signed URL, because the bucket is private (\cref{fig:seq-photos}).
   \label{fig:seq-photos}
 \end{figure}
 
-The API layer keeps a cache from storage path to signed URL. A URL is created for one hour and reused
-until fewer than ten minutes remain, so the same photo keeps the same URL across refreshes. A path that
+The API layer keeps a cache from storage path to signed URL. A URL is created for fifteen minutes and
+reused until fewer than five minutes remain, so the same photo keeps the same URL across refreshes. A path that
 could not be signed, because the file does not exist or its owner is not visible to the user, is
 remembered for one minute and then asked for again, so the photo appears soon after its owner becomes
 visible. Expired entries are dropped whenever new URLs are signed, and the whole cache is cleared on
@@ -344,14 +357,18 @@ tables directly.
 \begin{figure}[ht]
   \centering
   \input{figures/seq-delete}
-  \caption{Deleting an account. Removing the Auth user removes every row that belongs to the user.}
+  \caption{Deleting an account. Removing the Auth user removes every row that belongs to the user, except
+    the reports, which are kept without it.}
   \label{fig:seq-delete}
 \end{figure}
 
-\code{delete_account} first returns the user's chat partner, if any, to \code{open}, so the partner can
-be found and can say hi again; then it deletes the Auth user. Every user foreign key cascades, so the
-delete removes the profile, the live session, every request sent or received with its messages, every
-event hosted with its members and messages, every membership, every message sent, every block made or
-received, every report made or received, the location-change log and the event-post log. The app then
+\code{delete_account} first puts the user's email address on the ban list if the account is hidden or
+suspended (\cref{sec:signup-checks}), and returns the user's chat partner, if any, to \code{open}, so
+the partner can be found and can say hi again; then it deletes the Auth user. Every user foreign key
+except the two in \code{reports} cascades, so the delete removes the profile, the live session and map
+position, every request sent or received with its messages, every event hosted with its members and
+messages, every membership, every message sent, every block made or received, the location-change log,
+the event-post log and the call counts. Reports made or received stay, with the user's id set to null
+(\cref{sec:blocking-reporting}). The app then
 signs out and forgets what the phone saved for the account, and the Auth listener resets the store to its
 initial state, closes every channel and clears the image cache.

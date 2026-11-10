@@ -13,7 +13,7 @@
   \vspace{10mm}
   {\small
   \begin{tabular}{@{}L{34mm}L{100mm}@{}}
-    \textsf{\textbf{Subject}} & The YapMap repository, branch \code{main} after pull request 74 and the migration renames (October 2026) \\
+    \textsf{\textbf{Subject}} & The YapMap repository, branch \code{main} with the safety fixes from the QA report (October 2026) \\
     \textsf{\textbf{Platforms}} & iOS and Android (Expo SDK 57, React Native 0.86) \\
     \textsf{\textbf{Backend}} & Supabase: Postgres with PostGIS, Auth, Realtime, Storage and \code{pg_cron} \\
     \textsf{\textbf{Course}} & COMP 2160 (Section 01), Mobile App Development 1, final project \\
@@ -34,10 +34,10 @@
 
 Yap is a mobile app that helps people who share a physical space, such as a café or a campus lounge,
 start a conversation in person. A user goes live for 30, 60 or 120 minutes, sees the other live users
-within about 100 metres, and sends one of them a request to talk. If the request is accepted within five
+in the same area of about 100 metres or the next one, and sends one of them a request to talk. If the request is accepted within five
 minutes, the two users enter a private chat that exists to help them find each other and meet. Users can
 also place small public events on a map, which anyone within 5 kilometres can join, each with its own
-group chat.
+group chat; the map lists only events around the user's own position.
 
 The client is a single Expo and React Native code base written in TypeScript. Expo Router maps files to
 screens; one store in \code{src/state/store.ts} holds all shared state and owns every Realtime
@@ -50,17 +50,22 @@ questions, Realtime delivers requests and messages, a private Storage bucket hol
 short-lived signed URLs, and a \code{pg_cron} job ends expired sessions, requests and stale chats every
 minute.
 
-Privacy shapes the design throughout. Live positions are written once per session, are never returned to
-any client, and are deleted the moment a user goes offline. Other users see a person card that carries a
+Privacy shapes the design throughout. Live positions are stored only as the centre of a cell of about
+100 metres, are never returned to any client, and the live session is deleted the moment a user goes
+offline; whether two
+people are nearby depends only on their cells, so no sequence of calls can locate anyone more precisely. Other users see a person card that carries a
 first name and last initial but no location or distance. A photo can be loaded only by someone who can
-currently see its owner. The project accepted one deliberate trade-off to keep the promise that a location
-is deleted on going offline: the server cannot rate-limit the distance between two separate live
-sessions, so it limits how often a location may change instead.
+currently see its owner. Only the user's last known cell is kept after going offline, so a new position,
+live or on the map, is refused unless it could have been reached from that cell since it was set.
 
 Safety follows the app stores' rules for apps where people post and meet. Every user agrees to community
 guidelines at sign-up, can report and block from every screen that shows another person, and cannot post
-slurs or abusive words, which the database refuses. The owner reviews reports at least daily and can
-suspend an account. Continuous integration checks the app, the migration files and a database rebuilt
+slurs or abusive words, which the database refuses. Reports not yet reviewed hide a profile
+automatically only when they come from people who really interacted with that person (a chat between
+them, even one that has ended, a say-hi from that person, or that person's message in a group chat both
+are in) or from established accounts. The owner reviews
+reports at least daily and can suspend an account, which also bans its email address from signing up
+again; a sign-up hook refuses banned and throwaway addresses. Continuous integration checks the app, the migration files and a database rebuilt
 from every migration on each pull request, and store builds are made with EAS Build.
 
 This report describes the architecture (\cref{ch:architecture}), the data model (\cref{ch:data-model})

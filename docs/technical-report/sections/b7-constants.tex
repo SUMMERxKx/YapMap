@@ -37,15 +37,15 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{\code{src/data/api.ts}}}} \\
   \code{INVALID_CODE} & \ui{Invalid or expired code. Please request a new one.} & Any failed code check \\
-  \code{ACCOUNT_EXISTS} & \ui{There is already an account with this email. Sign in, or use Forgot password.} & \code{signUp} for an email that has an account \\
-  \code{SERVER_REFUSALS} & 26 messages & Refusal sentences (\cref{app:refusals}) \\
+  \code{SERVER_REFUSALS} & 34 messages & Refusal sentences (\cref{app:refusals}) \\
   \code{NO_LOCATION} & \ui{We couldn't get your location. Try again in a moment.} & \code{goGreen} without a position \\
-  \code{SIGNED_URL_SECONDS} & 3600 & Lifetime of a signed photo URL \\
-  \code{SIGNED_URL_MIN_LEFT_MS} & 600\,000 (10 minutes) & Reuse a URL until this much remains \\
+  \code{SIGNED_URL_SECONDS} & 900 & Lifetime of a signed photo URL \\
+  \code{SIGNED_URL_MIN_LEFT_MS} & 300\,000 (5 minutes) & Reuse a URL until this much remains \\
   \code{UNSIGNED_RETRY_MS} & 60\,000 & Ask again for a photo that could not be signed \\
   \code{PHOTO_MAX_WIDTH} & 1080 & Uploaded photo width, pixels \\
   \code{THUMB_WIDTH} & 320 & Small copy width, pixels \\
-  JPEG quality & 0.8 & \code{uploadJpeg} \\
+  \code{UPLOAD_MAX_BYTES} & 1\,572\,864 (1.5\,MiB) & The bucket's limit; a larger encoding is retried at the lower quality \\
+  \code{JPEG_QUALITY}, \code{JPEG_QUALITY_SMALLER} & 0.8, 0.6 & \code{uploadJpeg} \\
   \code{HISTORY_LIMIT} & 200 & Messages loaded per chat \\
   \code{PHOTO_LIST_PAGE_SIZE} & 100 & Folder listing page size \\
   Answer poll & 7000\,ms & \code{waitForAnswer} \\
@@ -57,7 +57,7 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \code{FIX_TIMEOUT_MS} & 8000 & \code{hooks/use-foreground-location.ts}; also used by the map \\
   \code{RECENT_POSITION_MS} & 300\,000 (5 minutes) & \code{hooks/use-foreground-location.ts}: fallback position age \\
   \code{RECENT_POSITION_MS} & 120\,000 (2 minutes) & \code{app/(app)/(tabs)/map.tsx}: position reused without a new fix \\
-  \code{DEFAULT_REGION} & 49.2827, $-$123.1207; deltas 0.04 & \code{map.tsx}: Vancouver, the fallback centre \\
+  \code{DEFAULT_REGION} & 49.2827, $-$123.1207; deltas 0.04 & \code{map.tsx}: Vancouver, where the map starts; no events are loaded there \\
   \code{KM_PER_DEGREE} & 111 & \code{map.tsx}: fitting the region to the radius \\
   \code{PIN_ICON_SIZE}, \code{PIN_PADDING} & 24, 4 & \code{map.tsx}: event pins \\
   \code{LENGTH} & 8 & \code{app/(auth)/verify.tsx}: code digits \\
@@ -103,16 +103,21 @@ summarises the ones that shape behaviour; this appendix is the full list.
   First and last name & 1 to 30 characters & \code{profiles} check \\
   Introduction & 1 to 300 characters & \code{profiles} check \\
   Interests & 3 to 5 & \code{profiles} check \\
-  Event emoji & at most 8 characters & \code{events} check \\
+  Event emoji & one of the 12 categories & \code{events_emoji_category} check \\
   Event title & 1 to 60 characters & \code{events} check \\
   Event description & at most 200 characters & \code{events} check \\
-  Nearby radius & $\min(150, 100 + \mathrm{accuracy})$\,m & \code{nearby}, \code{near_each_other} \\
+  Cell & about 100\,m by 100\,m (1113.2 rows per degree of latitude) & \code{private.cell_center} \\
+  Nearby & cell centres at most 150\,m apart & \code{nearby}, \code{near_each_other} \\
+  Accuracy stored & 0 to 50\,m & \code{go_green} \\
+  Lookups & \code{nearby} 12, \code{events_near} 20 per minute & \code{private.count_call} \\
   Nearby and event results & 50 rows & \code{nearby}, \code{events_near} \\
   Live durations & 30, 60, 120 minutes & \code{go_green} \\
   Note & 60 characters & \code{go_green}, \code{update_note}, check \\
-  GPS wobble & 150\,m & \code{go_green} \\
-  Speed & $150 + 10000/3600 \times t$\,m, $t$ in seconds & \code{go_green} \\
-  Location changes & 3 per 10 minutes & \code{go_green} \\
+  GPS wobble & 150\,m & \code{go_green}, \code{set_map_position} \\
+  Speed while live & $150 + 10000/3600 \times t$\,m, $t$ in seconds & \code{go_green} \\
+  Reach from the last known position & $5000 + 1000000/3600 \times t$\,m, $t$ in seconds & \code{set_map_position}, \code{go_green} when not live \\
+  Location changes & 3 per 10 minutes & \code{go_green}, \code{set_map_position} \\
+  Map position & the last known position, for 2 hours & \code{my_position} \\
   Request lifetime & 5 minutes & column default \\
   Requests sent & 5 per 10 minutes & \code{send_request} \\
   Messages sent & 30 per minute & both send functions \\
@@ -123,14 +128,17 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Events created & 5 per 24 hours, deleted ones included & \code{create_event}, \code{private.event_posts} \\
   Join distance & 5000\,m & \code{join_event} \\
   Report details & 500 characters & \code{report_user}, check \\
-  Reporters before hiding & 3 distinct & \code{report_user} \\
+  Reporters before hiding & 3 distinct, counting only reports that count & \code{report_user} \\
+  Established account & 3 days old, no open report & \code{report_user} \\
+  Sign-ups per IP address & 20 per 24 hours & \code{before_user_created} \\
   Reports & 1 per person reported per day; 10 people per day & \code{report_user} \\
   Interests & 3 to 5 different, each 1 to 30 characters & \code{valid_interests}, check \\
   Stacked accents & at most 3 on one letter & \code{is_clean_text}, checks \\
-  Files per user & 24 & storage insert policy \\
+  Files per user & 16 & storage insert policy \\
+  Uploads per user & 40 per 24 hours & storage insert policy \\
   Event-post log & 24 hours & \code{expire_stale} \\
   Location-change log & 10 minutes & \code{expire_stale} \\
-  Photo object size & 5\,242\,880 bytes & bucket \\
+  Photo object size & 1\,572\,864 bytes & bucket \\
   Photo types & \code{image/jpeg}, \code{image/png}, \code{image/webp} & bucket \\
   Further photos & 6 & \code{profiles_photo_paths_max} \\
 \end{longtable}

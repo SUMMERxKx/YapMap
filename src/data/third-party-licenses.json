@@ -8,13 +8,6 @@
    "textIndex": 0
   },
   {
-   "name": "@expo/cli",
-   "version": "58.1.19",
-   "license": "MIT",
-   "repository": "https://github.com/expo/expo",
-   "textIndex": 1
-  },
-  {
    "name": "@expo/dom-webview",
    "version": "58.0.2",
    "license": "MIT",
@@ -128,14 +121,14 @@
   },
   {
    "name": "@supabase/auth-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
   },
   {
    "name": "@supabase/functions-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
@@ -149,28 +142,28 @@
   },
   {
    "name": "@supabase/postgrest-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
   },
   {
    "name": "@supabase/realtime-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
   },
   {
    "name": "@supabase/storage-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
   },
   {
    "name": "@supabase/supabase-js",
-   "version": "2.117.2",
+   "version": "2.118.0",
    "license": "MIT",
    "repository": "https://github.com/supabase/supabase-js",
    "textIndex": 12
@@ -220,6 +213,13 @@
   {
    "name": "expo-asset",
    "version": "58.0.20",
+   "license": "MIT",
+   "repository": "https://github.com/expo/expo",
+   "textIndex": 1
+  },
+  {
+   "name": "expo-clipboard",
+   "version": "58.0.4",
    "license": "MIT",
    "repository": "https://github.com/expo/expo",
    "textIndex": 1
@@ -502,63 +502,63 @@
    "version": "0.87.1",
    "license": "MIT",
    "repository": "https://github.com/react/metro",
-   "textIndex": 2
+   "textIndex": 31
   },
   {
    "name": "nanoid",
    "version": "3.3.20",
    "license": "MIT",
    "repository": "https://github.com/ai/nanoid",
-   "textIndex": 31
+   "textIndex": 32
   },
   {
    "name": "nullthrows",
    "version": "1.1.1",
    "license": "MIT",
    "repository": "https://github.com/zertosh/nullthrows",
-   "textIndex": 32
+   "textIndex": 33
   },
   {
    "name": "OkHttp and Okio (Android networking, in react-native)",
    "version": "",
    "license": "Apache-2.0",
    "repository": "https://github.com/square/okhttp",
-   "textIndex": 33
+   "textIndex": 34
   },
   {
    "name": "pretty-format",
    "version": "29.7.0",
    "license": "MIT",
    "repository": "https://github.com/jestjs/jest",
-   "textIndex": 34
+   "textIndex": 35
   },
   {
    "name": "promise",
    "version": "8.3.0",
    "license": "MIT",
    "repository": "https://github.com/then/promise",
-   "textIndex": 35
+   "textIndex": 36
   },
   {
    "name": "react",
    "version": "19.3.0",
    "license": "MIT",
    "repository": "https://github.com/react/react",
-   "textIndex": 34
+   "textIndex": 35
   },
   {
    "name": "react-fast-compare",
    "version": "3.2.2",
    "license": "MIT",
    "repository": "https://github.com/FormidableLabs/react-fast-compare",
-   "textIndex": 36
+   "textIndex": 37
   },
   {
    "name": "react-freeze",
    "version": "1.0.4",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-freeze",
-   "textIndex": 37
+   "textIndex": 38
   },
   {
    "name": "react-is",
@@ -572,133 +572,133 @@
    "version": "0.88.1",
    "license": "MIT",
    "repository": "https://github.com/react/react-native",
-   "textIndex": 34
+   "textIndex": 35
   },
   {
    "name": "react-native-gesture-handler",
    "version": "3.3.0",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-native-gesture-handler",
-   "textIndex": 38
+   "textIndex": 39
   },
   {
    "name": "react-native-is-edge-to-edge",
    "version": "1.3.1",
    "license": "MIT",
    "repository": "https://github.com/zoontek/react-native-edge-to-edge",
-   "textIndex": 39
+   "textIndex": 40
   },
   {
    "name": "react-native-maps",
    "version": "1.29.11",
    "license": "MIT",
    "repository": "https://github.com/react-native-maps/react-native-maps",
-   "textIndex": 40
+   "textIndex": 41
   },
   {
    "name": "react-native-reanimated",
    "version": "4.7.1",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-native-reanimated",
-   "textIndex": 38
+   "textIndex": 39
   },
   {
    "name": "react-native-safe-area-context",
    "version": "5.11.1",
    "license": "MIT",
    "repository": "https://github.com/appandflow/react-native-safe-area-context",
-   "textIndex": 41
+   "textIndex": 42
   },
   {
    "name": "react-native-screens",
    "version": "4.30.1",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-native-screens",
-   "textIndex": 42
+   "textIndex": 43
   },
   {
    "name": "react-native-svg",
    "version": "15.16.0",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-native-svg",
-   "textIndex": 43
+   "textIndex": 44
   },
   {
    "name": "react-native-worklets",
    "version": "0.13.0",
    "license": "MIT",
    "repository": "https://github.com/software-mansion/react-native-reanimated",
-   "textIndex": 44
+   "textIndex": 45
   },
   {
    "name": "regenerator-runtime",
    "version": "0.13.11",
    "license": "MIT",
    "repository": "https://github.com/facebook/regenerator/tree/main/packages/runtime",
-   "textIndex": 45
+   "textIndex": 46
   },
   {
    "name": "scheduler",
    "version": "0.28.0",
    "license": "MIT",
    "repository": "https://github.com/react/react",
-   "textIndex": 34
+   "textIndex": 35
   },
   {
    "name": "SDWebImage (iOS images, in expo-image)",
    "version": "",
    "license": "MIT",
    "repository": "https://github.com/SDWebImage/SDWebImage",
-   "textIndex": 46
+   "textIndex": 47
   },
   {
    "name": "semver",
    "version": "7.8.5",
    "license": "ISC",
    "repository": "https://github.com/npm/node-semver",
-   "textIndex": 47
+   "textIndex": 48
   },
   {
    "name": "stacktrace-parser",
    "version": "0.1.11",
    "license": "MIT",
    "repository": "https://github.com/errwischt/stacktrace-parser",
-   "textIndex": 48
+   "textIndex": 49
   },
   {
    "name": "standard-navigation",
    "version": "0.0.5",
    "license": "MIT",
    "repository": "https://github.com/react-navigation/standard-navigation",
-   "textIndex": 49
+   "textIndex": 50
   },
   {
    "name": "tslib",
    "version": "2.8.1",
    "license": "0BSD",
    "repository": "https://github.com/Microsoft/tslib",
-   "textIndex": 50
+   "textIndex": 51
   },
   {
    "name": "warn-once",
    "version": "0.1.1",
    "license": "MIT",
    "repository": "https://github.com/satya164/warn-once",
-   "textIndex": 51
+   "textIndex": 52
   },
   {
    "name": "whatwg-fetch",
    "version": "3.6.20",
    "license": "MIT",
    "repository": "https://github.com/github/fetch",
-   "textIndex": 52
+   "textIndex": 53
   },
   {
    "name": "whatwg-url-minimum",
    "version": "0.2.0",
    "license": "MIT",
    "repository": "https://github.com/expo/whatwg-url-minimum",
-   "textIndex": 53
+   "textIndex": 54
   }
  ],
  "texts": [
@@ -733,6 +733,7 @@
   "MIT License\n\nCopyright (c) 2013-present, Facebook, Inc.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
   "MIT License\n\nCopyright (c) 2015-present Ionic (http://ionic.io/)\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
   "MIT License\n\nCopyright (c) 2019 Alexander Reardon\n\nPermission is hereby granted, free of charge, to any person obtaining a copy\nof this software and associated documentation files (the \"Software\"), to deal\nin the Software without restriction, including without limitation the rights\nto use, copy, modify, merge, publish, distribute, sublicense, and/or sell\ncopies of the Software, and to permit persons to whom the Software is\nfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\nFITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\nAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\nLIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\nOUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE\nSOFTWARE.",
+  "MIT License\n\nCopyright (c) the metro-runtime authors\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
   "The MIT License (MIT)\n\nCopyright 2017 Andrey Sitnik <andrey@sitnik.ru>\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of\nthis software and associated documentation files (the \"Software\"), to deal in\nthe Software without restriction, including without limitation the rights to\nuse, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of\nthe Software, and to permit persons to whom the Software is furnished to do so,\nsubject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\nIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS\nFOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR\nCOPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER\nIN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN\nCONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
   "The MIT License (MIT)\nCopyright (c) 2016 Andres Suarez\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the \"Software\"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.",
   "Copyright (c) Square, Inc.\n\nLicensed under the Apache License, Version 2.0. The full licence text is at https://www.apache.org/licenses/LICENSE-2.0",

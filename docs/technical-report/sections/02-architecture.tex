@@ -38,7 +38,7 @@ them. \Cref{fig:architecture} gives the overall picture.
     Maps & \code{react-native-maps} 1.27.2 & The \ui{Map} tab, event pins and the radius circle \\
     Animation & Reanimated 4.5, Worklets 0.10 & Press feedback, the pulsing \ui{YAP} button, the mascot \\
     Images & \code{expo-image}, \code{expo-image-picker}, \code{expo-image-manipulator} & Cached display, photo picking and camera, re-encoding before upload \\
-    Device & \code{expo-location}, \code{expo-haptics}, \code{expo-keep-awake}, \code{expo-network} & Foreground location, haptics, screen-on while live, connectivity \\
+    Device & \code{expo-location}, \code{expo-haptics}, \code{expo-keep-awake}, \code{expo-network}, \code{expo-clipboard} & Foreground location, haptics, screen-on while live, connectivity, pasting the emailed code \\
     Local storage & AsyncStorage 2.2 & The Supabase session and per-account preferences \\
     Backend client & \code{@supabase/supabase-js} 2.117 & Auth, database calls, Realtime and Storage \\
     Database & Postgres with PostGIS and \code{pg_cron} & Tables, row-level security, functions, spatial queries, housekeeping \\
@@ -112,8 +112,9 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
     \midrule
     \code{(auth)} & not signed in & Welcome, sign-up, sign-in, emailed codes, password reset \\
     \code{profile-setup} & signed in and no profile row & The 18+ confirmation and six setup steps \\
-    \code{verify-face} & signed in, profile, not verified & Selfie check (switched off) \\
-    \code{(app)} & signed in, profile, verified & The app itself \\
+    \code{account-restricted} & signed in, profile, hidden or suspended & Explains the hold, with the support email, a sign-out and account deletion \\
+    \code{verify-face} & signed in, profile, active, not verified & Selfie check (switched off) \\
+    \code{(app)} & signed in, profile, active, verified & The app itself \\
     \bottomrule
   \end{tabularx}
 \end{table}

@@ -38,6 +38,7 @@ type State = {
   myId: string | null;
   session: { email: string } | null;
   profile: Profile | null;
+  restricted: boolean; // the account is hidden after reports or suspended: show the restricted screen
   availability: Availability | null;
   availabilityExpired: boolean; // shows "Your time's up" until dismissed
   offlinePending: boolean; // tapped to get off, but the server didn't hear it yet
@@ -63,6 +64,7 @@ const initialState: State = {
   myId: null,
   session: null,
   profile: null,
+  restricted: false,
   availability: null,
   availabilityExpired: false,
   offlinePending: false,
@@ -141,7 +143,7 @@ function forgetAccount() {
   nearbyRefreshes += 1;
   eventLoads += 1;
   eventChatVisits += 1;
-  lastEventsCenter = null; // where the last account was looking
+  eventsListed = false;
   set({ ...initialState, booted: true, appActive: state.appActive });
 }
 
@@ -178,6 +180,9 @@ let initStarted = false;
 export async function init() {
   if (initStarted) return;
   initStarted = true;
+
+  // The server refused something because the account is hidden or suspended.
+  api.onAccountRestricted(() => void checkRestricted());
 
   api.onAuthStateChange((signedIn) => {
     // Sign-out (from anywhere, including account deletion) resets the app.
@@ -228,12 +233,13 @@ async function refreshAfterAuth() {
 
   // Load the profile before setting `session`: a session with no profile means "new
   // account" to the root layout, which then shows profile setup.
-  const profile = await api.fetchMyProfile();
+  const { profile, restricted } = await api.fetchMyAccount();
   const prefs = await loadPrefs(user.id);
   set({
     myId: user.id,
     session: { email: user.email ?? '' },
     profile,
+    restricted,
     loadFailed: false,
     safetyTipViews: prefs.safetyTipViews,
     eventRadiusKm: prefs.eventRadiusKm,
@@ -346,6 +352,11 @@ async function catchUpOnce() {
     return;
   }
   if (!state.profile) return; // signed out, or still setting up
+  if (state.restricted) {
+    // Maybe reviewed and restored meanwhile.
+    await checkRestricted();
+    return;
+  }
 
   const chatIdBefore = state.chat?.id ?? null;
   await retryGoOffline();
@@ -362,6 +373,31 @@ async function catchUpOnce() {
   await checkForMissedRequest();
   // Messages sent while away. A chat opened just now loads them when its channel joins.
   if (chatIdBefore !== null && state.chat?.id === chatIdBefore) await syncChatMessages();
+}
+
+/**
+ * Asks the server whether the account is hidden or suspended. The server has already ended
+ * everything a restricted account was in (live session, requests, chat, events), so the app lets
+ * go of them too; the root layout then shows the restricted screen instead of the app.
+ */
+export async function checkRestricted() {
+  const myId = state.myId;
+  let restricted;
+  try {
+    ({ restricted } = await api.fetchMyAccount());
+  } catch {
+    return; // offline; the next catch-up tries again
+  }
+  if (state.myId !== myId || restricted === state.restricted) return;
+  if (restricted) {
+    stopChat?.();
+    stopEventMessages?.();
+    stopChat = null;
+    stopEventMessages = null;
+    clearLiveState(false);
+    set({ incoming: null, chat: null, events: [] });
+  }
+  set({ restricted });
 }
 
 /** Re-checks with the server that I'm still live and that the open chat is still on. */
@@ -975,17 +1011,28 @@ export async function reportUser(userId: string, reason: ReportReason, details: 
 
 // ---------------------------------------------------------------- map events
 
-// Where events were last loaded around, so a new distance can reload the same spot.
-let lastEventsCenter: { latitude: number; longitude: number } | null = null;
+// Whether the map has sent a position for this account, so a new distance or a join can list
+// the events again around the position the server holds, without sending an old one.
+let eventsListed = false;
 // Counts loads, so a slow answer never replaces a newer one.
 let eventLoads = 0;
 
-export async function loadEvents(center: { latitude: number; longitude: number }) {
-  lastEventsCenter = center;
+/**
+ * Sends a position the phone just found to the server, then lists the events around it. Only
+ * the map's recent or fresh fixes come here.
+ */
+export async function loadEvents(position: { latitude: number; longitude: number }) {
+  eventsListed = true;
+  await api.setMapPosition(position);
+  await listEvents();
+}
+
+/** Lists the events around the position the server already holds for you. */
+async function listEvents() {
   eventLoads += 1;
   const thisLoad = eventLoads;
   const radiusKm = state.eventRadiusKm;
-  const nearby = await api.eventsNear(center, radiusKm * 1000);
+  const nearby = await api.eventsNear(radiusKm * 1000);
   if (thisLoad !== eventLoads) return;
   // Keep the loaded chat history of events we're in; refresh everything else.
   const events = nearby.map((event) => {
@@ -1000,7 +1047,7 @@ export async function loadEvents(center: { latitude: number; longitude: number }
 export async function setEventRadius(km: number) {
   set({ eventRadiusKm: clampRadiusKm(km) });
   rememberPrefs();
-  if (lastEventsCenter) await loadEvents(lastEventsCenter);
+  if (eventsListed) await listEvents();
 }
 
 export async function createEvent(input: {
@@ -1044,6 +1091,8 @@ export async function joinEvent(id: string, position: { latitude: number | null;
     if (event.joined) return {};
     return { joined: true, memberCount: event.memberCount + 1 };
   });
+  // The host's photo is only sent to people who joined, so load the pins again to get it.
+  if (eventsListed) void listEvents().catch(() => {});
 }
 
 export async function leaveEvent(id: string) {

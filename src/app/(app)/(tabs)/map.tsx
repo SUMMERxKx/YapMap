@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import * as Location from 'expo-location';
 import { router, useNavigation } from 'expo-router';
 import type { BottomTabNavigationProp } from 'expo-router/js-tabs';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, StyleSheet, View } from 'react-native';
 import MapView, { Circle, Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -13,11 +13,13 @@ import { Button, IconButton } from '@/components/ui/button';
 import { Mascot } from '@/components/mascot/mascot';
 import { EVENT_RADIUS_KM } from '@/data/constants';
 import { FIX_TIMEOUT_MS } from '@/hooks/use-foreground-location';
+import { errorMessage } from '@/lib/error-message';
 import { eventCategory } from '@/lib/event-category';
 import { loadEvents, setEventRadius, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
-// Used until we know where the user is (or if they don't share location).
+// Where the map starts, until we know where the user is. Events are only ever listed around the
+// user's own position, which the server holds, so this place never loads any.
 const DEFAULT_REGION: Region = { latitude: 49.2827, longitude: -123.1207, latitudeDelta: 0.04, longitudeDelta: 0.04 };
 
 // A position the phone already knows is good enough if it is at most this old.
@@ -40,16 +42,19 @@ type LocationState =
   | { status: 'denied'; askAgain: boolean }
   | { status: 'unavailable' };
 
+// lastKnown: whatever position the phone last knew, however old, when it has no recent one.
 type FindResult =
   | { status: 'found'; latitude: number; longitude: number }
   | { status: 'denied'; askAgain: boolean }
-  | { status: 'unavailable' };
+  | { status: 'unavailable'; lastKnown?: { latitude: number; longitude: number } };
 
 /**
  * Finds the user. Asks for "while using the app" permission only when they haven't decided yet,
- * then uses a recent position the phone already has, or else asks for a fresh fix, and if that
- * fails too, uses whatever position the phone last knew, however old. Never throws: a phone that
- * can't answer (location services off, say) counts as unavailable.
+ * then uses a recent position the phone already has, or else asks for a fresh fix. If that fails
+ * too, the user counts as unavailable, with whatever position the phone last knew, however old:
+ * good enough to centre the map, but never sent to the server, which would then hold it as where
+ * the user is. Never throws: a phone that can't answer (location services off, say) counts as
+ * unavailable.
  */
 async function findUser(): Promise<FindResult> {
   let permission;
@@ -78,14 +83,12 @@ async function findUser(): Promise<FindResult> {
   }
   const lastKnown = await Location.getLastKnownPositionAsync().catch(() => null);
   if (lastKnown) {
-    return { status: 'found', latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude };
+    return {
+      status: 'unavailable',
+      lastKnown: { latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude },
+    };
   }
   return { status: 'unavailable' };
-}
-
-/** Loads the events around a point. If it fails (offline), the map keeps the pins it has. */
-function loadEventsQuietly(center: { latitude: number; longitude: number }) {
-  loadEvents(center).catch(() => {});
 }
 
 /** A map region centred on a point that just fits a circle of `km` around it. */
@@ -107,7 +110,7 @@ export default function EventsMap() {
   const map = useRef<MapView>(null);
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [location, setLocation] = useState<LocationState>({ status: 'checking' });
-  // Where events are loaded around: the user once found, Vancouver until then.
+  // Where events are loaded around: the user once found.
   const [eventsCenter, setEventsCenter] = useState({
     latitude: DEFAULT_REGION.latitude,
     longitude: DEFAULT_REGION.longitude,
@@ -117,34 +120,48 @@ export default function EventsMap() {
   // Where the map was last asked to centre on the user. A move asked for before the map is
   // ready is ignored, so onMapReady makes it again.
   const userRegion = useRef<Region | null>(null);
-  // Events are loaded around Vancouver only once, if we never find the user.
-  const loadedFallback = useRef(false);
   // Read when the app comes back to the front: only then is it worth asking the phone again.
   const wasDenied = useRef(false);
+  // Why the pins couldn't be loaded (offline, or the server refused the position); null when they were.
+  const [loadProblem, setLoadProblem] = useState<string | null>(null);
+
+  // Loads the pins; if that fails, the map keeps the ones it has and says why.
+  const showEvents = useCallback((load: Promise<void>) => {
+    load.then(
+      () => setLoadProblem(null),
+      (error) => setLoadProblem(errorMessage(error, "Events couldn't be loaded. Try again.")),
+    );
+  }, []);
 
   const onMapReady = () => {
     if (userRegion.current) map.current?.animateToRegion(userRegion.current, 400);
   };
 
-  // Centres the map on the user when we found them, and loads the events there.
-  const showResult = (result: FindResult) => {
-    wasDenied.current = result.status === 'denied';
-    if (result.status === 'found') {
-      const here = { ...DEFAULT_REGION, latitude: result.latitude, longitude: result.longitude };
-      setLocation({ status: 'found' });
-      setRegion(here);
-      setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
-      userRegion.current = here;
-      map.current?.animateToRegion(here, 400);
-      loadEventsQuietly(here);
-      return;
-    }
-    setLocation(result);
-    if (!loadedFallback.current) {
-      loadedFallback.current = true;
-      loadEventsQuietly(DEFAULT_REGION);
-    }
-  };
+  // Centres the map on the user when we found them, and loads the events there. A position the
+  // phone last knew, however old, only centres the map.
+  const showResult = useCallback(
+    (result: FindResult) => {
+      wasDenied.current = result.status === 'denied';
+      if (result.status === 'found') {
+        const here = { ...DEFAULT_REGION, latitude: result.latitude, longitude: result.longitude };
+        setLocation({ status: 'found' });
+        setRegion(here);
+        setEventsCenter({ latitude: here.latitude, longitude: here.longitude });
+        userRegion.current = here;
+        map.current?.animateToRegion(here, 400);
+        showEvents(loadEvents(here));
+        return;
+      }
+      if (result.status === 'unavailable' && result.lastKnown) {
+        const there = { ...DEFAULT_REGION, ...result.lastKnown };
+        setRegion(there);
+        userRegion.current = there;
+        map.current?.animateToRegion(there, 400);
+      }
+      setLocation(result);
+    },
+    [showEvents],
+  );
 
   // The map stays usable while this runs.
   const centreOnUser = async () => {
@@ -168,13 +185,13 @@ export default function EventsMap() {
       cancelled = true;
       unsubscribe();
     };
-  }, [navigation]);
+  }, [navigation, showResult]);
 
   // Letting go of the slider: remember the distance, reload the pins and fit the map to it.
   const changeRadius = (km: number) => {
     setDraggedKm(null);
     map.current?.animateToRegion(regionAround(eventsCenter, km), 400);
-    setEventRadius(km).catch(() => {});
+    showEvents(setEventRadius(km));
   };
 
   // Coming back from the phone's Settings after turning location on: try again.
@@ -185,7 +202,7 @@ export default function EventsMap() {
       }
     });
     return () => subscription.remove();
-  }, []);
+  }, [showResult]);
 
   // "Turn on location": ask again if the phone still allows it, otherwise open Settings.
   const turnOnLocation = async () => {
@@ -201,13 +218,22 @@ export default function EventsMap() {
     }
   };
 
-  // A short note under the banner when we couldn't centre on the user.
+  // A short note under the banner when we couldn't centre on the user or load the pins.
   let locationPrompt = null;
-  if (location.status === 'denied') {
+  if (location.status === 'found' && loadProblem !== null) {
     locationPrompt = (
       <View style={[styles.prompt, { gap: spacing.sm, marginTop: spacing.sm }]}>
         <AppText variant="caption" color="textSecondary">
-          Showing events around Vancouver. Turn on location to see the ones near you.
+          {loadProblem}
+        </AppText>
+        <Button label="Try again" variant="secondary" size="compact" onPress={centreOnUser} />
+      </View>
+    );
+  } else if (location.status === 'denied') {
+    locationPrompt = (
+      <View style={[styles.prompt, { gap: spacing.sm, marginTop: spacing.sm }]}>
+        <AppText variant="caption" color="textSecondary">
+          Turn on location to see the events near you.
         </AppText>
         <Button label="Turn on location" variant="secondary" size="compact" onPress={turnOnLocation} />
       </View>

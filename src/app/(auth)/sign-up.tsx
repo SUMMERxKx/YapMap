@@ -28,8 +28,8 @@ export default function SignUp() {
 
   const canCreate = email.includes('@') && password.length > 0 && confirmation.length > 0;
 
-  // The button and the keyboard's Go key both create the account; one attempt at a time, or
-  // the second would be refused as an account that already exists.
+  // The button and the keyboard's Go key both create the account; one attempt at a time, so
+  // only one code is emailed.
   const create = useOneAtATime(async () => {
     if (!canCreate) return;
     const problem = passwordProblem(password, confirmation);

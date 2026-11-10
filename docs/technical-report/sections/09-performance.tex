@@ -41,7 +41,7 @@ the rest of the chapter lists the choices that matter, grouped by where they act
   \item[One shared nearby poll.] A single poll in the \code{(app)} layout feeds the list, the person sheet
     and the prompts. It runs only while the user is live and the app is in the foreground.
   \item[Photos signed in batches and cached.] All the photo paths a screen needs are signed in one
-    request. Signed URLs are reused until ten minutes before they expire, so the same photo keeps the same
+    request. Signed URLs are reused until five minutes before they expire, so the same photo keeps the same
     address across refreshes.
   \item[Downloads cached by stable keys.] \code{expo-image} caches each photo under its URL without the
     signing token, so a photo is downloaded once even when its URL is signed again.

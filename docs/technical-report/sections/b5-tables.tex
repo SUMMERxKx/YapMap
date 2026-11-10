@@ -3,7 +3,8 @@
 
 Every table with its columns, types, defaults, constraints, row-level security policies and indexes, as
 defined by the migrations. All columns are \code{NOT NULL} unless marked \emph{nullable}. Every foreign key
-to \code{profiles} or \code{auth.users} cascades on delete. Row-level security is enabled on every table
+to \code{profiles} or \code{auth.users} cascades on delete, except the two in \code{reports}, which are set
+to null. Row-level security is enabled on every table
 listed. The role \code{anon} has no privileges on any of them, and \code{authenticated} has no
 \code{INSERT}, \code{UPDATE} or \code{DELETE} privilege except where stated. One such exception is
 \code{profiles}: its \code{INSERT} and \code{UPDATE} are limited to listed columns, but its default
@@ -47,8 +48,8 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \emph{Triggers} & \code{profiles_word_filter}: before insert or update of \code{intro}, \code{interests}, refuses a listed word (\code{refuse_blocked_words}) \\[3pt]
   \tablehead{public.availability: one row per live user}
   \code{user_id} & \code{uuid}, primary key, references \code{profiles} \\
-  \code{location} & \code{geography(point, 4326)}; never returned to clients \\
-  \code{accuracy_m} & \code{double precision}, nullable \\
+  \code{location} & \code{geography(point, 4326)}; the centre of the user's cell of about 100\,m (\code{private.cell_center}); never returned to clients \\
+  \code{accuracy_m} & \code{double precision}, nullable; clamped to 0--50 by \code{go_green}; not used by any rule \\
   \code{note} & \code{text}, default empty, at most 60 characters \\
   \code{state} & \code{text}, default \code{open}; \code{open} or \code{chatting} \\
   \code{started_at} & \code{timestamptz}, default \code{now()}; when the live position was set \\
@@ -69,7 +70,7 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \tablehead{public.events: events on the map}
   \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
   \code{host} & \code{uuid}, references \code{profiles} \\
-  \code{emoji} & \code{text}, default U+2615, at most 8 characters; the category \\
+  \code{emoji} & \code{text}, default U+2615, at most 8 characters; the category, one of the twelve values in \cref{tab:event-categories} (\code{events_emoji_category}) \\
   \code{title} & \code{text}, 1 to 60 characters \\
   \code{description} & \code{text}, default empty, at most 200 characters \\
   \code{location} & \code{geography(point, 4326)}; the place the host chose \\
@@ -104,7 +105,9 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \emph{Policies} & \code{blocks_select_own} and \code{blocks_delete_own} (where \code{blocker = auth.uid()}); \code{DELETE} granted to \code{authenticated} \\[3pt]
   \tablehead{public.reports: reports for review}
   \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
-  \code{reporter}, \code{reported} & \code{uuid}, reference \code{profiles} \\
+  \code{reporter}, \code{reported} & \code{uuid}, nullable, reference \code{profiles}, set to null on delete, so a report outlives both accounts \\
+  \code{reported_hash} & \code{text}; SHA-256 of the reported id, set by the trigger \code{reports_reported_hash} \\
+  \code{counts_toward_hide} & \code{boolean}, default false; whether the report counted towards the automatic hide (\code{report_user}) \\
   \code{request_id} & \code{uuid}, nullable, references \code{chat_requests}, set to null on delete \\
   \code{reason} & \code{text}; one of \code{inappropriate-photo}, \code{harassment}, \code{unsafe}, \code{spam-or-fake}, \code{under-18}, \code{other} \\
   \code{details} & \code{text}, default empty, at most 500 characters; clean text \\
@@ -124,6 +127,30 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
   \tablehead{private.blocked\_words: words the word filter refuses}
   \code{word} & \code{text}, primary key; lowercase letters and digits only; about 20 rows when created \\
-  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated}; changed by the owner in the SQL editor \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated}; changed by the owner in the SQL editor \\[3pt]
+  \tablehead{private.last\_positions: the last known position}
+  \code{user_id} & \code{uuid}, primary key, references \code{profiles} \\
+  \code{location} & \code{geography(point, 4326)}; a cell centre \\
+  \code{set_at} & \code{timestamptz}, default \code{now()}; used by the map for 2 hours, kept until replaced \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.call\_counts: lookups in the current window}
+  \code{user_id}, \code{fn} & \code{uuid} referencing \code{auth.users}, and \code{text}; together the primary key \\
+  \code{window_start}, \code{calls} & \code{timestamptz}, \code{integer}; rows from windows more than an hour old are deleted \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.banned\_identities: email addresses that cannot sign up}
+  \code{email_hash} & \code{text}, primary key; \code{private.email_hash} of the address \\
+  \code{reason}, \code{created_at} & \code{text}; \code{timestamptz}, default \code{now()} \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.disposable\_email\_domains: throwaway email domains}
+  \code{domain} & \code{text}, primary key; lowercase letters, digits, dots and hyphens; about 9\,900 rows from the public-domain list \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.signup\_ips: sign-ups by IP address}
+  \code{ip_hash}, \code{created_at} & \code{text} (SHA-256 of the address), \code{timestamptz}; rows older than a day are deleted \\
+  \emph{Indexes} & \code{signup_ips_hash_idx} (\code{ip_hash}, \code{created_at}); no primary key \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\[3pt]
+  \tablehead{private.photo\_uploads: times of photo uploads}
+  \code{user_id}, \code{uploaded_at} & \code{uuid} (the folder's owner), \code{timestamptz}; rows older than a day are deleted \\
+  \emph{Indexes} & \code{photo_uploads_user_idx} (\code{user_id}, \code{uploaded_at}); no primary key \\
+  \emph{Access} & no policies; all privileges revoked from \code{public}, \code{anon} and \code{authenticated} \\
 \end{longtable}
 \endgroup

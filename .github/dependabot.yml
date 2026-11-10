@@ -51,6 +51,11 @@ updates:
       - dependency-name: '@react-native-async-storage/async-storage'
       - dependency-name: '@react-native-community/datetimepicker'
       - dependency-name: '@react-native-community/slider'
+      # Lint can't run on these yet: typescript-eslint#10940 (TypeScript 7) and eslint-plugin-react#3977 (ESLint 10).
+      - dependency-name: 'typescript'
+        versions: ['>=7']
+      - dependency-name: 'eslint'
+        versions: ['>=10']
 
   - package-ecosystem: github-actions
     directory: /
