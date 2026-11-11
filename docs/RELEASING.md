@@ -152,9 +152,9 @@ Rules that keep this safe:
 
 ## Dependency updates
 
-Dependabot (`.github/dependabot.yml`) opens update PRs every Monday: one grouped PR for npm
-minor and patch updates, one for Expo SDK patch updates, one for GitHub Actions. Merge them
-once the checks in "Checks before merging" pass locally.
+Nothing opens dependency update PRs automatically. Check for outdated packages yourself with
+`npm outdated` now and then, and make each update its own branch and PR. Merge it once the
+checks in "Checks before merging" pass locally.
 
 Packages whose version the Expo SDK decides (`react`, `react-native`, `react-native-*`,
 `expo-*`) are never bumped past what the SDK allows, because `expo-doctor` would fail. They

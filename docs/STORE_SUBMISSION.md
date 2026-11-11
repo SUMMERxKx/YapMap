@@ -238,7 +238,7 @@ same place.
   After adding, removing or updating a dependency, run `npm run licenses` (it exports both
   bundles, so it takes a few minutes) and commit `src/data/third-party-licenses.json`. The
   checks in `docs/RELEASING.md` don't verify this file, because the list records versions and
-  every Dependabot update would fail; `npm run licenses -- --check` before a release shows whether
+  every dependency update would fail; `npm run licenses -- --check` before a release shows whether
   it is current.
 - Test the production build on a real Android phone (the map) and a real iPhone before
   submitting: `eas build --profile preview`.
