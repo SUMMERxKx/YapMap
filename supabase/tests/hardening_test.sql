@@ -1,6 +1,6 @@
 -- Checks for the rules added in 20261022103744_break_it_hardening.sql: each test is something a
 -- modified app did successfully before that migration. (The photo limit is 16 files since
--- 20261026083000_safety_fixes.sql.) Run against the local stack:
+-- 20261026180208_safety_fixes.sql.) Run against the local stack:
 --
 --   supabase start
 --   supabase test db
