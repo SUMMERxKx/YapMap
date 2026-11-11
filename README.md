@@ -139,6 +139,7 @@ supabase test db                      # the pgTAP checks in supabase/tests
 npm run db:types:check                # src/data/database.types.ts matches the migrations
 ```
 
-GitHub Actions runs all of these on every pull request, along with the iOS and Android bundle
-builds and a check of the migration file names. `docs/RELEASING.md` covers CI, branch
-protection, versioning, EAS builds, shipping database changes and rollback.
+There are no GitHub Actions. Run all of these yourself before merging a pull request, along with
+the iOS and Android bundle builds (`npx expo export`) and the migration file names check
+(`npm run db:check-migrations`). `docs/RELEASING.md` lists every check with its command, and
+covers branch protection, versioning, EAS builds, shipping database changes and rollback.

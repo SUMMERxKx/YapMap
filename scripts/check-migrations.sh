@@ -23,7 +23,7 @@ fail() {
 }
 
 if ! git rev-parse --verify --quiet "$base^{commit}" > /dev/null; then
-  echo "::error::Unknown base branch '$base'. Fetch it first (CI checks out with fetch-depth: 0)."
+  echo "::error::Unknown base branch '$base'. Fetch it first (for example, git fetch origin main)."
   exit 1
 fi
 
