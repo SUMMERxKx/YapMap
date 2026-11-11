@@ -1,7 +1,7 @@
 # Releasing Yap on the App Store and Google Play
 
 Everything needed to build Yap for the stores and fill in their forms, in order. The everyday
-flow (CI, versioning, shipping database changes, rollback) is in [`RELEASING.md`](RELEASING.md). The answers
+flow (the checks, versioning, shipping database changes, rollback) is in [`RELEASING.md`](RELEASING.md). The answers
 below match what the app and database do as of October 2026; if the app starts collecting
 something new, update this file, `docs/legal/privacy-policy.md` and
 `expo.ios.privacyManifests` in `app.json` together.
@@ -236,8 +236,9 @@ same place.
   library. There is no background location and no microphone.
 - Acknowledgements (Settings → Acknowledgements) list every open-source package the app ships.
   After adding, removing or updating a dependency, run `npm run licenses` (it exports both
-  bundles, so it takes a few minutes) and commit `src/data/third-party-licenses.json`. CI
-  doesn't check this file, because the list records versions and every Dependabot update would
-  fail; `npm run licenses -- --check` before a release shows whether it is current.
+  bundles, so it takes a few minutes) and commit `src/data/third-party-licenses.json`. The
+  checks in `docs/RELEASING.md` don't verify this file, because the list records versions and
+  every Dependabot update would fail; `npm run licenses -- --check` before a release shows whether
+  it is current.
 - Test the production build on a real Android phone (the map) and a real iPhone before
   submitting: `eas build --profile preview`.

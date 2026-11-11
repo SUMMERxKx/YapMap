@@ -35,8 +35,7 @@ supabase test db      # runs the pgTAP checks in supabase/tests against the loca
 the nearby cells, report trust, restricted accounts, the sign-up hook and the event position). Each file runs in a
 transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
 from separate connections (dblink) to show the daily event and report limits hold; the people it
-signs up there are saved for real, so it deletes them at its start and end. CI runs them too
-(the Database job), but run them yourself after changing those rules.
+signs up there are saved for real, so it deletes them at its start and end. They are one of the checks in `docs/RELEASING.md`), so run them yourself after changing those rules.
 
 The photo limits (16 files in a person's folder, 40 uploads a day) are best-effort: the storage
 policy counts them, and uploads sent at the same moment can't see each other, so together they
@@ -54,10 +53,10 @@ ban list, the throwaway-domain list and the 20-a-day limit per IP address like h
 npm run db:types     # writes src/data/database.types.ts from the local database
 ```
 
-Use the same Supabase CLI version as CI (see `docs/RELEASING.md`), or the generated file can
-come out formatted differently. Then `npm run typecheck` and `npm run lint`, and open a PR with
-the migration and the types. CI rebuilds the database from every migration, lints the SQL
-functions and fails if the types file doesn't match.
+Use Supabase CLI 2.121.0, the version the checks in `docs/RELEASING.md` use, or the generated file
+can come out formatted differently. Then `npm run typecheck` and `npm run lint`, and open a PR with
+the migration and the types. The database checks in `docs/RELEASING.md` rebuild the database from
+every migration, lint the SQL functions and fail if the types file doesn't match.
 
 ## 4. Apply it to the hosted project
 
@@ -80,8 +79,8 @@ So far migrations have been applied with the Supabase MCP `apply_migration` tool
 records each one under the time it ran rather than the file's timestamp. If you use it,
 rename the file to the version it recorded (`list_migrations` shows it) so the repo and the
 hosted history stay identical. Rename it with `git mv` and change nothing inside: the
-Migration files check in CI accepts a rename only when the contents are byte-for-byte the
-same. `supabase db push` keeps the file's own version, so no rename is needed.
+Migration files check (`npm run db:check-migrations`) accepts a rename only when the contents are
+byte-for-byte the same. `supabase db push` keeps the file's own version, so no rename is needed.
 
 Some migrations also need a one-time dashboard step, which the hosted project doesn't get from
 `db push`. `20261026180208_safety_fixes.sql` needs **Authentication -> Hooks -> Before User
