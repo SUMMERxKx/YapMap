@@ -2,7 +2,7 @@
 # Regenerates src/data/database.types.ts from the local database (`supabase start` first).
 #
 #   npm run db:types          rewrite the file
-#   npm run db:types:check    only check it is up to date (CI runs this)
+#   npm run db:types:check    only check it is up to date (a local check, see docs/RELEASING.md)
 #
 # The output goes through Prettier so the file looks the same on every machine.
 set -eu

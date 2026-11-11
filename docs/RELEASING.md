@@ -8,27 +8,27 @@ way, and how to undo it.
 1. Branch from `main` (`feat/...`, `fix/...`, `chore/...`).
 2. Open a pull request. The template asks what changed, how it was tested, and whether it
    has a migration.
-3. CI runs (below). Fix it until every check is green.
+3. Run the checks (below) locally against the branch and fix any failure before you merge.
 4. Squash-merge into `main`, with a title like the existing history
    (`feat(events): let the host delete their event`).
 5. If the PR has a migration, apply it to the hosted project (see "Database changes").
 
 Nobody pushes to `main` directly.
 
-## What CI checks
+## Checks before merging
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `main`. A new push to
-the same branch cancels the older run.
+This repository has no GitHub Actions workflows. Code is reviewed locally, so before you merge a
+pull request, run these checks yourself against the branch.
 
-| Check (job name) | What it does | Run it yourself |
+| Check | What it does | Commands |
 | --- | --- | --- |
-| **App (types, lint, doctor, export)** | `npm ci`, TypeScript (it generates the Expo Router route types first, so a link to a missing route fails), ESLint (with security rules; warnings fail), `expo-doctor`, and builds the iOS and Android bundles with `expo export`. Also prints an `npm audit` report that never fails the run. | `npm run typecheck`, `npm run lint`, `npx expo-doctor`, `npx expo export --platform ios --platform android` |
+| **App** | `npm ci`, then TypeScript (it generates the Expo Router route types first, so a link to a missing route fails), ESLint (with security rules; warnings fail), `expo-doctor`, and builds the iOS and Android bundles with `expo export`. An `npm audit` report is printed too, but it never fails the run. | `npm ci`, `npm run typecheck`, `npm run lint -- --max-warnings 0`, `npx expo-doctor`, `npx expo export --platform ios --platform android --output-dir dist`, `npm audit --omit=dev --audit-level=high` |
 | **Migration files** | New migration files are named `<14-digit version>_<name>.sql` and are later than every migration on `main`; existing migrations were not edited, renamed or deleted. The one exception is a rename that keeps the file byte-for-byte the same, for matching the version the hosted project recorded (`supabase/README.md`, step 4). | `npm run db:check-migrations` |
-| **Database (reset, lint, tests, types)** | Starts Supabase in Docker, applies every migration from an empty database, lints the SQL functions in `public` and `private`, runs the pgTAP checks in `supabase/tests`, and checks `src/data/database.types.ts` matches the migrations. | `supabase start`, `supabase db reset`, `supabase db lint --schema public,private`, `supabase test db`, `npm run db:types:check` |
+| **Database** | Starts Supabase in Docker, applies every migration from an empty database, lints the SQL functions in `public` and `private`, runs the pgTAP checks in `supabase/tests`, and checks `src/data/database.types.ts` matches the migrations. | `supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,realtime,mailpit,postgres-meta`, `supabase db reset`, `supabase db lint --schema public,private --level warning --fail-on error`, `supabase test db`, `npm run db:types:check`, `supabase stop --no-backup` |
 
-CI uses Supabase CLI **2.121.0**. Use the same version locally when you run `npm run db:types`
-(`brew upgrade supabase`, or `npx supabase@2.121.0 ...`): a different CLI can format the
-generated types differently and the types check would fail.
+Run the database checks with Docker running. Use Supabase CLI **2.121.0** for them and for
+`npm run db:types` (`brew upgrade supabase`, or `npx supabase@2.121.0 ...`): a different CLI can
+format the generated types differently and the types check would fail.
 
 When the types check fails, the log shows the difference. Run `supabase start` (or
 `supabase db reset`), then `npm run db:types`, and commit the updated file.
@@ -41,13 +41,12 @@ for `main`:
 - Require a pull request before merging. Approvals: 0 while one person works on the repo
   (GitHub won't let you approve your own PR); raise it to 1 when a second developer joins.
   CODEOWNERS already asks the owner to review every PR.
-- Require status checks to pass, and require branches to be up to date before merging.
-  Required checks: `App (types, lint, doctor, export)`, `Migration files`,
-  `Database (reset, lint, tests, types)`. They appear in the search box after CI has run once.
 - Require conversation resolution before merging.
 - Block force pushes and deletion of `main`.
 
-Don't add `PR-Agent` as a required check: it is optional and skipped until it is turned on.
+Don't add required status checks: there are no GitHub Actions, so GitHub has no checks to wait
+for, and a required check that never reports blocks every merge. The checks in "Checks before
+merging" are the gate, and they run on your machine.
 
 ## Versioning
 
@@ -85,11 +84,11 @@ eas submit --platform ios --latest              # upload the newest iOS build to
 eas submit --platform android --latest          # upload the newest Android build to Google Play
 ```
 
-Build from a clean, up-to-date `main` with green CI.
+Build from a clean, up-to-date `main` after the checks in "Checks before merging" pass.
 
 ### Before each store build
 
-1. CI is green on the commit you build from.
+1. The checks in "Checks before merging" pass on the commit you build from.
 2. `version` in `app.json` is raised if this is a new release (see "Versioning").
 3. Every migration is applied to the hosted project: after `supabase link`,
    `supabase migration list` shows the same versions in the Local and Remote columns.
@@ -105,8 +104,9 @@ A database change ships like this:
 1. **Migration.** `supabase migration new <name>`, write the SQL, `supabase db reset` to try
    it, then `npm run db:types`. `supabase/README.md` has the details.
 2. **Pull request** with the migration and the regenerated types.
-3. **CI** applies every migration to an empty database, lints the functions, checks the types
-   and the file name. A migration that fails here would also fail on the hosted project.
+3. **Checks** run locally: the database checks apply every migration to an empty database, lint
+   the functions and check the types, and the migration files check covers the file name. A
+   migration that fails here would also fail on the hosted project.
 4. **Merge** into `main`.
 5. **Apply to the hosted project**, from an up-to-date `main`:
 
@@ -121,13 +121,14 @@ A database change ships like this:
 Rules that keep this safe:
 
 - **Never edit a migration that is on `main`.** It may already be applied to the hosted
-  database, where editing the file changes nothing. Add a new migration. CI enforces this.
+  database, where editing the file changes nothing. Add a new migration. The migration files
+  check (`npm run db:check-migrations`) enforces this.
 - **Apply the migration before releasing app code that needs it**, and keep each migration
   working with the app version already on people's phones. Old builds stay installed for
   weeks. To rename or remove a column or function: add the new one, ship an app that uses
   it, and drop the old one in a later migration.
-- **A migration that adds check constraints can pass CI and still fail on the hosted
-  project**, because CI starts from an empty database. Such a migration says so at the top
+- **A migration that adds check constraints can pass the database checks and still fail on the
+  hosted project**, because they start from an empty database. Such a migration says so at the top
   with a read-only query to run in the SQL editor first; every count must be 0. If one isn't,
   the push fails without changing anything until those rows are fixed.
 - Never run `supabase config push`; hosted auth and email settings live in the dashboard.
@@ -151,9 +152,9 @@ Rules that keep this safe:
 
 ## Dependency updates
 
-Dependabot (`.github/dependabot.yml`) opens update PRs every Monday: one grouped PR for npm
-minor and patch updates, one for Expo SDK patch updates, one for GitHub Actions. Merge them
-when CI is green.
+Nothing opens dependency update PRs automatically. Check for outdated packages yourself with
+`npm outdated` now and then, and make each update its own branch and PR. Merge it once the
+checks in "Checks before merging" pass locally.
 
 Packages whose version the Expo SDK decides (`react`, `react-native`, `react-native-*`,
 `expo-*`) are never bumped past what the SDK allows, because `expo-doctor` would fail. They
@@ -169,39 +170,3 @@ Read Expo's SDK release notes first, then open the upgrade as its own PR.
 
 Any dependency change can change what ships in the app, so after one run `npm run licenses`
 and commit `src/data/third-party-licenses.json` (the Acknowledgements screen in Settings).
-
-## AI code review (optional, free)
-
-`.github/workflows/pr-agent.yml` runs [PR-Agent](https://github.com/the-pr-agent/pr-agent)
-(open source, MIT) inside GitHub Actions. It posts a review and code suggestions on each new
-pull request, and replies to `/review`, `/improve` or `/ask <question>` comments. It is off
-until the owner turns it on, and the workflow is skipped (not failed) until then.
-
-Why this tool (checked October 2026; these change often):
-
-- CodeRabbit reviews only public repositories for free; private repositories need a paid plan.
-- The free (consumer) Gemini Code Assist GitHub app shut down on July 17, 2026.
-- Qodo Merge (the hosted PR-Agent) no longer has a free plan, only a trial.
-- GitHub Copilot Free doesn't include code review, and GitHub Models was retired.
-- PR-Agent itself is free. With a Google AI Studio key on Gemini's free tier, the whole
-  setup costs nothing, within Google's free-tier rate limits.
-
-One-time setup, with the owner's own logins:
-
-1. Create an API key at <https://aistudio.google.com/apikey>.
-2. In the GitHub repo: **Settings -> Secrets and variables -> Actions**.
-   - **Secrets** tab: new repository secret `GEMINI_API_KEY` = the key.
-   - **Variables** tab: new repository variable `PR_AGENT_ENABLED` = `true`.
-   - Optional variable `PR_AGENT_MODEL` to pick another model (default
-     `gemini/gemini-3.8-flash`).
-3. Open a pull request. A "PR Reviewer Guide" comment from `github-actions` appears within a
-   few minutes.
-
-**Privacy:** the review sends the PR's diff and the README files to Google. On the free tier,
-Google may use that content to improve its products, and people at Google may read it. Yap is
-proprietary, so decide whether that is acceptable. Turning on billing for the key's Google
-Cloud project moves it to the paid tier, where content is not used that way; a few reviews a
-week cost very little. Set `PR_AGENT_ENABLED` to `false` to turn reviews off again.
-
-What it reviews for (Supabase security, append-only migrations, privacy, React Native leaks)
-is set in `.pr_agent.toml`.
