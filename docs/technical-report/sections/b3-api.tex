@@ -41,7 +41,6 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{saveProfile(values)} & select own row; storage \code{list} and \code{remove} files the saved row doesn't use; storage \code{upload} for new photos and the 320\,px copy; insert or update; \code{list} and \code{remove} unused files again; then \code{fetchMyProfile} & \code{Profile} \\
   \code{signPhotos(paths)} & storage \code{createSignedUrls} for uncached paths & display URLs \\
   \code{forgetSession()} & none; clears the URL cache and removes every Realtime channel & --- \\
-  \code{verifySelfie(selfie, photo)} & none; placeholder & always \texttt{\{matched: true\}} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Going live}}} \\
   \code{goGreen(args)} & rpc \code{go_green}; throws first if there is no position & \texttt{\{startedAt, expiresAt\}} \\

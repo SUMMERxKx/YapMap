@@ -82,11 +82,3 @@ export const PHOTO_RANGE = { min: 4, max: 6 } as const; // on top of the profile
 
 /** Shortest password allowed. Match it in Supabase: Authentication -> Sign In / Providers -> Email. */
 export const PASSWORD_MIN_LENGTH = 8;
-
-// Random poses for the verification selfie, so an old photo can't be reused.
-export const VERIFICATION_POSES = [
-  { icon: 'thumbs-up-outline', text: 'Give a thumbs up next to your face' },
-  { icon: 'hand-left-outline', text: 'Hold up two fingers in a peace sign' },
-  { icon: 'happy-outline', text: 'Touch your nose with one finger' },
-  { icon: 'hand-right-outline', text: 'Rest your chin on your hand' },
-] as const;

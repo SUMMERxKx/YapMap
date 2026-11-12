@@ -64,7 +64,7 @@ steps follow, one question per screen, each with a progress bar and its number:
   \item four to six further photos, picked several at a time, each of which can be replaced or removed.
 \end{enumerate}
 
-\ui{Finish} saves the profile (\cref{sec:flow-profile}). The greeting and the selfie screen also offer
+\ui{Finish} saves the profile (\cref{sec:flow-profile}). The greeting also offers
 \ui{Use a different account}, which signs out, for someone who signed up with the wrong address.
 
 \implemented
@@ -321,19 +321,16 @@ are 44 points.
   {\code{useTheme}, \code{usePressFeedback}, \code{Skeleton}, \code{Mascot}, \code{GlassBackdrop}}
   {None}
 
-\section{Features built but switched off}
+\section{Feature built but switched off}
 \label{sec:feature-flags}
 
-Two features are present in the code and disabled by flags in \code{src/config/features.ts}.
-
-\paragraph{Selfie verification} When enabled, a user with a profile but no verification is sent to a
-selfie check after setup, and again after changing the profile picture. The screen shows the profile
-picture beside an empty frame, asks the user to copy a random pose (for example a thumbs-up next to the
-face) so an old photo cannot be reused, and takes a front-camera selfie. A verified profile shows a
-\ui{Verified} badge. The comparison is not implemented: \code{api.verifySelfie} always reports a match, and
-the result is kept only on the phone, since \code{profiles.verified} can be written only by the server.
-Issue 17 plans a server-side face comparison before the flag is turned on.
+One feature is present in the code and disabled by a flag in \code{src/config/features.ts}.
 
 \paragraph{Sign-in with Apple and Google} When enabled, the welcome screen shows \ui{Continue with Apple}
 (on iOS) and \ui{Continue with Google}. Neither provider is configured in Supabase Auth, and the store's
 handler only shows \ui{Not available yet}.
+
+\paragraph{Selfie and face verification} This release has none. The screen, the placeholder matcher, the
+phone-side verified state and the \ui{Verified} badge were removed from the app. The code is parked on the
+\code{future/face-verification} branch and tracked as issue 17. The database column \code{profiles.verified}
+remains, but the app ignores it and no screen shows or asks for verification.

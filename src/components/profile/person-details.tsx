@@ -5,7 +5,6 @@ import type { NearbyPerson } from '@/data/types';
 import { usePersonPhotos } from '@/hooks/use-person-photos';
 import { displayName, genderLabel } from '@/lib/format-person';
 import { photoSource } from '@/lib/photo-source';
-import { FEATURES } from '@/config/features';
 import { useTheme } from '@/theme';
 
 import { AppText } from '@/components/ui/app-text';
@@ -13,7 +12,6 @@ import { Avatar } from '@/components/profile/avatar';
 import { Card } from '@/components/ui/card';
 import { InterestList } from '@/components/ui/chip';
 import { Skeleton, SkeletonBlock } from '@/components/ui/skeleton';
-import { VerifiedBadge } from '@/components/profile/verified-badge';
 
 type Props = { person: NearbyPerson; subtitle?: string };
 
@@ -21,7 +19,6 @@ type Props = { person: NearbyPerson; subtitle?: string };
 export function PersonDetails({ person, subtitle }: Props) {
   const { colors, layout, radius, size, spacing } = useTheme();
   const gender = genderLabel(person.gender);
-  const showVerified = FEATURES.selfieVerification && person.verified;
   const photos = usePersonPhotos(person);
 
   return (
@@ -32,7 +29,6 @@ export function PersonDetails({ person, subtitle }: Props) {
           {displayName(person)}
         </AppText>
         {gender !== null && <AppText color="textSecondary">{gender}</AppText>}
-        {showVerified && <VerifiedBadge />}
         {person.note !== '' && (
           <AppText variant="bodyStrong" color="greenText" align="center" style={{ marginTop: spacing.xs }}>
             {`"${person.note}"`}

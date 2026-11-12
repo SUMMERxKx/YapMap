@@ -14,7 +14,6 @@ export type Profile = {
   photoUri: string | null; // profile picture
   photos: string[]; // more photos, 4 to 6
   isAdult: boolean;
-  verified: boolean; // selfie matched the profile photo
 };
 
 // What the server's `nearby` function returns: people, never positions or distances.
@@ -30,7 +29,6 @@ export type NearbyPerson = {
   photos: string[]; // more photos as display URLs; empty until signed from photoPaths
   photoPaths: string[]; // storage paths of those photos, signed when the profile is opened
   note: string; // their optional note while live
-  verified: boolean;
 };
 
 export type Availability = {

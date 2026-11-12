@@ -38,6 +38,5 @@ export function asSeenByOthers(profile: Profile, note: string): NearbyPerson {
     photos: profile.photos,
     photoPaths: [],
     note,
-    verified: profile.verified,
   };
 }
