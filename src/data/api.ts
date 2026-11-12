@@ -494,7 +494,6 @@ export async function fetchMyAccount(): Promise<{ profile: Profile | null; restr
     photoUri: urlForPath(urls, data.photo_path),
     photos: urlsForPaths(urls, data.photo_paths),
     isAdult: data.is_adult,
-    verified: data.verified,
   };
   return { profile, restricted: data.status !== 'active' };
 }
@@ -505,7 +504,7 @@ export async function fetchMyProfile(): Promise<Profile | null> {
 }
 
 /** Uploads any new photos, saves the row, and returns the stored profile. */
-export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Promise<Profile> {
+export async function saveProfile(values: Omit<Profile, 'id'>): Promise<Profile> {
   const userId = await requireUserId();
   if (!values.photoUri) throw new Error('A profile picture is required.');
 
@@ -555,12 +554,6 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>): Pro
   return profile;
 }
 
-// Selfie verification is switched off (src/config/features.ts). When it returns, this
-// becomes an Edge Function doing a real face comparison server-side; see issue #17.
-export async function verifySelfie(_selfieUri: string, _profilePhotoUri: string): Promise<{ matched: boolean }> {
-  return { matched: true };
-}
-
 // ---------------------------------------------------------------- person cards
 
 // The server's "person card" (camelCase jsonb from private.person_card) with photo
@@ -576,7 +569,6 @@ type PersonCard = {
   photoPath: string | null;
   photoPaths: string[];
   note: string;
-  verified: boolean;
 };
 
 async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
@@ -598,7 +590,6 @@ async function toPeople(cards: PersonCard[]): Promise<NearbyPerson[]> {
     photos: [],
     photoPaths: card.photoPaths,
     note: card.note,
-    verified: card.verified,
   }));
 }
 

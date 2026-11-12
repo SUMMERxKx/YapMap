@@ -9,17 +9,14 @@
 
   \node[stackbox, text width=30mm] (auth) at (1.55,-1.75) {\texttt{(auth)}\\[-1pt]{\scriptsize signed out}};
   \node[stackbox, text width=30mm] (setup) at (5.05,-1.75) {\texttt{profile-setup}\\[-1pt]{\scriptsize signed in, no profile}};
-  \node[stackbox, text width=25mm] (verify) at (8.3,-1.75) {\texttt{verify-face}\\[-1pt]{\scriptsize profile, not verified}};
-  \node[stackbox, text width=50mm] (app) at (13.05,-1.75) {\texttt{(app)}\\[-1pt]{\scriptsize signed in, profile, verified or check off}};
+  \node[stackbox, text width=50mm] (app) at (13.05,-1.75) {\texttt{(app)}\\[-1pt]{\scriptsize signed in, profile, active}};
 
-  \foreach \n in {auth, setup, verify, app} {\draw[flow] (root.south) -- (\n.north);}
+  \foreach \n in {auth, setup, app} {\draw[flow] (root.south) -- (\n.north);}
 
   \node[routes, text width=30mm] at (1.55,-2.65)
     {welcome\\sign-in\\sign-up\\verify {\sffamily(code)}\\forgot-password\\new-password};
   \node[routes, text width=30mm] at (5.05,-2.65)
     {index {\sffamily(18+ check)}\\name\\gender\\about\\interests\\photo\\photos};
-  \node[routes, text width=25mm] at (8.3,-2.65)
-    {verify-face\\[2pt]{\sffamily\color{muted} reached only when\\ the selfie check is\\ switched on}};
   \node[routes, text width=50mm] at (13.05,-2.65)
     {\begin{tabular}{@{}>{\sffamily\bfseries}l@{\enskip}>{\raggedright\arraybackslash}p{38mm}@{}}
        Tabs & index {\sffamily(Go live)}, nearby, map, profile \\[1pt]

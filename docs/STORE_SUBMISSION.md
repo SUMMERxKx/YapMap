@@ -92,6 +92,10 @@ eas submit --platform android        # after the first upload (see below)
 
 ## 2. Store listing
 
+Verification is not part of this release. Do not say in the listing, the screenshots or the review
+notes that profiles are verified or that people have passed a selfie or face check. The earlier
+selfie code is parked on the `future/face-verification` branch.
+
 | Field | Apple | Google | Draft |
 | --- | --- | --- | --- |
 | App name | 30 chars | 30 chars | `Yap: Meet People Nearby` (plain "Yap" is probably taken) |
@@ -135,8 +139,8 @@ identity: yes**, **used for tracking: no**.
 | Other Data | **Other Data Types** | Gender (and whether it is shown), the 18+ confirmation |
 
 Not collected: Health, Financial, Contacts, Browsing or Search History, Purchases, Usage Data,
-Diagnostics (no analytics or crash reporting SDK), Sensitive Info, Device ID / advertising
-data. **Tracking: no.** These match `NSPrivacyCollectedDataTypes` in `app.json`, which also
+Diagnostics (no analytics or crash reporting SDK), Sensitive Info (there are no selfies, face
+checks or verification in this release), Device ID / advertising data. **Tracking: no.** These match `NSPrivacyCollectedDataTypes` in `app.json`, which also
 declares the "required reason" APIs that React Native and Expo use (UserDefaults, file
 timestamps, disk space, system boot time).
 

@@ -18,6 +18,10 @@ This is the final project for **COMP 2160 (Section 01), Mobile App Development 1
 
 Block and report are always two taps away.
 
+This release has no selfie or face verification, and profiles are not verified. The earlier
+selfie code is parked on the `future/face-verification` branch and tracked on the backlog (see
+[issue 17](https://github.com/SUMMERxKx/YapMap/issues/17)).
+
 ## Tech
 
 - React Native with Expo (SDK 57) and TypeScript

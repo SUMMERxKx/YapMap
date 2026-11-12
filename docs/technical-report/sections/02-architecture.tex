@@ -102,8 +102,7 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
 
 \begin{table}[ht]
   \centering
-  \caption{Root guards. \emph{Verified} is true when the profile is verified or the selfie check is
-    switched off, which is the current setting.}
+  \caption{Root guards. Exactly one stack is allowed at a time.}
   \label{tab:guards}
   \tablefont
   \begin{tabularx}{\textwidth}{@{}L{30mm}L{58mm}Y@{}}
@@ -113,8 +112,7 @@ the app always lands on the correct step without explicit redirects (\cref{tab:g
     \code{(auth)} & not signed in & Welcome, sign-up, sign-in, emailed codes, password reset \\
     \code{profile-setup} & signed in and no profile row & The 18+ confirmation and six setup steps \\
     \code{account-restricted} & signed in, profile, hidden or suspended & Explains the hold, with the support email, a sign-out and account deletion \\
-    \code{verify-face} & signed in, profile, active, not verified & Selfie check (switched off) \\
-    \code{(app)} & signed in, profile, active, verified & The app itself \\
+    \code{(app)} & signed in, profile, active & The app itself \\
     \bottomrule
   \end{tabularx}
 \end{table}

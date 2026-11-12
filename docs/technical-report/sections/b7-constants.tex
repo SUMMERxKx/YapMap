@@ -33,7 +33,6 @@ summarises the ones that shape behaviour; this appendix is the full list.
   \code{INTEREST_RANGE} & 3 to 5 & Interests per profile \\
   \code{PHOTO_RANGE} & 4 to 6 & Further photos per profile \\
   \code{PASSWORD_MIN_LENGTH} & 8 & New passwords \\
-  \code{VERIFICATION_POSES} & 4 poses & Selfie check \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{\code{src/data/api.ts}}}} \\
   \code{INVALID_CODE} & \ui{Invalid or expired code. Please request a new one.} & Any failed code check \\
@@ -52,7 +51,7 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Answer grace & 3000\,ms after the end time & \code{waitForAnswer} \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Elsewhere in \code{src}}}} \\
-  \code{FEATURES} & \code{selfieVerification} false; \code{socialSignIn} false & \code{config/features.ts}: built but switched-off features \\
+  \code{FEATURES} & \code{socialSignIn} false & \code{config/features.ts}: built but switched-off features \\
   \code{SUPABASE_URL}, \code{SUPABASE_PUBLISHABLE_KEY} & project URL; publishable key & \code{config/supabase.ts} \\
   \code{FIX_TIMEOUT_MS} & 8000 & \code{hooks/use-foreground-location.ts}; also used by the map \\
   \code{RECENT_POSITION_MS} & 300\,000 (5 minutes) & \code{hooks/use-foreground-location.ts}: fallback position age \\

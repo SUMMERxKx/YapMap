@@ -489,8 +489,8 @@ export function signInWithProvider(_provider: 'apple' | 'google') {
   Alert.alert('Not available yet', 'Use email sign-in for now.');
 }
 
-/** Saves the profile (uploads photos first). A changed photo re-triggers the selfie check. */
-export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
+/** Saves the profile (uploads photos first). */
+export async function saveProfile(values: Omit<Profile, 'id'>) {
   const previous = state.profile;
   const stored = await api.saveProfile({
     ...values,
@@ -498,12 +498,7 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
     lastName: cleanLine(values.lastName),
     intro: cleanLines(values.intro),
   });
-  // Keep an earlier verification only while the profile photo stays the same.
-  let keepsVerification = false;
-  if (previous && previous.verified && previous.photoUri === values.photoUri) {
-    keepsVerification = true;
-  }
-  set({ profile: { ...stored, verified: stored.verified || keepsVerification } });
+  set({ profile: stored });
   if (!previous) {
     extrasLoaded = true;
     // The first save is the end of sign-up: show the tutorial this once. Later launches
@@ -513,18 +508,6 @@ export async function saveProfile(values: Omit<Profile, 'id' | 'verified'>) {
   // A new account can be said hi to from now on, so start listening (sign-in only does
   // this for accounts that already had a profile).
   listenForRequests(stored.id);
-}
-
-export async function verifySelfie(selfieUri: string) {
-  const photo = state.profile?.photoUri;
-  if (!photo) throw new Error('Add a profile photo first.');
-  const { matched } = await api.verifySelfie(selfieUri, photo);
-  return matched;
-}
-
-export function markVerified() {
-  if (!state.profile) return;
-  set({ profile: { ...state.profile, verified: true } });
 }
 
 type Leaving = 'sign-out' | 'delete';

@@ -174,7 +174,7 @@ https://samarxkx.dev/yap/delete-account.
   For a copy of everything we hold about you, email us.
 - **Location:** Yap only asks for your location while the app is open. You can turn it off in
   your phone's settings at any time; you just won't be able to go live or see the map.
-- **Photos and camera:** used only when you choose a photo or take one.
+- **Photos and camera:** used only when you choose a photo or take one. Yap does not ask for selfies, does not compare faces and does not verify who you are.
 - **Delete:** as described above.
 
 Depending on where you live (for example in Canada, the EU or the UK, or California), you may

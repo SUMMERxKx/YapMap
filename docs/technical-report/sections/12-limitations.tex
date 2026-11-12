@@ -22,7 +22,7 @@ implemented.
   \multicolumn{2}{@{}l}{\textsf{\textbf{Product}}} \\
   No push notifications & Requests and messages arrive only while the app is open, so the screen stays on while live. A request to a locked or closed phone is shown only if the app returns within its five minutes; otherwise it expires as \ui{Not this time}. Push was deferred; the routes it would open already exist. \\
   One request and one chat at a time & By design. A request that arrives while another request or a chat is on screen is never shown and expires; its sender cannot tell it from a decline. \\
-  Verification and social sign-in off & Both are built behind flags (\cref{sec:feature-flags}). Verification has no face comparison, and neither Apple nor Google is configured in Supabase Auth. \\
+  No verification, social sign-in off & Selfie and face verification is not part of this release and profiles are not verified. Social sign-in is built behind a flag (\cref{sec:feature-flags}), and neither Apple nor Google is configured in Supabase Auth. \\
   Events cannot be edited & A host can delete an event but not change it. Events leave the map three hours after they start. \\
   Legal pages not yet published & The privacy policy and terms links open the addresses in \code{src/config/links.ts}, under \code{https://samarxkx.dev/yap}. The pages are drafts in \code{docs/legal/} that the owner must publish there before the first store release; at the time of writing those addresses are not live. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
   Bounded lists & At most 50 people nearby, 50 events on the map and the newest 200 messages per chat. \\
@@ -59,7 +59,7 @@ implemented.
     \textsf{\textbf{Issue}} & \textsf{\textbf{Plan}} \\
     \midrule
     Backend and scaling plan (issue 25) & Expo push notifications sent from Supabase Edge Functions. For growth: Realtime Broadcast channels for chat instead of database change events, read replicas for the nearby query, image transformations or a CDN for thumbnails, separate production and staging projects, database backups and error monitoring. \\
-    Selfie verification (issue 17) & First a pose selfie reviewed by a person; then an automatic face comparison by a small self-hosted service behind an Edge Function; at larger scale, a managed service with liveness detection. Every phase treats the selfie as biometric data: explicit consent, deletion after the check, only the result kept. \\
+    Selfie verification (issue 17, parked on the \code{future/face-verification} branch) & Not part of this release. When it returns: first a pose selfie reviewed by a person, then an automatic face comparison by a small self-hosted service behind an Edge Function; at larger scale, a managed service with liveness detection. Every phase treats the selfie as biometric data: explicit consent, deletion after the check, only the result kept. \\
     Brand (issue 7) & A new logo, a background image for the welcome and sign-in screens, and a new app icon and splash screen, waiting on design. \\
     \bottomrule
   \end{tabularx}

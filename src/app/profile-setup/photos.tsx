@@ -6,7 +6,6 @@ import { Alert } from 'react-native';
 import { AppText } from '@/components/ui/app-text';
 import { PhotoGrid } from '@/components/profile/photo-grid';
 import { SetupStep } from '@/components/profile/setup-step';
-import { FEATURES } from '@/config/features';
 import { PHOTO_RANGE } from '@/data/constants';
 import { errorMessage } from '@/lib/error-message';
 import { SETUP_STEPS, useProfileDraft } from '@/state/profile-draft';
@@ -17,8 +16,7 @@ export default function PhotosStep() {
   const [saving, setSaving] = useState(false);
   const ready = draft.photos.length >= PHOTO_RANGE.min;
 
-  // Uploads the photos and saves the profile; the root layout then moves on
-  // (to the app, or to the selfie check when that feature is on).
+  // Uploads the photos and saves the profile; the root layout then moves on to the app.
   const finish = async () => {
     const { gender, photoUri } = draft;
     if (!gender || !photoUri || !ready || saving) return;
@@ -43,11 +41,6 @@ export default function PhotosStep() {
     progressText = `${draft.photos.length} added. You can add up to ${PHOTO_RANGE.max}.`;
   }
 
-  let nextStepText = '';
-  if (FEATURES.selfieVerification) {
-    nextStepText = " Next, a quick selfie confirms it's really you.";
-  }
-
   return (
     <SetupStep
       step={6}
@@ -61,7 +54,6 @@ export default function PhotosStep() {
       <PhotoGrid photos={draft.photos} onChange={(photos) => update({ photos })} />
       <AppText variant="caption" color="textSecondary" accessibilityLiveRegion="polite">
         {progressText}
-        {nextStepText}
       </AppText>
     </SetupStep>
   );

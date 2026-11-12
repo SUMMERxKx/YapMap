@@ -20,7 +20,7 @@ import { PhotoGrid } from '@/components/profile/photo-grid';
 import { TextField } from '@/components/ui/text-field';
 import { ToggleRow } from '@/components/ui/toggle-row';
 
-type Values = Omit<Profile, 'id' | 'verified'>;
+type Values = Omit<Profile, 'id'>;
 type Props = {
   initial?: Values;
   submitLabel: string;
