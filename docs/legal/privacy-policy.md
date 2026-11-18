@@ -1,19 +1,14 @@
-> **Owner review needed before publishing.** This is a plain-language draft written to match
-> what the app and its database actually do (October 2026). It is not legal advice. Check it,
-> fill in the two items marked `[OWNER: ...]`, then publish it at
-> https://samarxkx.dev/yap/privacy (the address in `src/config/links.ts` and in both store
-> listings). Update it whenever the app starts keeping something new.
-
 # Yap Privacy Policy
 
-**Last updated:** 26 October 2026
+**Last updated:** 18 November 2026
 
 Yap is an app for meeting people who are nearby, in person. It is made by Samar Khajuria
 ("we", "us"). This policy explains what Yap keeps about you, why, who helps us run it, how
 long it is kept and how to delete it.
 
 The short version: we keep what you put in your profile, the chats and events you take part
-in, and your safety reports and blocks, for as long as you have an account. We only ever store
+in, and your blocks, for as long as you have an account. Safety reports and ban email hashes
+can remain after deletion, as described below. We only ever store
 your location as an area of about 100 metres, and keep only the last one, to check that the next
 one is somewhere you could have travelled to. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
 
@@ -83,7 +78,7 @@ change a few times in 10 minutes, and it is never shown to anyone.
 
 - **People you block**, so you never see each other.
 - **Reports you make** (who, the reason, any details you add) and reports made about you. We
-  read reports to keep Yap safe (see our Community Guidelines). A profile is hidden until we
+  read reports to keep Yap safe (see our [Community Guidelines](https://yap.samarxkx.dev/guidelines)). A profile is hidden until we
   have reviewed it when three different people report it who really interacted with that person
   on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
   that person posted in a group chat they are both in) or have used Yap for at least 3 days.
@@ -131,8 +126,7 @@ own security and privacy terms, and we don't let them use it for anything else.
 | **Apple Maps** (iPhone) / **Google Maps** (Android) | Draws the map | The map area you look at and your device's IP address, under Apple's and Google's own privacy policies |
 | **Apple App Store / Google Play** | Delivers and updates the app | Covered by Apple's and Google's own privacy policies |
 
-Our Supabase project is hosted in `[OWNER: the Supabase project's region, e.g. "Canada
-(Central)"]`. Your data may be processed in other countries where these providers operate.
+Our Supabase project is hosted in AWS ca-central-1, Canada (Central). Your data may be processed in other countries where these providers operate.
 
 We **don't sell or rent your data**, and we don't share it with anyone else unless the law
 requires it (for example, a valid order from a court or the police) or it is needed to protect
@@ -151,7 +145,7 @@ someone's safety.
 | Banned email addresses (hashed) | Until we lift the ban |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
-| Backups | Overwritten by our hosting provider, within `[OWNER: the backup retention of your Supabase plan, e.g. 7 days]` |
+| Backups | Daily backups kept for 7 days on the Supabase Pro plan |
 
 ## Deleting your account
 
@@ -164,9 +158,14 @@ made or that were made about you are kept without your account linked to them. I
 was hidden or suspended when you deleted it, a scrambled copy of your email address is kept so
 it can't be used to sign up again.
 
+Removing account links does not make report details anonymous: details may still identify
+you or someone else. Reports can remain after deletion so we can act if someone comes back,
+and banned email hashes remain until we lift the ban. Copies in backups expire within
+7 days.
+
 If you can't use the app, email **support@samarxkx.dev** from the address you signed up with
 and we'll delete your account within 30 days. The steps are also at
-https://samarxkx.dev/yap/delete-account.
+[yap.samarxkx.dev/delete-account](https://yap.samarxkx.dev/delete-account).
 
 ## Your choices and rights
 

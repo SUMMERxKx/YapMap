@@ -3,7 +3,7 @@
 // (docs/STORE_SUBMISSION.md). Change WEBSITE if they move; the app stores need the same
 // addresses in their listings.
 
-const WEBSITE = 'https://samarxkx.dev/yap';
+const WEBSITE = 'https://yap.samarxkx.dev';
 
 export const SUPPORT_EMAIL = 'support@samarxkx.dev';
 

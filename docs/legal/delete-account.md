@@ -1,7 +1,3 @@
-> **Publish this page** at https://samarxkx.dev/yap/delete-account (the address given in
-> `docs/STORE_SUBMISSION.md`). Google Play asks for a web page that explains how to delete an
-> account without the app, and links to it from the store's Data safety section.
-
 # Delete your Yap account
 
 ## In the app (fastest)
@@ -24,7 +20,7 @@ days, then reply to let you know.
 
 ## What gets deleted
 
-Everything linked to your account: your email address and password, your profile and all your
+The following is deleted from the live service: your email address and password, your profile and all your
 photos, your live session, every say-hi request and chat you were part of and their messages,
 the events you host and their group chats, your event memberships and group messages, and the
 people you blocked.
@@ -33,5 +29,11 @@ Safety reports made by you or about you are kept, without your account linked to
 can still act on them. If your account was hidden or suspended when you deleted it, we keep a
 scrambled (hashed) copy of your email address so it can't be used to sign up again.
 
-Copies in our hosting provider's backups are overwritten within a short time (see the
-[Privacy Policy](https://samarxkx.dev/yap/privacy)). Nothing is kept after that.
+Removing account links does not make report details anonymous: details may still identify
+you or someone else. These safety records can remain after account deletion. Reports are
+kept so we can act if someone comes back; banned email hashes are kept until we lift the ban.
+
+Copies in our hosting provider's backups expire within
+7 days (daily backups kept on the Supabase Pro plan). The retained safety records
+described above can remain after those backups expire. See the
+[Privacy Policy](https://yap.samarxkx.dev/privacy) for the full retention details.
