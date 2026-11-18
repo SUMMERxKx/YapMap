@@ -3,8 +3,8 @@
 Everything needed to build Yap for the stores and fill in their forms, in order. The everyday
 flow (the checks, versioning, shipping database changes, rollback) is in [`RELEASING.md`](RELEASING.md). The answers
 below match what the app and database do as of October 2026; if the app starts collecting
-something new, update this file, `docs/legal/privacy-policy.md` and
-`expo.ios.privacyManifests` in `app.json` together.
+something new, update this file, `docs/legal/privacy-policy.md` (and its published copy
+`site/privacy.html`) and `expo.ios.privacyManifests` in `app.json` together.
 
 ## 0. One-time setup
 
@@ -15,16 +15,21 @@ something new, update this file, `docs/legal/privacy-policy.md` and
 2. **App identifiers.** `app.json` uses `ca.samarxkx.yapmap` as the iOS bundle identifier and the
    Android package. Change both before the first upload if you want something else; after an
    upload they can never change.
-3. **Publish the legal pages** (Markdown in `docs/legal/`; any static page works):
+3. **Publish the support and legal site** from `site/` (deploy steps in `site/README.md`;
+   policy sources in `docs/legal/`):
 
    | Page | Address |
    | --- | --- |
-   | `privacy-policy.md` | https://samarxkx.dev/yap/privacy |
-   | `terms-of-service.md` | https://samarxkx.dev/yap/terms |
-   | `delete-account.md` | https://samarxkx.dev/yap/delete-account |
+   | Support home | https://yap.samarxkx.dev |
+   | Community guidelines | https://yap.samarxkx.dev/guidelines |
+   | Child safety standards | https://yap.samarxkx.dev/child-safety |
+   | `privacy-policy.md` | https://yap.samarxkx.dev/privacy |
+   | `terms-of-service.md` | https://yap.samarxkx.dev/terms |
+   | `delete-account.md` | https://yap.samarxkx.dev/delete-account |
 
-   Review the drafts first (each starts with a note on what to check) and remove that note from
-   the published page. If the privacy or terms address changes, change `src/config/links.ts` too.
+   Keep the Markdown sources and published HTML identical when updating a policy. Verify
+   every public URL after deployment. If the origin changes, change `src/config/links.ts` too.
+   Enter the child safety standards URL in Play Console when completing its certification.
 4. **Support email.** The app, the policies and the store listings use `support@samarxkx.dev`
    (`SUPPORT_EMAIL` in `src/config/links.ts`). Make sure that mailbox receives mail; reports of
    abuse that arrive there must be handled within 24 hours (`docs/legal/moderation.md`).
@@ -104,9 +109,9 @@ selfie code is parked on the `future/face-verification` branch.
 | Description | 4000 chars | 4000 chars | From the README's first paragraphs and "How it works" |
 | Keywords | 100 chars | – | `meet,nearby,chat,friends,people,campus,cafe,events,social,talk` |
 | Category | Social Networking | Social | |
-| Support URL | required | – | https://samarxkx.dev/yap (a page with the support email) |
-| Marketing URL | optional | – | https://samarxkx.dev/yap |
-| Privacy policy URL | required | required | https://samarxkx.dev/yap/privacy |
+| Support URL | required | – | https://yap.samarxkx.dev (a page with the support email) |
+| Marketing URL | optional | – | https://yap.samarxkx.dev |
+| Privacy policy URL | required | required | https://yap.samarxkx.dev/privacy |
 | Contact email | – | required | support@samarxkx.dev |
 
 **Screenshots** (portrait, from the iOS Simulator or a phone, without personal data):
@@ -151,7 +156,7 @@ Play Console → Policy and programs → App content → Data safety.
 - **Does your app collect or share any of the required user data types?** Yes.
 - **Is all of the user data collected by your app encrypted in transit?** Yes.
 - **Do you provide a way for users to request that their data is deleted?** Yes. Delete-account
-  URL: https://samarxkx.dev/yap/delete-account
+  URL: https://yap.samarxkx.dev/delete-account
 - **Shared with third parties:** none. (Supabase and Resend process data for us as service
   providers, which Google does not count as sharing.)
 
@@ -228,7 +233,7 @@ same place.
 - **Apple** (guideline 5.1.1(v)): Profile → Settings → **Delete account**, which lists what is
   deleted; type your first name to confirm, then **Delete my account**. This deletes the account
   and its data inside the app.
-- **Google**: the same in-app deletion, plus the web page https://samarxkx.dev/yap/delete-account
+- **Google**: the same in-app deletion, plus the web page https://yap.samarxkx.dev/delete-account
   for people who no longer have the app (Data safety asks for it).
 
 ## 8. Other checks before you submit

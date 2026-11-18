@@ -200,9 +200,10 @@ versioning, EAS builds, applying database changes, rolling back, dependency upda
 review. \code{docs/STORE_SUBMISSION.md} covers the first store release: the developer accounts, the
 Google Maps key, publishing the legal pages, and the answers for every App Store and Google Play form
 (listing, App Privacy and Data safety, age rating, review access with two test accounts, and account
-deletion). The legal pages themselves are drafts in \code{docs/legal/}: the privacy policy, the terms of
-service, a web page for deleting an account without the app, and the moderation process. The owner
-publishes the first three at the addresses in \code{src/config/links.ts} before the first upload; the
+deletion). The sources of the legal pages are in \code{docs/legal/}: the privacy policy, the terms of
+service, a web page for deleting an account without the app, child safety standards and the moderation
+process. The static site in \code{site/} carries all but the moderation process, and the owner deploys it
+at the addresses in \code{src/config/links.ts} before the first upload; the
 app opens the privacy policy and terms from the sign-up screen and Settings.
 
 \section{Feature flags}

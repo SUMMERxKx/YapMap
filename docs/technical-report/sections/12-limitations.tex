@@ -24,7 +24,7 @@ implemented.
   One request and one chat at a time & By design. A request that arrives while another request or a chat is on screen is never shown and expires; its sender cannot tell it from a decline. \\
   No verification, social sign-in off & Selfie and face verification is not part of this release and profiles are not verified. Social sign-in is built behind a flag (\cref{sec:feature-flags}), and neither Apple nor Google is configured in Supabase Auth. \\
   Events cannot be edited & A host can delete an event but not change it. Events leave the map three hours after they start. \\
-  Legal pages not yet published & The privacy policy and terms links open the addresses in \code{src/config/links.ts}, under \code{https://samarxkx.dev/yap}. The pages are drafts in \code{docs/legal/} that the owner must publish there before the first store release; at the time of writing those addresses are not live. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
+  Legal pages not yet published & The privacy policy and terms links open the addresses in \code{src/config/links.ts}, under \code{https://yap.samarxkx.dev}. The pages are the static site in \code{site/}, written from the sources in \code{docs/legal/}, which the owner must deploy there before the first store release; at the time of writing those addresses are not live. \ui{Notification settings} opens the phone's settings although the app sends no notifications. \\
   Bounded lists & At most 50 people nearby, 50 events on the map and the newest 200 messages per chat. \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Platform}}} \\

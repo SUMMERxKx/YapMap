@@ -1,15 +1,10 @@
-> **Owner review needed before publishing.** This is a plain-language draft, not legal advice.
-> Check it, fill in the item marked `[OWNER: ...]`, then publish it at
-> https://samarxkx.dev/yap/terms (the address in `src/config/links.ts` and in both store
-> listings). People agree to it when they create an account.
-
 # Yap Terms of Service
 
-**Last updated:** 26 October 2026
+**Last updated:** 18 November 2026
 
 These terms are an agreement between you and Samar Khajuria ("we", "us"), who makes Yap. By
 creating an account or using Yap, you agree to them, to our
-[Privacy Policy](https://samarxkx.dev/yap/privacy), and to the Community Guidelines shown in
+[Privacy Policy](https://yap.samarxkx.dev/privacy), and to the [Community Guidelines](https://yap.samarxkx.dev/guidelines) also shown in
 the app (Settings → Community guidelines). If you don't agree, please don't use Yap.
 
 ## 1. Who can use Yap
@@ -84,7 +79,7 @@ accept the new terms.
 
 ## 9. The law that applies
 
-These terms are governed by the laws of `[OWNER: your province]` and the federal laws of
+These terms are governed by the laws of British Columbia and the federal laws of
 Canada that apply there, unless the law where you live gives you the right to use its laws or
 courts.
 
