@@ -1,7 +1,7 @@
-// The web pages and contact address the app links to. The pages are the documents in
-// docs/legal/, published by the owner at these addresses before the first store upload
-// (docs/STORE_SUBMISSION.md). Change WEBSITE if they move; the app stores need the same
-// addresses in their listings.
+// The web pages and contact address the app links to. The pages are the static site in
+// site/ (content from docs/legal/), deployed by the owner at these addresses before the
+// first store upload (docs/STORE_SUBMISSION.md). Change WEBSITE if they move; the app
+// stores need the same addresses in their listings.
 
 const WEBSITE = 'https://yap.samarxkx.dev';
 

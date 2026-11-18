@@ -118,8 +118,9 @@ email links, so every email shows an 8-digit code (`{{ .Token }}`) instead.
   setup (Apple and Google accounts, the Android Google Maps key, publishing the legal pages) and
   the answers for every store form.
 - **Identifiers:** `ca.samarxkx.yapmap` for the iOS bundle and the Android package (`app.json`).
-- **Legal:** the privacy policy, terms, account-deletion page and the moderation process are in
-  [`docs/legal/`](docs/legal/). The app links to the published privacy policy and terms at the
+- **Legal:** the privacy policy, terms, account-deletion page, child safety standards and the
+  moderation process are in [`docs/legal/`](docs/legal/). The public pages are the static site in
+  [`site/`](site/), deployed on Vercel. The app links to the published privacy policy and terms at the
   addresses in `src/config/links.ts`; Community guidelines and Acknowledgements are screens
   inside the app (`src/app/guidelines.tsx`, `src/app/acknowledgements.tsx`).
 - **Open-source licences:** after adding, removing or updating a dependency, run `npm run licenses`
