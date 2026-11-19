@@ -10,6 +10,10 @@
 If your account is on hold (hidden after reports, or suspended), Yap opens on the "Your account is
 on hold" screen instead: tap **Delete account** there, then do step 4.
 
+If you haven't finished setting up your profile, go back to the first setup screen (the one
+with "I'm 18 or older") and tap **Delete account** there. Type DELETE to confirm, then tap
+**Delete my account**.
+
 Your account is deleted straight away.
 
 ## Without the app
