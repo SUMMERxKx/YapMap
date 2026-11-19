@@ -160,7 +160,7 @@ message in parentheses where one applies.
     copy of the emoji, title, description, start and creation times. \\
   \code{delete_account}
   & Runs \code{private.delete_user} for the caller. It refuses (\code{photos not removed}) while any file
-    is left in the caller's photo folder; the client
+    is left in the caller's photo folder. The client
     removes every file there through the Storage API before calling it. Returns the caller's chat partner,
     if any, to \code{open}, deletes any ban on the caller's email address except one with the reason
     \code{removed}, their upload times and their
@@ -338,6 +338,7 @@ caller, or reads no tables at all.
   \code{valid_interests(interests)} & True for 3 to 5 different one-line interests of 1 to 30 characters in a plain list; used by a check constraint \\
   \code{my_photo_count()} & How many files the caller has in the \code{photos} bucket; used by the storage insert policy, which cannot read \code{storage.objects} itself \\
   \code{my_uploads_today()} & How many photos the caller uploaded in the last day; used by the storage insert policy \\
+  \code{my_account_exists()} & Whether the caller's account still exists. The storage insert policy uses it, so a session left signed in after a deletion cannot upload \\
   \code{record_photo_upload()} & Trigger on \code{storage.objects}: records each upload to the \code{photos} bucket in \code{private.photo_uploads} \\
   \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
   \code{has_blocked_word(input)} & True if the text contains a word from \code{private.blocked_words} (\cref{sec:word-filter}) \\
@@ -433,13 +434,13 @@ refuses an unknown profile (\code{no such profile}), then:
 
 \code{private.restore_user(target)} lifts a suspension or an automatic hide: it sets the status back to
 \code{active}, makes the person a member again of the events they still host (\code{end_activity} took
-them out), takes the email address off the ban list, and marks every open report about the person
+them out), takes the email address off the ban list unless the ban's reason is \code{removed}, and marks every open report about the person
 as reviewed (action \code{restored}), so reports already reviewed cannot hide them again.
 
 \code{private.delete_user(target, keep_ban)} is the deletion \code{delete_account} runs, with \code{keep_ban}
 false. It refuses an id with no account (\code{no such account}). The owner runs it from the SQL editor, or
 with the service role, for an email deletion request (\code{keep_ban} false) or a removal (\code{keep_ban}
-true); execution is revoked from \code{anon} and \code{authenticated}. With \code{keep_ban} false it deletes
+true). Execution is revoked from \code{anon} and \code{authenticated}. With \code{keep_ban} false it deletes
 the bans on the person's email address except one with the reason \code{removed}, so deleting one's own
 account lifts one's own suspension ban but never a removal. With \code{keep_ban} true it leaves a ban with
 the reason \code{removed}, which outlives the account. \code{delete_account} returns without error when the

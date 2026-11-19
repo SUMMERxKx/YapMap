@@ -111,7 +111,7 @@ Pick one, and always finish with step 4.
 
 - **Nothing wrong:** mark the reports reviewed. If they were hidden after 3 reports, show them
   again (this also puts them back in the events they still host, takes their email off the ban
-  list, and marks any report still open as reviewed, so those
+  list unless the ban's reason is `removed`, and marks any report still open as reviewed, so those
   reports can't hide them again):
 
   ```sql
@@ -146,7 +146,7 @@ Pick one, and always finish with step 4.
   This hides them from everyone, ends their live session, requests, chats and event
   memberships, puts their email address on the ban list (so they can't sign up again with it while
   the account exists), and marks their reports reviewed. The ban ends if they later delete any
-  account with the same email address, like everything else but the reports; to keep them out
+  account with the same email address, like everything else but the reports. To keep them out
   for good, remove them completely instead. To lift it later:
   `select private.restore_user('<reported_id>');`
 

@@ -26,6 +26,9 @@
 -- request (select private.delete_user('<id>')) or a removal (select private.delete_user('<id>',
 -- true), which leaves a 'removed' ban on the email address), in the SQL editor or with the service
 -- role (docs/legal/moderation.md). public.delete_account calls it for the signed-in person.
+--
+-- private.restore_user keeps a 'removed' ban too, and a photo can't be uploaded into the folder of
+-- an account that no longer exists, so a session still signed in elsewhere can't leave one behind.
 
 create function private.delete_user(target uuid, keep_ban boolean default false)
 returns void
@@ -81,8 +84,59 @@ begin
 end;
 $$;
 
+-- As before (20261026180208_safety_fixes.sql), except that a ban with the reason 'removed' stays.
+-- It can belong to another account on the same address that the owner removed, and only the owner
+-- lifts it, by hand.
+create or replace function private.restore_user(target uuid)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if not exists (select 1 from public.profiles where id = target) then
+    raise exception 'no such profile';
+  end if;
+
+  update public.profiles set status = 'active' where id = target;
+  insert into public.event_members (event_id, user_id)
+  select e.id, target from public.events e where e.host = target
+  on conflict do nothing;
+  update public.reports set reviewed_at = now(), action = 'restored'
+  where reported = target and reviewed_at is null;
+  delete from private.banned_identities b
+  using auth.users u
+  where u.id = target and b.email_hash = private.email_hash(u.email) and b.reason <> 'removed';
+end;
+$$;
+
+-- Whether the signed-in user's account still exists. A token stays valid for a while after its
+-- account is deleted, so the photo insert policy asks this function, which runs as its owner.
+create function private.my_account_exists()
+returns boolean
+language sql stable security definer set search_path = ''
+as $$
+  select exists (select 1 from auth.users where id = (select auth.uid()));
+$$;
+
+revoke execute on function private.my_account_exists () from public, anon;
+grant execute on function private.my_account_exists () to authenticated;
+
+-- As before (20261026180208_safety_fixes.sql), and only while the account exists.
+drop policy photos_insert_own_folder on storage.objects;
+
+create policy photos_insert_own_folder on storage.objects
+  for insert to authenticated
+  with check (
+    bucket_id = 'photos'
+    and (storage.foldername(name))[1] = (select auth.uid())::text
+    and cardinality(storage.foldername(name)) = 1
+    and private.my_photo_count() < 16
+    and private.my_uploads_today() < 40
+    and private.my_account_exists()
+  );
+
 comment on table private.banned_identities is
-  'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created: '
-  'suspended people, and people the owner removed (reason ''removed'', also used for bans added by '
-  'hand). A suspension ban goes when it is lifted (private.restore_user) or when an account with that '
-  'email address is deleted (private.delete_user); a ''removed'' ban stays until the owner lifts it.';
+  'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created. '
+  'They are for suspended people, and for people the owner removed (reason ''removed'', also used for '
+  'bans added by hand). A suspension ban goes when it is lifted (private.restore_user) or when an '
+  'account with that email address is deleted (private.delete_user). A ''removed'' ban stays until '
+  'the owner lifts it by hand.';
