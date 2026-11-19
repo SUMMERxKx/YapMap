@@ -109,7 +109,7 @@ message in parentheses where one applies.
     (\code{not available}) is already in a chat, then sets \code{accepted} and sets both users to
     \code{chatting}. \\
   \code{request_person}\newline{\scriptsize request\_id}\newline{\scriptsize returns a person card}
-  & Returns the other participant's card, or nothing. Nothing if either user has blocked the other. The
+  & Returns the other participant's card, or nothing. Nothing if either user has blocked the other or either is not active. The
     recipient may see the sender's card at any stage; the sender may see the recipient's card only once
     the request was accepted (status \code{accepted} or \code{met}, or \code{cancelled} after an accept).
     The live note is removed once the request or chat is over. \\

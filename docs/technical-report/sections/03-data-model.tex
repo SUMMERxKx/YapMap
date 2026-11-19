@@ -266,7 +266,8 @@ A \term{person card} is the only form in which one user's profile reaches anothe
 \code{private.person_card(target)} builds it as JSON with these fields: ID, first name, last initial,
 gender (only if the owner chose to show it and did not choose \code{prefer-not}), introduction,
 interests, the storage paths of the profile picture and other photos, the live note, and the
-\code{verified} flag, which the app ignores. It contains no last name, no location and no distance. Every function that returns
+\code{verified} flag, which the app ignores. It contains no last name, no location and no distance, and the helper returns nothing for a profile
+that is not active (hidden or suspended). Every function that returns
 a full profile (\code{nearby}, \code{request_person}, \code{my_status}) returns person cards, so this helper
 is the single definition of what a profile reveals. Two places return less: \code{blocked_list} returns
 only ID, first name and last initial, and an event card's host adds only the profile picture's path to

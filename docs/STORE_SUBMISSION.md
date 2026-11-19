@@ -34,10 +34,10 @@ something new, update this file, `docs/legal/privacy-policy.md` (and its publish
    (`SUPPORT_EMAIL` in `src/config/links.ts`). Make sure that mailbox receives mail; reports of
    abuse that arrive there must be handled within 24 hours (`docs/legal/moderation.md`).
 5. **Database migrations.** The hosted project must have every migration in
-   `supabase/migrations/` (`supabase/README.md`, step 4). As of October 22, 2026 it has all
-   eleven, including `20261022100308_content_moderation.sql` (the word filter and
-   `private.suspend_user` the stores ask for) and `20261022103744_break_it_hardening.sql`
-   (the text rules and daily limits). `20261026180208_safety_fixes.sql` also needs the Before
+   `supabase/migrations/` (`supabase/README.md`, step 4), including
+   `20261022100308_content_moderation.sql` (the word filter and `private.suspend_user` the
+   stores ask for) and `20261022103744_break_it_hardening.sql` (the text rules and daily
+   limits). `20261026180208_safety_fixes.sql` also needs the Before
    User Created auth hook switched on in the dashboard (README, "Supabase dashboard setup").
    Check again before each release: after `supabase link`,
    `supabase migration list` shows the same versions in the Local and Remote columns.

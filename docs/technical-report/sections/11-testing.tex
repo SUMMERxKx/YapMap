@@ -100,6 +100,13 @@ commute, lets going live replace an older map position, and \code{join_event} me
 position; the bucket limit is 1.5\,MiB and a forty-first
 upload in a day is refused; and an event category outside the app's twelve is refused.
 
+The fourth file, \code{supabase/tests/restricted_visibility_test.sql}, has 34 checks for the
+\code{restricted_visibility} migration. For a person hidden after reports and for one suspended by a
+moderator, each of whom met one person who said hi to them and one they said hi to, it checks that both
+partners lose the card from \code{request_person} and can read none of the profile picture, its small copy
+or the gallery photo; that the restricted person still reads their own photos but gets no card or photos
+of the people they met; and that \code{restore_user} makes the card and photos visible to both partners again.
+
 \section{Pre-merge review pipeline}
 
 Recent changes reach \code{main} through a pre-push pipeline, \code{no-mistakes}, which reviews the change
