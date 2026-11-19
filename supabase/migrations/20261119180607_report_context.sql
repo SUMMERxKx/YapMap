@@ -7,12 +7,13 @@
 --     `content`: a copy of what was reported, taken by the server from the real rows when the
 --     report is filed. The app never sends that text. The ids are plain columns, not foreign
 --     keys, so they stay after the message or event is deleted.
---   * report_message(message_id, reason, details) reports a message in a group chat or a 1:1
---     chat, and report_event(event_id, reason, details) reports an event. The server finds the
---     sender or host itself. Both refuse content the caller can't see ('content not available'):
---     a group message needs the caller in that event, a 1:1 message needs them in that chat,
---     and an event must be one they joined or one the map would list for them (not blocked,
---     within 50 km of where the server holds them to be, started at most 3 hours ago).
+--   * report_message(message_id, reason, details) reports a message in a group chat, and
+--     report_event(event_id, reason, details) reports an event. The server finds the sender or
+--     host itself. Both refuse content the caller can't see ('content not available'): a group
+--     message needs the caller in that event, and an event must be one they joined or one the
+--     map would list for them (not blocked, within 50 km of where the server holds them to be,
+--     started at most 3 hours ago). A 1:1 chat is reported through report_user with its
+--     request_id, which keeps the chat.
 --   * report_user keeps its arguments. It copies the person's profile as it is now (name,
 --     intro, interests, live note, photo paths) and, when request_id is a say-hi or chat
 --     between the two, the last 20 messages the reported person sent in it.
@@ -144,7 +145,7 @@ $$;
 revoke execute on function private.file_report (uuid, uuid, text, text, uuid, text, uuid, uuid, jsonb)
   from public, anon, authenticated;
 
--- Report a person: from their profile, a say-hi, a 1:1 chat, or anywhere else their name shows.
+-- Report a person: from their profile, a say-hi, a 1:1 chat, an event they host or a group chat.
 create or replace function public.report_user(
   target uuid,
   reason text,
@@ -198,7 +199,7 @@ begin
 end;
 $$;
 
--- Report one message, from a group chat or a 1:1 chat you are in.
+-- Report one message, from the group chat of an event you are in.
 create function public.report_message(message_id uuid, reason text, details text default '')
 returns void
 language plpgsql security definer set search_path = ''
@@ -211,28 +212,20 @@ begin
   if uid is null then raise exception 'not signed in'; end if;
 
   select * into msg from public.messages m where m.id = report_message.message_id;
-  if not found or not (
-    exists (
-      select 1 from public.event_members em
-      where msg.event_id is not null and em.event_id = msg.event_id and em.user_id = uid
-    )
-    or exists (
-      select 1 from public.chat_requests r
-      where msg.request_id is not null and r.id = msg.request_id and uid in (r.from_user, r.to_user)
-    )
+  if not found or not exists (
+    select 1 from public.event_members em where em.event_id = msg.event_id and em.user_id = uid
   ) then
     raise exception 'content not available';
   end if;
 
-  content := jsonb_build_object('body', msg.body, 'sent_at', msg.created_at);
-  if msg.event_id is not null then
-    content := content || jsonb_build_object(
-      'event_title', (select e.title from public.events e where e.id = msg.event_id)
-    );
-  end if;
+  content := jsonb_build_object(
+    'body', msg.body,
+    'sent_at', msg.created_at,
+    'event_title', (select e.title from public.events e where e.id = msg.event_id)
+  );
 
   perform private.file_report(
-    uid, msg.sender, reason, details, msg.request_id, 'message', msg.id, msg.event_id, content
+    uid, msg.sender, reason, details, null, 'message', msg.id, msg.event_id, content
   );
 end;
 $$;

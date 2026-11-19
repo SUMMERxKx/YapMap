@@ -179,7 +179,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'invalid details': "Some of the details can't be saved. Remove any unusual characters and try again.",
   'invalid reason': 'Pick a reason for the report.',
   'too many reports': "You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you.",
-  'content not available': "That message or event is gone, or you can't see it any more. You can still report the person from their profile.",
+  'content not available': "That message or event is gone, or you can't see it any more. You can still report the person from the same menu.",
 };
 
 // The table rules (check constraints in supabase/migrations) the app can run into, by name.

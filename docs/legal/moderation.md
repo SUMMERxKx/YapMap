@@ -12,7 +12,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | Terms with zero tolerance for objectionable content, agreed before use | Sign-up screen ("By creating an account, you agree to..."), `docs/legal/terms-of-service.md` section 2 |
 | Community guidelines | Settings → Community guidelines, and the sign-up screen (`src/app/guidelines.tsx`) |
 | Filter for objectionable words | Server side, on intro, interests, live note, event title and description, and every message (`supabase/migrations/20261022100308_content_moderation.sql`) |
-| Report a person, a message or an event | The ··· menu on a profile, an incoming say-hi, a chat and an event, or a long-press on a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`). A report from a message or an event is about that message or event, and the server saves a copy of what was reported with it (`report_message`, `report_event` and `report_user` in `supabase/migrations/20261119180607_report_context.sql`) |
+| Report a person, a message or an event | The ··· menu on a profile, an incoming say-hi, a chat and an event, or a long-press on a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`). On an event the menu offers "Report this event" and a report about the host, and a long-press in a group chat offers the message or its sender. The server saves a copy of what was reported with each report (`report_message`, `report_event` and `report_user` in `supabase/migrations/20261119180607_report_context.sql`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
 | Automatic hiding | A profile reported by 3 different people whose reports count and are not reviewed yet is hidden from everyone until reviewed, and everything it is in ends (`private.file_report`, which every report goes through). A report counts when the two really interacted (a chat between them that was accepted or met, or accepted and later ended, a say-hi the reported person sent the reporter, or a message the reported person posted in a group chat both are in) or the reporter's account is at least 3 days old with no open report against it. A say-hi the reporter sent that was never accepted, or only being in the same event, isn't enough. Other reports only go to the queue |
 | Keeping banned people out | Suspended people, and anyone who deletes their account while hidden or suspended, can't sign up again with that email (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
@@ -76,12 +76,12 @@ only saves it when the reporter could see that message or event.
 
 | `about` | Reported from | `content` holds | Also set |
 | --- | --- | --- | --- |
-| `message` | Long-press on a message in a group chat | `body`, `sent_at`, and `event_title` for a group message | `message_id`, and `event_id` (group chat) or `request_id` (1:1 chat) |
-| `event` | The ··· menu on an event | `emoji`, `title`, `description`, `starts_at`, `created_at` | `event_id` |
-| `person` | The ··· menu on a profile, a say-hi or a chat | `first_name`, `last_name`, `intro`, `interests`, `note`, `photo_path`, `photo_paths`, and `chat` (the last 20 messages they sent in it) when the report came from a say-hi or chat | `request_id` for a say-hi or chat |
+| `message` | Long-press on a message in a group chat, then "This message" | `body`, `sent_at`, `event_title` | `message_id`, `event_id` |
+| `event` | "Report this event" in the ··· menu on an event | `emoji`, `title`, `description`, `starts_at`, `created_at` | `event_id` |
+| `person` | The ··· menu on a profile, a say-hi, a chat or an event (the host), or a long-press on a group message, then the sender's name | `first_name`, `last_name`, `intro`, `interests`, `note`, `photo_path`, `photo_paths`, and `chat` (the last 20 messages they sent in it) when the report came from a say-hi or chat | `request_id` for a say-hi or chat |
 
-Photos are saved as storage paths only. If the person deleted a photo before you review the
-report, the file is gone. Reports filed before `20261119180607_report_context.sql` was applied
+Photo reports store the path only. A photo the person replaced or deleted may no longer be
+viewable. Reports filed before `20261119180607_report_context.sql` was applied
 have `about` = `person` and no `content`.
 
 ### 2. Look at what the reported person posted

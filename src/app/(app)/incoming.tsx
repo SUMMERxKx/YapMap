@@ -44,8 +44,7 @@ export default function Incoming() {
           <Button label="Accept" onPress={() => respondToIncoming(true)} style={styles.flex} haptic />
         </View>
       }>
-      <TopBar
-        trailing={<SafetyMenu userId={from.id} firstName={displayName(from)} reportContext={{ requestId: incoming.id }} />}>
+      <TopBar trailing={<SafetyMenu userId={from.id} firstName={displayName(from)} requestId={incoming.id} />}>
         <View style={[styles.headline, { gap: spacing.sm }]}>
           <View style={[styles.dot, { backgroundColor: colors.green }]} />
           <AppText variant="bodyStrong" color="greenText" accessibilityRole="header">

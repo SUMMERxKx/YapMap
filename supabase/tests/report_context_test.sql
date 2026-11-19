@@ -136,6 +136,14 @@ select is(
   'the report keeps the event text, copied by the server'
 );
 
+select public.report_user(pg_temp.id_of(1), 'inappropriate-photo', '');
+select is(
+  (select row(about, event_id, content ->> 'first_name')::text from public.reports
+   where reporter = pg_temp.id_of(5) and about = 'person'),
+  row('person', null::uuid, 'Person')::text,
+  'reporting the host from the event screen files a person report with their profile'
+);
+
 select pg_temp.act_as(3);
 select lives_ok(
   $$ select public.report_event('00000000-0000-0000-0000-000000000e01', 'other', '') $$,
@@ -186,15 +194,9 @@ select is(
   'the report keeps the messages the reported person sent in the chat, oldest first, and not the reporter''s'
 );
 
-select lives_ok(
+select throws_ok(
   $$ select public.report_message('00000000-0000-0000-0000-000000000a03', 'harassment', '') $$,
-  'someone in a chat can report one of its messages'
-);
-select is(
-  (select row(reported, request_id, event_id, content ->> 'body')::text from public.reports
-   where reporter = pg_temp.id_of(7) and about = 'message'),
-  row(pg_temp.id_of(8), '00000000-0000-0000-0000-000000000c01'::uuid, null::uuid, 'Second thing')::text,
-  'a 1:1 message report keeps the chat and the message text'
+  'content not available', 'a 1:1 chat message is reported with the person and the chat, not on its own'
 );
 
 select pg_temp.act_as(9);
@@ -212,17 +214,17 @@ select is(
 -- Later edits, deletion and removal ------------------------------------------------------------
 
 update public.profiles set intro = 'Changed my intro.' where id = pg_temp.id_of(8);
-update public.messages set body = 'Edited to look harmless' where id = '00000000-0000-0000-0000-000000000a03';
+update public.messages set body = 'Edited to look harmless' where id = '00000000-0000-0000-0000-000000000a01';
 update public.events set title = 'Renamed' where id = '00000000-0000-0000-0000-000000000e01';
 select is(
   (select array_agg(x order by x) from (
      select content ->> 'intro' as x from public.reports where reporter = pg_temp.id_of(7) and about = 'person'
      union all
-     select content ->> 'body' from public.reports where reporter = pg_temp.id_of(7) and about = 'message'
+     select content ->> 'body' from public.reports where reporter = pg_temp.id_of(3) and about = 'message'
      union all
-     select content ->> 'title' from public.reports where reporter = pg_temp.id_of(5)
+     select content ->> 'title' from public.reports where reporter = pg_temp.id_of(5) and about = 'event'
    ) edited),
-  array['Board games', 'Here to test.', 'Second thing'],
+  array['Board games', 'Here to test.', 'Something nasty'],
   'later changes to the profile, message or event don''t change what the report kept'
 );
 

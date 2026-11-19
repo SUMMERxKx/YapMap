@@ -99,7 +99,7 @@ export default function EventDetails() {
       <SafetyMenu
         userId={event.host.id}
         firstName={hostName}
-        reportContext={{ eventId: event.id }}
+        eventId={event.id}
         onBlocked={() => router.back()}
       />
     );

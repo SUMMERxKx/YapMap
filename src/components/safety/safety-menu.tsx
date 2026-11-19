@@ -16,25 +16,26 @@ import { useGuardedPress } from '@/components/ui/press-feedback';
 type Props = {
   userId: string;
   firstName: string;
-  reportContext?: ReportContext; // the event, say-hi or chat the menu is on, so the report keeps it
+  eventId?: string; // on an event, the menu also offers to report the event itself
+  requestId?: string; // the say-hi or chat the menu is on, so a report about the person keeps it
   onBlocked?: () => void; // e.g. close the screen the person was on
 };
 
 /** The corner "..." menu. Report and Block are always two taps away. */
-export function SafetyMenu({ userId, firstName, reportContext, onBlocked }: Props) {
+export function SafetyMenu({ userId, firstName, eventId, requestId, onBlocked }: Props) {
   const [open, setOpen] = useState(false);
   const { colors, radius, spacing } = useTheme();
   const insets = useSafeAreaInsets();
 
-  let reportLabel = `Report ${firstName}`;
-  if (reportContext?.eventId) {
-    reportLabel = 'Report this event';
-  }
-
-  const report = () => {
+  const report = (context: ReportContext) => {
     setOpen(false);
-    router.push({ pathname: '/report/[id]', params: { ...reportContext, id: userId, name: firstName } });
+    router.push({ pathname: '/report/[id]', params: { ...context, id: userId, name: firstName } });
   };
+
+  let reportPersonContext: ReportContext = {};
+  if (requestId) {
+    reportPersonContext = { requestId };
+  }
 
   const block = () => {
     setOpen(false);
@@ -78,7 +79,8 @@ export function SafetyMenu({ userId, firstName, reportContext, onBlocked }: Prop
               paddingBottom: insets.bottom + spacing.lg,
               paddingTop: spacing.sm,
             }}>
-            <MenuItem icon="flag-outline" label={reportLabel} onPress={report} />
+            {eventId ? <MenuItem icon="flag-outline" label="Report this event" onPress={() => report({ eventId })} /> : null}
+            <MenuItem icon="flag-outline" label={`Report ${firstName}`} onPress={() => report(reportPersonContext)} />
             <MenuItem icon="person-remove-outline" label={`Block ${firstName}`} onPress={block} danger />
             <MenuItem icon="close" label="Cancel" onPress={() => setOpen(false)} />
           </View>
