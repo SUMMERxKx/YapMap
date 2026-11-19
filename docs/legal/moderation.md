@@ -15,7 +15,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | Report a person, a message or an event | The ··· menu on a profile, an incoming say-hi, a chat and an event, or a long-press on a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`). On an event the menu offers "Report this event" and a report about the host, and a long-press in a group chat offers the message or its sender. The server saves a copy of what was reported with each report (`report_message`, `report_event` and `report_user` in `supabase/migrations/20261119180607_report_context.sql`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
 | Automatic hiding | A profile reported by 3 different people whose reports count and are not reviewed yet is hidden from everyone until reviewed, and everything it is in ends (`private.file_report`, which every report goes through). A report counts when the two really interacted (a chat between them that was accepted or met, or accepted and later ended, a say-hi the reported person sent the reporter, or a message the reported person posted in a group chat both are in) or the reporter's account is at least 3 days old with no open report against it. A say-hi the reporter sent that was never accepted, or only being in the same event, isn't enough. Other reports only go to the queue |
-| Keeping banned people out | Suspended people can't sign up again with that email until the ban is lifted or an account with that email is deleted. People the owner removed can't sign up again with it until the owner lifts the ban (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
+| Keeping banned people out | Suspended people can't sign up again with that email until the ban is lifted or an account with that email is deleted. A person deleting their own account removes their own suspension ban. Only bans with the reason `removed` survive a deletion. Owner removals and bans added by hand use that reason, so they stay until the owner lifts them (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
 | Remove content and users | The SQL below, run by the owner |
 
 ## The word filter
@@ -168,7 +168,9 @@ Pick one, and always finish with step 4.
   records behind.
 
   To ban an address by hand, use the reason `removed`, so deleting an account doesn't lift it.
-  Any other reason is lifted when an account with that address is deleted. To lift a `removed`
+  Any other reason is lifted when an account with that address is deleted. Bans from before
+  November 2026 were tidied the same way: a suspension ban whose account was already gone became
+  `removed`, and bans kept from deleting a hidden or suspended account were deleted. To lift a `removed`
   ban, delete the row:
 
   ```sql

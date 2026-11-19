@@ -29,6 +29,11 @@
 --
 -- private.restore_user keeps a 'removed' ban too, and a photo can't be uploaded into the folder of
 -- an account that no longer exists, so a session still signed in elsewhere can't leave one behind.
+--
+-- Bans already on the list follow the same rules (private.tidy_old_bans, run once below). A ban
+-- from the old deletion while hidden or suspended is deleted, because nothing is kept after a
+-- person deletes their account. A suspension ban whose account is gone came from the old way of
+-- removing someone (suspend, then delete in Authentication), so it is relabelled 'removed'.
 
 create function private.delete_user(target uuid, keep_ban boolean default false)
 returns void
@@ -133,6 +138,20 @@ create policy photos_insert_own_folder on storage.objects
     and private.my_uploads_today() < 40
     and private.my_account_exists()
   );
+
+create function private.tidy_old_bans()
+returns void
+language sql security definer set search_path = ''
+as $$
+  delete from private.banned_identities where reason like 'deleted while %';
+  update private.banned_identities b set reason = 'removed'
+  where b.reason like 'suspended: %'
+    and not exists (select 1 from auth.users u where private.email_hash(u.email) = b.email_hash);
+$$;
+
+revoke execute on function private.tidy_old_bans () from public, anon, authenticated;
+
+select private.tidy_old_bans();
 
 comment on table private.banned_identities is
   'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created. '

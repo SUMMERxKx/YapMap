@@ -4,7 +4,8 @@
 -- email address goes too. The owner's private.delete_user, used for email requests and removals,
 -- deletes the same way and can't be called by anyone signed in or signed out. A removal keeps a
 -- 'removed' ban that deleting or restoring another account with the same address doesn't lift,
--- and a session left signed in after its account is gone can't upload a photo. Only safety
+-- and a session left signed in after its account is gone can't upload a photo. Bans from before
+-- this change are tidied to the same rules. Only safety
 -- reports (and that removal ban) are kept, without the account linked. Run against
 -- the local stack:
 --
@@ -17,7 +18,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(53);
+select plan(56);
 
 -- 1 deletes their account. 2 chatted with 1 and joined the event 1 hosts. 3 hosts an event 1
 -- joined. 4 signed up and uploaded photos but never saved a profile. 5 is suspended. 6 sent 1 a
@@ -447,6 +448,29 @@ select lives_ok(
   'someone whose account exists still uploads photos'
 );
 reset role;
+
+-- Bans from before this change ----------------------------------------------------------------
+
+insert into private.banned_identities (email_hash, reason)
+values
+  (private.email_hash('left-while-hidden@example.test'), 'deleted while hidden'),
+  (private.email_hash('removed-before@example.test'), 'suspended: threats'),
+  (private.email_hash('gone2@example.test'), 'suspended: spam');
+select private.tidy_old_bans();
+select ok(
+  not exists (select 1 from private.banned_identities where email_hash = private.email_hash('left-while-hidden@example.test')),
+  'a ban kept from an old deletion while hidden is deleted'
+);
+select is(
+  (select reason from private.banned_identities where email_hash = private.email_hash('removed-before@example.test')),
+  'removed',
+  'a suspension ban whose account is gone, an old removal, is relabelled removed'
+);
+select is(
+  (select reason from private.banned_identities where email_hash = private.email_hash('gone2@example.test')),
+  'suspended: spam',
+  'a suspension ban of an account that still exists is left as it is'
+);
 
 select * from finish();
 rollback;
