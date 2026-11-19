@@ -87,7 +87,9 @@ change a few times in 10 minutes, and it is never shown to anyone.
   that person posted in a group chat they are both in) or have used Yap for at least 3 days.
 - **Banned email addresses.** If we suspend an account, we keep a scrambled (hashed) copy of its
   email address so it can't sign up again, until we lift the ban or an account with that email
-  address is deleted.
+  address is deleted. If we remove an account for breaking the rules, we keep the hashed copy
+  after the account is deleted, so it can't sign up again, until we lift the ban. Deleting your
+  own account removes a ban from your own suspension, but not one from a removal.
 - **Text checks.** Intros, interests, notes, event text and messages are checked against a
   short list of slurs and abusive words when you save or send them. Text that fails is
   refused, not stored.
@@ -146,7 +148,7 @@ someone's safety.
 | Photo upload times | 1 day, or until you delete your account |
 | Profile, photos, chats, messages, events, blocks, sign-in records | You delete your account (or we remove it for breaking the rules) |
 | Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
-| Banned email addresses (hashed) | Until we lift the ban, or an account with that email address is deleted |
+| Banned email addresses (hashed) | From a suspension: until we lift the ban, or an account with that email address is deleted. From a removal for breaking the rules: until we lift the ban |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
 | Backups | Daily backups kept for 7 days on the Supabase Pro plan |
@@ -163,7 +165,8 @@ deletes, straight away and whether or not your account is on hold:
 - the events you host, with their members and group chats
 - your event memberships and every message you sent in other people's group chats
 - the people you blocked, and blocks other people made against you
-- any ban on your email address
+- any ban on your email address from a suspension (a ban from an account we removed for breaking
+  the rules stays)
 
 Only safety reports you made, or that were made about you, are kept, without your account
 linked to them, so we can still act on them. Removing account links does not make report

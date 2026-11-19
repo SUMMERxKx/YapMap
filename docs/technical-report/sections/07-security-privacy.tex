@@ -48,8 +48,9 @@ thousand throwaway domains in \code{private.disposable_email_domains}, or at a s
 twenty-first account in 24 hours from the same IP address, counted by a hash of the address in
 \code{private.signup_ips}. The per-address limit is generous because a campus network puts many
 students behind one address. Suspending a person adds their address to the ban list until the
-suspension is lifted. Deleting any account with that address removes the ban with everything else, because only safety
-reports are kept after a deletion. The hook is switched on in \code{supabase/config.toml} for the local
+suspension is lifted. Deleting any account with that address removes that ban with everything else,
+because only safety reports are kept after a person deletes their account. Removing a person, the owner's
+moderation action, leaves a ban with the reason \code{removed}, which deleting an account never lifts. The hook is switched on in \code{supabase/config.toml} for the local
 stack and in the dashboard for the hosted project.
 
 \section{Authentication and sessions}

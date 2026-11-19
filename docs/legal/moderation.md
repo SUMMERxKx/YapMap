@@ -15,7 +15,7 @@ content, a way to report it, a way to block abusive users, and a developer who a
 | Report a person, a message or an event | The ··· menu on a profile, an incoming say-hi, a chat and an event, or a long-press on a message in a group chat (`src/components/safety/safety-menu.tsx`, `src/app/(app)/report/[id].tsx`). On an event the menu offers "Report this event" and a report about the host, and a long-press in a group chat offers the message or its sender. The server saves a copy of what was reported with each report (`report_message`, `report_event` and `report_user` in `supabase/migrations/20261119180607_report_context.sql`) |
 | Block a person | The same places. Blocking is instant and mutual: neither sees the other, chats and requests between them end |
 | Automatic hiding | A profile reported by 3 different people whose reports count and are not reviewed yet is hidden from everyone until reviewed, and everything it is in ends (`private.file_report`, which every report goes through). A report counts when the two really interacted (a chat between them that was accepted or met, or accepted and later ended, a say-hi the reported person sent the reporter, or a message the reported person posted in a group chat both are in) or the reporter's account is at least 3 days old with no open report against it. A say-hi the reporter sent that was never accepted, or only being in the same event, isn't enough. Other reports only go to the queue |
-| Keeping banned people out | Suspended people can't sign up again with that email until the ban is lifted or an account with that email is deleted (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
+| Keeping banned people out | Suspended people can't sign up again with that email until the ban is lifted or an account with that email is deleted. People the owner removed can't sign up again with it until the owner lifts the ban (`private.banned_identities`, checked by the Before User Created hook, which also refuses throwaway email domains) |
 | Remove content and users | The SQL below, run by the owner |
 
 ## The word filter
@@ -146,7 +146,8 @@ Pick one, and always finish with step 4.
   This hides them from everyone, ends their live session, requests, chats and event
   memberships, puts their email address on the ban list (so they can't sign up again with it while
   the account exists), and marks their reports reviewed. The ban ends if they later delete any
-  account with the same email address, like everything else but the reports. To lift it later:
+  account with the same email address, like everything else but the reports; to keep them out
+  for good, remove them completely instead. To lift it later:
   `select private.restore_user('<reported_id>');`
 
 - **Remove completely** (under 18, threats, illegal content, repeated abuse): suspend first,
@@ -154,15 +155,29 @@ Pick one, and always finish with step 4.
   account:
 
   ```sql
-  select private.delete_user('<reported_id>');
+  select private.delete_user('<reported_id>', true);
   ```
 
-  It refuses (`photos not removed`) while any file is left in their folder. It deletes the account
-  the same way as **Delete account** in the app: their profile, messages, events, chats, blocks,
-  sign-in records and upload times, and any ban on their email address, including the one from
-  the suspension. Only the reports about them stay, without the account linked, as the record of
-  why. Don't delete the user in **Authentication → Users**: that leaves sign-in records and the
-  ban behind.
+  It refuses (`photos not removed`) while any file is left in their folder, and `no such account`
+  for an id with no account. It deletes the account the same way as **Delete account** in the app:
+  their profile, messages, events, chats, blocks, sign-in records and upload times. The `true`
+  keeps their email address on the ban list with the reason `removed`, replacing the suspension
+  ban. A `removed` ban stays even if they later delete another account with the same address, so
+  they can't sign up again with it. The reports about them stay too, without the account linked,
+  as the record of why. Don't delete the user in **Authentication → Users**: that leaves sign-in
+  records behind.
+
+  To ban an address by hand, use the reason `removed`, so deleting an account doesn't lift it.
+  Any other reason is lifted when an account with that address is deleted. To lift a `removed`
+  ban, delete the row:
+
+  ```sql
+  -- ban an address by hand
+  insert into private.banned_identities (email_hash, reason)
+  values (private.email_hash('<email address>'), 'removed');
+  -- lift a ban
+  delete from private.banned_identities where email_hash = private.email_hash('<email address>');
+  ```
 
   Report anyone who seems to be under 18 and any threat to someone's safety or illegal content
   to the police where appropriate. Sexual content involving a minor must be reported (in Canada,
@@ -181,8 +196,9 @@ for the person's first name and roughly when and where they met, and look them u
 
 An email asking to delete an account ("Delete my account") is handled within 30 days. Check it
 came from the address the account signed up with, then find the account and delete it the same
-way as a removal: delete the files in Storage (the `photos` bucket, the folder named after the
-id), then run `private.delete_user`. Reply to say it's done.
+way as **Delete account** in the app: delete the files in Storage (the `photos` bucket, the folder
+named after the id), then run `private.delete_user` without `true`, which also lifts a suspension
+ban on the address but not a `removed` one. Reply to say it's done.
 
 ```sql
 select id from auth.users where email = '<their email address>';

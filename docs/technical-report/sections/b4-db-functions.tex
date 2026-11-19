@@ -81,7 +81,7 @@ string, which the client parses with \code{Date.parse}.
   \code{private.file_report(uid uuid, target uuid, reason text, details text, request_id uuid, about text, message_id uuid, event_id uuid, content jsonb)} & \code{void} & plpgsql, definer; no API role \\
   \code{private.normalised_email(email text)}, \code{private.email_hash(email text)} & \code{text} & sql, immutable, not definer; no API role \\
   \code{private.ban_email_of(target uuid, reason text)} & \code{void} & sql, definer; no API role \\
-  \code{private.delete_user(target uuid)} & \code{void} & plpgsql, definer; \code{service_role}; run by \code{delete_account} and by the owner \\
+  \code{private.delete_user(target uuid, keep_ban boolean default false)} & \code{void} & plpgsql, definer; \code{service_role}; run by \code{delete_account} and by the owner \\
   \code{private.set_reported_hash()} & \code{trigger} & plpgsql, not definer; no API role; before insert on \code{reports} \\
   \code{private.event_card(ev uuid, viewer uuid)} & \code{jsonb} & sql, stable, definer; no API role \\
   \code{private.is_chat_participant(req uuid)} & \code{boolean} & sql, stable, definer; \code{authenticated} (used by a policy) \\

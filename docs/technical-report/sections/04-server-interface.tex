@@ -162,7 +162,8 @@ message in parentheses where one applies.
   & Runs \code{private.delete_user} for the caller. It refuses (\code{photos not removed}) while any file
     is left in the caller's photo folder; the client
     removes every file there through the Storage API before calling it. Returns the caller's chat partner,
-    if any, to \code{open}, deletes any ban on the caller's email address, their upload times and their
+    if any, to \code{open}, deletes any ban on the caller's email address except one with the reason
+    \code{removed}, their upload times and their
     Auth sign-in flows and audit records, then deletes the caller's Auth user, which cascades through every
     table except \code{reports}, where the caller's id becomes null (\cref{sec:flow-delete}). \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
@@ -256,7 +257,7 @@ function that can change a given table.
   \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
   \code{auth.users} row; the cascade removes the profile and every row that references it, and sets
   the user's id to null in \code{reports}. Before that it deletes the user's rows in
-  \code{private.banned_identities} and \code{private.photo_uploads}, which have no foreign key.
+  \code{private.banned_identities} (except a \code{removed} ban) and \code{private.photo_uploads}, which have no foreign key.
   \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
   Not shown: \code{create_event} also inserts into \code{private.event_posts}; \code{set_map_position}
   and \code{go_green} write \code{private.last_positions}, which they, \code{events_near} and
@@ -435,9 +436,14 @@ refuses an unknown profile (\code{no such profile}), then:
 them out), takes the email address off the ban list, and marks every open report about the person
 as reviewed (action \code{restored}), so reports already reviewed cannot hide them again.
 
-\code{private.delete_user(target)} is the deletion \code{delete_account} runs. The owner runs it from the SQL
-editor, or with the service role, for an email deletion request or a removal; execution is revoked from
-\code{anon} and \code{authenticated}. \code{docs/legal/moderation.md} describes
+\code{private.delete_user(target, keep_ban)} is the deletion \code{delete_account} runs, with \code{keep_ban}
+false. It refuses an id with no account (\code{no such account}). The owner runs it from the SQL editor, or
+with the service role, for an email deletion request (\code{keep_ban} false) or a removal (\code{keep_ban}
+true); execution is revoked from \code{anon} and \code{authenticated}. With \code{keep_ban} false it deletes
+the bans on the person's email address except one with the reason \code{removed}, so deleting one's own
+account lifts one's own suspension ban but never a removal. With \code{keep_ban} true it leaves a ban with
+the reason \code{removed}, which outlives the account. \code{delete_account} returns without error when the
+caller's account is already gone, so a repeated request does not fail. \code{docs/legal/moderation.md} describes
 the owner's daily review: the queries that list open reports and what the reported person posted, and
 the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through
 removing one message or event, to suspending or deleting the account.

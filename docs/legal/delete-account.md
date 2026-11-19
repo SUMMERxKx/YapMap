@@ -34,7 +34,8 @@ hold:
 - the events you host, with their members and group chats
 - your event memberships and every message you sent in other people's group chats
 - the people you blocked, and blocks other people made against you
-- any ban on your email address, including one from another account with the same address
+- any ban on your email address from a suspension, including one from another account with the
+  same address (a ban from an account we removed for breaking the rules stays)
 
 Only safety reports made by you or about you are kept, without your account linked to them, so
 we can still act on them. Removing account links does not make report details anonymous:

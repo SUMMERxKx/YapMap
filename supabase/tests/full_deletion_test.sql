@@ -2,8 +2,9 @@
 -- photo of the person anywhere in the database, removes their chats for both people, and works
 -- for an account that never finished profile setup and for a suspended one, whose ban on their
 -- email address goes too. The owner's private.delete_user, used for email requests and removals,
--- deletes the same way and can't be called by anyone signed in or signed out. Only safety reports
--- are kept, without the account linked. Run against
+-- deletes the same way and can't be called by anyone signed in or signed out; a removal keeps a
+-- 'removed' ban that deleting another account with the same address doesn't lift. Only safety
+-- reports (and that removal ban) are kept, without the account linked. Run against
 -- the local stack:
 --
 --   supabase start
@@ -15,14 +16,17 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(41);
+select plan(49);
 
 -- 1 deletes their account. 2 chatted with 1 and joined the event 1 hosts. 3 hosts an event 1
 -- joined. 4 signed up and uploaded photos but never saved a profile. 5 is suspended. 6 sent 1 a
--- say-hi, blocked 1 and was blocked by 1. 7 is suspended and then removed by the owner.
+-- say-hi, blocked 1 and was blocked by 1. 7 is suspended and asks by email to be deleted. 8 is
+-- removed by the owner. 9 is 8 again, with a +tag on the same address.
 insert into auth.users (id, email)
 select ('00000000-0000-0000-0000-0000000006' || lpad(n::text, 2, '0'))::uuid, 'gone' || n || '@example.test'
-from generate_series(1, 7) as n;
+from generate_series(1, 8) as n;
+insert into auth.users (id, email)
+values ('00000000-0000-0000-0000-000000000609', 'gone8+again@example.test');
 
 insert into public.profiles (id, first_name, last_name, gender, intro, interests, is_adult, photo_path, photo_paths)
 select id, 'Person', 'Tester', 'prefer-not', 'Here to test.', array['Coffee', 'Books', 'Music'], true,
@@ -77,7 +81,7 @@ $$;
 -- Each upload is also recorded in private.photo_uploads by the storage trigger.
 insert into storage.objects (bucket_id, name)
 select 'photos', pg_temp.id_of(p) || f.name
-from (values (1), (2), (3), (4), (5), (6), (7)) as people (p)
+from (values (1), (2), (3), (4), (5), (6), (7), (8)) as people (p)
 cross join (values ('/profile-1.jpg'), ('/profile-1-small.jpg'), ('/gallery-1.jpg'), ('/gallery-2.jpg')) as f (name);
 
 insert into storage.objects (bucket_id, name)
@@ -325,7 +329,7 @@ select ok(
   'the ban on 5''s email address is deleted with the account'
 );
 
--- The owner removes someone ---------------------------------------------------------------------
+-- An email request ------------------------------------------------------------------------------------
 
 select pg_temp.act_as(7);
 set local role authenticated;
@@ -369,8 +373,47 @@ select is_empty(
 );
 select ok(
   not exists (select 1 from private.banned_identities where email_hash = private.email_hash('gone7@example.test')),
-  'the ban on 7''s email address is deleted with the account'
+  'the suspension ban on 7''s email address is deleted with the account'
 );
+
+-- The owner removes someone ---------------------------------------------------------------------
+
+select private.suspend_user(pg_temp.id_of(8));
+select pg_temp.remove_photos(8);
+set local role service_role;
+select lives_ok($$ select private.delete_user(pg_temp.id_of(8), true) $$, 'the owner removes 8, keeping the ban');
+select throws_ok(
+  $$ select private.delete_user('00000000-0000-0000-0000-000000000699') $$,
+  'no such account',
+  'an id with no account is refused, so a mistyped id doesn''t look like a deletion'
+);
+reset role;
+select is_empty(
+  $$ select * from pg_temp.tables_mentioning(pg_temp.id_of(8)::text) $$,
+  'no row anywhere mentions 8''s id'
+);
+select is(
+  (select reason from private.banned_identities where email_hash = private.email_hash('gone8@example.test')),
+  'removed',
+  '8''s email address stays on the ban list as removed'
+);
+
+select pg_temp.act_as(9);
+select lives_ok($$ select public.delete_account() $$, '9, on the same address with a +tag, deletes their account');
+select is(
+  (select reason from private.banned_identities where email_hash = private.email_hash('gone8@example.test')),
+  'removed',
+  'deleting another account with the same address doesn''t lift the removal ban'
+);
+select is_empty(
+  $$ select * from pg_temp.tables_mentioning(pg_temp.id_of(9)::text) $$,
+  'no row anywhere mentions 9''s id'
+);
+
+-- A repeated delete ------------------------------------------------------------------------------
+
+select pg_temp.act_as(1);
+select lives_ok($$ select public.delete_account() $$, 'a repeated delete from 1''s old session does nothing and doesn''t fail');
 
 select * from finish();
 rollback;
