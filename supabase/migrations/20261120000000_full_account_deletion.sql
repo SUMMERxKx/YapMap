@@ -12,8 +12,8 @@
 --     that deletes them with the user.
 --   * auth.audit_log_entries, the sign-in activity records Supabase Auth keeps with no link to the
 --     user at all. Finding one person's records there means reading the whole table, which would
---     make a deletion slow once the table grows. So the scheduled cleanup (private.expire_stale)
---     now deletes every record older than 7 days, for everyone, the same window as the backups.
+--     make a deletion slow once the table grows. So a daily job (private.prune_audit_log) now
+--     deletes them for everyone, so none is older than 7 days, the same window as the backups.
 --   * Photo files. Supabase doesn't let SQL delete storage files (deleting the row would leave the
 --     file itself behind), so the app removes every file in the person's folder through the
 --     Storage API first. Now the server checks that the folder is empty and refuses to delete the
@@ -154,35 +154,19 @@ revoke execute on function private.tidy_old_bans () from public, anon, authentic
 
 select private.tidy_old_bans();
 
--- As before (20261026180208_safety_fixes.sql), plus deleting sign-in activity records older than
--- 7 days.
-create or replace function private.expire_stale()
+-- Deletes the sign-in activity records Supabase Auth keeps (auth.audit_log_entries) once they are
+-- more than 6 days old, for everyone. It runs once a day, so no record is older than 7 days. It has
+-- its own job, so a slow or failing run never holds up the minute job (private.expire_stale).
+create function private.prune_audit_log()
 returns void
 language sql security definer set search_path = ''
 as $$
-  delete from public.availability where expires_at <= now();
-  update public.chat_requests r set status = 'expired'
-  where r.status = 'pending'
-    and (
-      r.expires_at <= now()
-      or not exists (
-        select 1 from public.availability a
-        where a.user_id = r.from_user and a.expires_at > now()
-      )
-    );
-  update public.chat_requests r set status = 'cancelled', ended_at = now()
-  where r.status = 'accepted'
-    and not exists (
-      select 1 from public.availability a
-      where a.user_id in (r.from_user, r.to_user) and a.expires_at > now()
-    );
-  delete from private.location_changes where changed_at <= now() - interval '10 minutes';
-  delete from private.event_posts where posted_at <= now() - interval '24 hours';
-  delete from private.call_counts where window_start <= now() - interval '1 hour';
-  delete from private.signup_ips where created_at <= now() - interval '24 hours';
-  delete from private.photo_uploads where uploaded_at <= now() - interval '24 hours';
-  delete from auth.audit_log_entries where created_at <= now() - interval '7 days';
+  delete from auth.audit_log_entries where created_at <= now() - interval '6 days';
 $$;
+
+revoke execute on function private.prune_audit_log () from public, anon, authenticated;
+
+select cron.schedule('yap-prune-audit-log', '0 3 * * *', 'select private.prune_audit_log()');
 
 comment on table private.banned_identities is
   'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created. '

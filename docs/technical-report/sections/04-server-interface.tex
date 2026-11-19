@@ -348,6 +348,7 @@ caller, or reads no tables at all.
   \code{ban_email_of(user, reason)} & Puts a user's email address on \code{private.banned_identities} \\
   \code{set_reported_hash()} & Trigger on \code{reports}: stores a hash of the reported id, which outlives the account \\
   \code{expire_stale()} & The minute job (\cref{sec:housekeeping}) \\
+  \code{prune_audit_log()} & The daily job that deletes Auth sign-in activity records (\cref{sec:housekeeping}) \\
 \end{longtable}
 \endgroup
 
@@ -464,14 +465,17 @@ time-based rules hold even when no app is open:
   \item It deletes entries older than a day from \code{private.event_posts},
     \code{private.signup_ips} and \code{private.photo_uploads}, and call counts from windows more than an
     hour old. Last known positions are kept.
-  \item It deletes Supabase Auth's sign-in activity records (\code{auth.audit_log_entries}) older than
-    seven days, for every user. Deleting an account leaves them to this step, because they have no column
-    that finds one user's records without reading the whole table.
 \end{enumerate}
 
 Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do
 not rely on the job for correctness: they compare end times with \code{now()} themselves, and
 \code{send_request} expires the caller's own timed-out request before it counts waiting requests.
+
+A second \code{pg_cron} job, \code{yap-prune-audit-log}, runs \code{private.prune_audit_log()} once a day
+at 03:00. It deletes Supabase Auth's sign-in activity records (\code{auth.audit_log_entries}) older than
+six days, for every user, so none is older than seven days. Deleting an account leaves them to this job,
+because they have no column that finds one user's records without reading the whole table. It is kept
+apart from the minute job so that a slow or failing run on the Auth table never holds up the minute job.
 
 \section{Realtime publication}
 \label{sec:realtime-publication}

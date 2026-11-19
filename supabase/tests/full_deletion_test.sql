@@ -7,7 +7,7 @@
 -- and a session left signed in after its account is gone can't upload a photo. Bans kept from an
 -- old deletion while hidden or suspended are tidied away, and other old bans stay. Only safety
 -- reports (and that removal ban) are kept, without the account linked. Sign-in activity records
--- are not deleted with the account but by the scheduled cleanup once they are 7 days old, for
+-- are not deleted with the account but by the daily job once they are more than 6 days old, for
 -- everyone. Run against the local stack:
 --
 --   supabase start
@@ -51,8 +51,8 @@ $$;
 
 -- Every table in the app's and Supabase's own schemas whose rows still mention `needle`
 -- anywhere (an id, a photo path, an email address, a sign-in record), with how many rows.
--- auth.audit_log_entries is left out because the scheduled cleanup deletes its rows after 7 days,
--- which is checked at the end.
+-- auth.audit_log_entries is left out because the daily job deletes its rows after 6 days, which is
+-- checked at the end.
 create function pg_temp.tables_mentioning(needle text) returns setof text
 language plpgsql as $$
 declare
@@ -478,16 +478,16 @@ select is(
 
 insert into auth.audit_log_entries (id, payload, ip_address, created_at)
 values
-  ('00000000-0000-0000-0000-000000000681', '{"action": "login"}', '192.0.2.1', now() - interval '8 days'),
-  ('00000000-0000-0000-0000-000000000682', '{"action": "login"}', '192.0.2.1', now() - interval '6 days');
-select private.expire_stale();
+  ('00000000-0000-0000-0000-000000000681', '{"action": "login"}', '192.0.2.1', now() - interval '6 days 1 hour'),
+  ('00000000-0000-0000-0000-000000000682', '{"action": "login"}', '192.0.2.1', now() - interval '5 days 23 hours');
+select private.prune_audit_log();
 select ok(
   not exists (select 1 from auth.audit_log_entries where id = '00000000-0000-0000-0000-000000000681'),
-  'the scheduled cleanup deletes sign-in activity records older than 7 days'
+  'the daily job deletes sign-in activity records older than 6 days'
 );
 select ok(
   exists (select 1 from auth.audit_log_entries where id = '00000000-0000-0000-0000-000000000682'),
-  'the scheduled cleanup keeps sign-in activity records newer than 7 days'
+  'the daily job keeps sign-in activity records newer than 6 days'
 );
 
 select * from finish();

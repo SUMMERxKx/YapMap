@@ -161,7 +161,7 @@ Pick one, and always finish with step 4.
   It refuses (`photos not removed`) while any file is left in their folder, and `no such account`
   for an id with no account. It deletes the account the same way as **Delete account** in the app:
   their profile, messages, events, chats, blocks, sign-in flows and upload times. The records of
-  when they signed in go within 7 days, as everyone's do (`private.expire_stale`). The `true`
+  when they signed in go within 7 days, as everyone's do (`private.prune_audit_log`, run daily). The `true`
   keeps their email address on the ban list with the reason `removed`, replacing the suspension
   ban. A `removed` ban stays even if they later delete another account with the same address, so
   they can't sign up again with it. The reports about them stay too, without the account linked,

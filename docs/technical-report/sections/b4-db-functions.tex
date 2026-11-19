@@ -96,6 +96,7 @@ string, which the client parses with \code{Date.parse}.
   \code{private.my_account_exists()} & \code{boolean} & sql, stable, definer, \code{authenticated} (used by a storage policy) \\
   \code{private.record_photo_upload()} & \code{trigger} & plpgsql, definer; no API role; after insert on \code{storage.objects} \\
   \code{private.expire_stale()} & \code{void} & sql, definer; no API role; run by \code{pg_cron} \\
+  \code{private.prune_audit_log()} & \code{void} & sql, definer; no API role; run daily by \code{pg_cron} \\
   \code{private.has_blocked_word(input text)} & \code{boolean} & sql, stable, definer; no API role (used by the word filter) \\
   \code{private.refuse_blocked_words()} & \code{trigger} & plpgsql, definer; no API role; the four word-filter triggers pass it the column names \\
   \code{private.suspend_user(target uuid, note text default 'suspended')} & \code{void} & plpgsql, definer; no API role; run by the owner in the SQL editor \\

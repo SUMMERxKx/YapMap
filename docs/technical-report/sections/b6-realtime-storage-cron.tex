@@ -62,7 +62,8 @@ limit what each channel delivers.
     \toprule
     \textsf{\textbf{Job}} & \textsf{\textbf{Schedule}} & \textsf{\textbf{Command and effect}} \\
     \midrule
-    \code{yap-expire-stale} & \texttt{* * * * *} & \code{select private.expire_stale()}: delete ended live sessions; expire pending requests whose time is up or whose sender is not live; cancel accepted chats in which neither person is live; delete location changes older than 10 minutes, event posts, sign-up addresses and photo uploads older than a day, call counts from windows more than an hour old, and Auth sign-in activity records older than seven days \\
+    \code{yap-expire-stale} & \texttt{* * * * *} & \code{select private.expire_stale()}: delete ended live sessions; expire pending requests whose time is up or whose sender is not live; cancel accepted chats in which neither person is live; delete location changes older than 10 minutes, event posts, sign-up addresses and photo uploads older than a day, and call counts from windows more than an hour old \\
+    \code{yap-prune-audit-log} & \texttt{0 3 * * *} & \code{select private.prune_audit_log()}: delete Auth sign-in activity records (\code{auth.audit_log_entries}) older than six days, so none is older than seven days \\
     \bottomrule
   \end{tabularx}
 \end{table}
