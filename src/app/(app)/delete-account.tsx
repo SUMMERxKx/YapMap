@@ -3,7 +3,7 @@
 // there is a profile), so nobody deletes their account with a stray tap.
 
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Alert, StyleSheet, View } from 'react-native';
 
 import { AppText } from '@/components/ui/app-text';
@@ -15,21 +15,25 @@ import { ScreenHeader } from '@/components/ui/screen-header';
 import { TextField } from '@/components/ui/text-field';
 import { TopBar } from '@/components/ui/top-bar';
 import { errorMessage } from '@/lib/error-message';
-import { checkRestricted, deleteAccount, useStore } from '@/state/store';
+import { deleteAccount, useStore } from '@/state/store';
 import { useTheme } from '@/theme';
 
 // Everything that goes with the account: the photos first, then the database rows (each of these
-// is linked to the account and deleted with it). Safety reports stay, without the account linked.
+// is linked to the account and deleted with it). Only safety reports stay, without the account linked.
 const DELETED = [
   'Your profile: name, gender, intro, interests and every photo',
   'Your live status, note and location',
-  'Every say-hi request and 1:1 chat, with their messages',
+  'Every say-hi request and 1:1 chat, with their messages, for both of you',
   'Events you host and their group chats, and your messages in other events',
   'Your block list',
+  'Your sign-in: your email address and password',
 ];
 
 // Before profile setup is finished there is no profile yet, only photos a save may have left.
-const DELETED_DURING_SETUP = ['Any photos you added during profile setup'];
+const DELETED_DURING_SETUP = [
+  'Any photos you added during profile setup',
+  'Your sign-in: your email address and password',
+];
 
 // What to type when there is no first name to type yet.
 const CONFIRM_WORD = 'DELETE';
@@ -44,21 +48,12 @@ export default function DeleteAccount() {
   const { colors, spacing } = useTheme();
   const hasProfile = useStore((state) => state.profile !== null);
   const firstName = useStore((state) => state.profile?.firstName ?? '').trim();
-  // On hold (hidden or suspended): the server keeps a hash of the email address, so it can't sign up again.
-  const restricted = useStore((state) => state.restricted);
-  let signIn = 'Your sign-in: your email address and password';
-  if (restricted) signIn = 'Your password';
   const [typed, setTyped] = useState('');
   // The first name when the profile has one, otherwise the word DELETE.
   const byName = firstName !== '';
   const word = byName ? firstName : CONFIRM_WORD;
   const confirmed = matchesWord(typed, word);
   const deleted = hasProfile ? DELETED : DELETED_DURING_SETUP;
-
-  // The account may have been put on hold since the app last asked, which changes what is kept.
-  useEffect(() => {
-    void checkRestricted();
-  }, []);
 
   // Said once they've typed as much as the name holds, so it doesn't flash while typing.
   let mismatch: string | null = null;
@@ -101,23 +96,20 @@ export default function DeleteAccount() {
         <AppText variant="label" color="textSecondary" accessibilityRole="header">
           WHAT IS DELETED
         </AppText>
-        {[...deleted, signIn].map((item) => (
+        {deleted.map((item) => (
           <View key={item} style={[styles.item, { gap: spacing.md }]}>
             <View style={[styles.bullet, { backgroundColor: colors.destructive, marginTop: spacing.sm }]} />
             <AppText style={styles.itemText}>{item}</AppText>
           </View>
         ))}
       </Card>
-      {restricted ? (
-        <InfoNote icon="mail-outline">
-          Your account is on hold, so we keep a scrambled (hashed) copy of your email address so it can't be used to
-          sign up again.
-        </InfoNote>
-      ) : (
-        <InfoNote icon="log-out-outline">
-          To use Yap again later, you'd create a new account. If you only want a break, sign out instead.
-        </InfoNote>
-      )}
+      <InfoNote icon="flag-outline">
+        Safety reports you made, or that were made about you, are kept without your account linked, so we can still act
+        on them. Nothing else is kept.
+      </InfoNote>
+      <InfoNote icon="log-out-outline">
+        To use Yap again later, you'd create a new account. If you only want a break, sign out instead.
+      </InfoNote>
 
       <View style={{ gap: spacing.sm }}>
         <AppText>

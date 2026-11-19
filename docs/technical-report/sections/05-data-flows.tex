@@ -362,9 +362,12 @@ tables directly.
   \label{fig:seq-delete}
 \end{figure}
 
-\code{delete_account} first puts the user's email address on the ban list if the account is hidden or
-suspended (\cref{sec:signup-checks}), and returns the user's chat partner, if any, to \code{open}, so
-the partner can be found and can say hi again; then it deletes the Auth user. Every user foreign key
+The app first removes every file in the user's photo folder, sub-folders included, through the Storage
+API, and \code{delete_account} refuses while any file is left, so no photo outlives the account.
+\code{delete_account} returns the user's chat partner, if any, to \code{open}, so the partner can be
+found and can say hi again. It deletes the rows that have no foreign key to the user: any ban on their
+email address (\cref{sec:signup-checks}), whether or not the account is hidden or suspended, their upload
+times, and the sign-in flows and audit records Supabase Auth keeps. Then it deletes the Auth user. Every user foreign key
 except the two in \code{reports} cascades, so the delete removes the profile, the live session and map
 position, every request sent or received with its messages, every event hosted with its members and
 messages, every membership, every message sent, every block made or received, the location-change log,

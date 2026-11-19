@@ -159,11 +159,11 @@ message in parentheses where one applies.
     holds). Files a report about its host through \code{private.file_report}, with \code{event_id} and a
     copy of the emoji, title, description, start and creation times. \\
   \code{delete_account}
-  & If the caller's profile is hidden or suspended, puts their email address on the ban list
-    (\cref{sec:signup-checks}). Returns the caller's chat partner, if any, to \code{open}, then deletes the
-    caller's Auth user, which cascades through every table except \code{reports}, where the caller's id
-    becomes null (\cref{sec:flow-delete}). The client removes the caller's photos through the Storage API
-    before calling it. \\[3pt]
+  & Refuses (\code{photos not removed}) while any file is left in the caller's photo folder. The client
+    removes every file there through the Storage API before calling it. Returns the caller's chat partner,
+    if any, to \code{open}, deletes any ban on the caller's email address, their upload times and their
+    Auth sign-in flows and audit records, then deletes the caller's Auth user, which cascades through every
+    table except \code{reports}, where the caller's id becomes null (\cref{sec:flow-delete}). \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
   \code{set_map_position}\newline{\scriptsize lat, lng}
   & Stores the centre of the position's cell as the caller's last known position, which the map uses for
@@ -254,7 +254,8 @@ function that can change a given table.
   \end{tabular}
   \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
   \code{auth.users} row; the cascade removes the profile and every row that references it, and sets
-  the user's id to null in \code{reports}.
+  the user's id to null in \code{reports}. Before that it deletes the user's rows in
+  \code{private.banned_identities} and \code{private.photo_uploads}, which have no foreign key.
   \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
   Not shown: \code{create_event} also inserts into \code{private.event_posts}; \code{set_map_position}
   and \code{go_green} write \code{private.last_positions}, which they, \code{events_near} and
@@ -422,8 +423,8 @@ refuses an unknown profile (\code{no such profile}), then:
   \item through \code{private.end_activity}, ends every chat they are in, returning the other person to
     \code{open} if still live, cancels their waiting requests, and deletes their live session and event
     memberships, so they cannot post in group chats either;
-  \item puts their email address on the ban list, so deleting the account and signing up again with it
-    is refused (\cref{sec:signup-checks});
+  \item puts their email address on the ban list until the suspension is lifted or the account is
+    deleted, so signing up again with it is refused (\cref{sec:signup-checks}).
   \item marks every open report about them as reviewed, with \code{note} (default \code{suspended}) as
     the action.
 \end{enumerate}

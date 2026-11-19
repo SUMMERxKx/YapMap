@@ -144,8 +144,9 @@ Pick one, and always finish with step 4.
   ```
 
   This hides them from everyone, ends their live session, requests, chats and event
-  memberships, puts their email address on the ban list (so deleting the account and signing up
-  again is refused), and marks their reports reviewed. To lift it later:
+  memberships, puts their email address on the ban list (so they can't sign up again with it while
+  the account exists), and marks their reports reviewed. If they delete their account themselves,
+  the ban is deleted with it, like everything else but the reports. To lift it later:
   `select private.restore_user('<reported_id>');`
 
 - **Remove completely** (under 18, threats, illegal content, repeated abuse): suspend first,

@@ -47,9 +47,9 @@ without dots) has a SHA-256 hash in \code{private.banned_identities}; an address
 thousand throwaway domains in \code{private.disposable_email_domains}, or at a subdomain of one; and a
 twenty-first account in 24 hours from the same IP address, counted by a hash of the address in
 \code{private.signup_ips}. The per-address limit is generous because a campus network puts many
-students behind one address. Suspending a person adds their address to the ban list, and so does
-deleting an account while it is hidden or suspended, so a banned person cannot delete the account and
-sign up again with the same address. The hook is switched on in \code{supabase/config.toml} for the local
+students behind one address. Suspending a person adds their address to the ban list until the
+suspension is lifted. Deleting the account removes the ban with everything else, because only safety
+reports are kept after a deletion. The hook is switched on in \code{supabase/config.toml} for the local
 stack and in the dashboard for the hosted project.
 
 \section{Authentication and sessions}

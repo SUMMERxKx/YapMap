@@ -284,8 +284,8 @@ select is(
 select pg_temp.act_as(10);
 select public.delete_account();
 select ok(
-  exists (select 1 from private.banned_identities where email_hash = private.email_hash('safety10@example.test')),
-  'deleting an account while it is hidden puts its email on the ban list'
+  not exists (select 1 from private.banned_identities where email_hash = private.email_hash('safety10@example.test')),
+  'deleting an account while it is hidden keeps nothing of its email address'
 );
 select is(
   (select count(*) from public.reports

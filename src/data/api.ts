@@ -180,6 +180,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'invalid reason': 'Pick a reason for the report.',
   'too many reports': "You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you.",
   'content not available': "That message or event is gone, or you can't see it any more. You can still report the person from the same menu.",
+  'photos not removed': "Some of your photos couldn't be deleted, so your account is still here. Try again.",
 };
 
 // The table rules (check constraints in supabase/migrations) the app can run into, by name.
@@ -938,27 +939,37 @@ export async function report(userId: string, reason: ReportReason, details: stri
 
 const PHOTO_LIST_PAGE_SIZE = 100;
 
-/** Every photo path in my folder of the `photos` bucket (<userId>/...), one page at a time. */
+/**
+ * Every photo path in my folder of the `photos` bucket (<userId>/...), one page at a time.
+ * Sub-folders are listed too (a folder comes back with no id): older versions of the app could
+ * save files in them, and deleting the account has to find every file.
+ */
 async function listMyPhotoPaths(userId: string): Promise<string[]> {
   const paths: string[] = [];
-  let offset = 0;
-  while (true) {
-    const { data, error } = await supabase.storage
-      .from('photos')
-      .list(userId, { limit: PHOTO_LIST_PAGE_SIZE, offset });
-    if (error) throw new Error(friendlyRpcError(error));
-    for (const item of data) {
-      paths.push(`${userId}/${item.name}`);
+  const folders = [userId];
+  for (let folder = folders.pop(); folder !== undefined; folder = folders.pop()) {
+    let offset = 0;
+    while (true) {
+      const { data, error } = await supabase.storage
+        .from('photos')
+        .list(folder, { limit: PHOTO_LIST_PAGE_SIZE, offset });
+      if (error) throw new Error(friendlyRpcError(error));
+      for (const item of data) {
+        const path = `${folder}/${item.name}`;
+        if (item.id === null) folders.push(path);
+        else paths.push(path);
+      }
+      if (data.length < PHOTO_LIST_PAGE_SIZE) break;
+      offset += PHOTO_LIST_PAGE_SIZE;
     }
-    if (data.length < PHOTO_LIST_PAGE_SIZE) break;
-    offset += PHOTO_LIST_PAGE_SIZE;
   }
   return paths;
 }
 
 /**
- * Removes my photos through the Storage API, then deletes the account itself.
- * The photos have to go first: once the account is gone this session can't reach Storage.
+ * Removes every file in my photo folder through the Storage API, then deletes the account itself.
+ * The photos have to go first: once the account is gone this session can't reach Storage. The
+ * server refuses to delete the account while any file is left, so nothing stays behind.
  */
 export async function deleteAccount() {
   const userId = await requireUserId();
