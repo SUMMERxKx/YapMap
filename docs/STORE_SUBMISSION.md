@@ -232,7 +232,8 @@ same place.
 
 - **Apple** (guideline 5.1.1(v)): Profile → Settings → **Delete account**, which lists what is
   deleted; type your first name to confirm, then **Delete my account**. This deletes the account
-  and its data inside the app.
+  and its data inside the app. An account still in profile setup can delete from the first
+  setup screen (steps in `docs/legal/delete-account.md`).
 - **Google**: the same in-app deletion, plus the web page https://yap.samarxkx.dev/delete-account
   for people who no longer have the app (Data safety asks for it).
 
