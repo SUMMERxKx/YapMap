@@ -142,7 +142,10 @@ event (\code{delete_event}); its members and messages are deleted with it.
 block themselves. Although each row has a direction, the server applies a block in both directions
 (\cref{sec:blocking-reporting}). \code{reports} records a report: who reported whom, an optional request
 the report relates to, one of six reasons (\code{inappropriate-photo}, \code{harassment}, \code{unsafe},
-\code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. The columns
+\code{spam-or-fake}, \code{under-18}, \code{other}) and up to 500 characters of details. \code{about}
+says whether it is about a person, a message or an event, \code{message_id} and \code{event_id} name the
+message or event (plain ids, not foreign keys, so they outlive it), and \code{content} is a copy of what
+was reported, which the server takes from the real rows when the report is filed. The columns
 \code{reviewed_at} and \code{action} record the owner's review: the owner sets them in the SQL editor
 while working through open reports, and \code{private.suspend_user} and \code{private.restore_user} set
 them on every open report of the person they act on (\cref{sec:moderation}). \code{counts_toward_hide}
@@ -224,6 +227,7 @@ path with the suffix \code{-small.jpg}, used for small avatars.
     \code{messages (sender, created_at)} & The rate limit on sending messages \\
     \code{blocks (blocked)} & Block checks in the reverse direction \\
     \code{reports (reported)}, \code{(reporter)}, \code{(request_id)} & Counting reporters; clearing ids on deletion \\
+    \code{reports (message_id)}, \code{(event_id)}, partial & Finding the reports about a message or event \\
     \code{private.location_changes (user_id, changed_at)} & The relocation limit in \code{go_green} and \code{set_map_position} \\
     \code{private.signup_ips (ip_hash, created_at)} & The sign-up limit per IP address \\
     \code{private.photo_uploads (user_id, uploaded_at)} & The daily upload limit \\

@@ -42,6 +42,8 @@ string, which the client parses with \code{Date.parse}.
   \code{block_user(target uuid)} & \code{void} & plpgsql \\
   \code{blocked_list()} & \code{setof jsonb} & sql, stable; \texttt{\{id, firstName, lastInitial\}} \\
   \code{report_user(target uuid, reason text, details text default '', request_id uuid default null)} & \code{void} & plpgsql \\
+  \code{report_message(message_id uuid, reason text, details text default '')} & \code{void} & plpgsql \\
+  \code{report_event(event_id uuid, reason text, details text default '')} & \code{void} & plpgsql \\
   \code{delete_account()} & \code{void} & plpgsql \\
   \code{set_map_position(lat double precision, lng double precision)} & \code{void} & plpgsql \\
   \code{events_near(radius_m double precision default 10000)} & \code{setof jsonb} & plpgsql (volatile: it counts the call); event cards \\
@@ -76,6 +78,7 @@ string, which the client parses with \code{Date.parse}.
   \code{private.count_call(uid uuid, list_name text, max_calls integer, per interval)} & \code{void} & plpgsql, definer; no API role \\
   \code{private.my_position(uid uuid)} & \code{geography} & sql, stable, definer; no API role \\
   \code{private.end_activity(target uuid)} & \code{void} & plpgsql, definer; no API role \\
+  \code{private.file_report(uid uuid, target uuid, reason text, details text, request_id uuid, about text, message_id uuid, event_id uuid, content jsonb)} & \code{void} & plpgsql, definer; no API role \\
   \code{private.normalised_email(email text)}, \code{private.email_hash(email text)} & \code{text} & sql, immutable, not definer; no API role \\
   \code{private.ban_email_of(target uuid, reason text)} & \code{void} & sql, definer; no API role \\
   \code{private.set_reported_hash()} & \code{trigger} & plpgsql, not definer; no API role; before insert on \code{reports} \\

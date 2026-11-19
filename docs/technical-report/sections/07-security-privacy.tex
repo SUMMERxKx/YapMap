@@ -296,8 +296,12 @@ blocked user can still write in an event both have joined, but the user who bloc
 those messages, because the \code{messages} select policy removes them, and the app filters them again.
 Unblocking deletes the row, and the person can appear again at the next refresh.
 
-A report records the reason and details, and whether it counts towards the automatic hide
-(\code{counts_toward_hide}). A report counts when the reporter is active and either really interacted
+A report records the reason and details, what it is about (a person, a message or an event), a copy of
+that content which the server takes from the real rows (\code{content}), and whether it counts towards
+the automatic hide (\code{counts_toward_hide}). \code{report_message} and \code{report_event} refuse
+content the caller cannot see, and the app sends only ids, so a report cannot be used to read or forge
+evidence. Photos are kept as storage paths, not copies, so a photo the person later replaced or deleted
+may no longer be viewable. A report counts when the reporter is active and either really interacted
 with the reported person (a chat between them that was accepted, met or accepted and then ended, a
 say-hi the reported person
 sent them, or a message the reported person posted in a group chat both are in) or has an established
@@ -336,7 +340,7 @@ to at sign-up, say what is not allowed and that reports are reviewed within 24 h
     Waiting requests & 1 per sender at a time & \code{send_request}; partial unique index \\
     Sending messages & 30 per sender per minute, both chat kinds & \code{send_chat_message}, \code{send_event_message} \\
     Creating events & 5 per host in any 24 hours, deleted events included; exact for calls sent at once & \code{create_event} (a per-host lock); \code{private.event_posts} \\
-    Reporting & 1 report per person per day; 10 people per day; exact for calls sent at once & \code{report_user} (a per-reporter lock) \\
+    Reporting & 1 report per person, message or event per day; 10 per day; exact for calls sent at once & \code{private.file_report} (a per-reporter lock) \\
     Storing photos & 16 files per user, 40 uploads a day, 1.5\,MB each; the counts are best-effort, as uploads sent at once can go a little past them & storage insert policy; bucket size limit \\
     Changing location & 3 changes in any 10 minutes, live and map together; exact for calls sent at once & \code{go_green}, \code{set_map_position} (a per-user lock) \\
     Moving & 150\,m plus 10\,km/h since the position was set, while live; 5\,km plus 1000\,km/h from the last known position for a map position or a new session & \code{go_green}, \code{set_map_position} \\

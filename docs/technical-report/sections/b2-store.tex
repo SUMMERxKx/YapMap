@@ -93,7 +93,7 @@ actions that change it (\cref{tab:actions}). Components read state with \code{us
   \multicolumn{2}{@{}l}{\textsf{\textbf{Safety}}} \\
   \code{blockUser(id, name)} & Call \code{block_user}, then drop the person from requests, chat, nearby list and events \\
   \code{unblockUser(id)} & Delete the block and refresh the nearby list \\
-  \code{reportUser(id, reason, details)} & Call \code{report_user} \\
+  \code{reportUser(id, reason, details, context)} & Call \code{api.report} with the message, event or request it came from \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Events}}} \\
   \code{loadEvents(position)} & Send a position the map just found (\code{setMapPosition}), then list the events around the position the server holds with the saved radius; a newer load wins \\

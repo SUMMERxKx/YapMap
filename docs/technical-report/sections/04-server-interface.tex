@@ -137,15 +137,27 @@ message in parentheses where one applies.
   \code{blocked_list}\newline{\scriptsize returns names}
   & The caller's blocked users, newest first, as ID, first name and last initial. \\
   \code{report_user}\newline{\scriptsize target, reason, details, request\_id}
-  & Records a report. Checks: signed in; not the caller (\code{cannot report yourself}); the target exists
-    (\code{not available}); the reason is one of the six values (\code{invalid reason}); the details are at
-    most 500 characters of clean text (\code{invalid details}). A second report of the same person within
-    a day returns without a new row, so a double tap files one report; otherwise fewer than ten reports
-    by the caller in 24 hours (\code{too many reports}). An attached request is kept only if it is
-    between the two users. Records whether the report counts towards the automatic hide
-    (\cref{sec:blocking-reporting}). Sets the reported profile to \code{hidden}, and ends everything the
-    person is in, once three different users' counted reports that are not yet reviewed name it; a
-    per-person lock makes reports sent at once still count. \\
+  & Reports a person. Saves a copy of their profile (name, intro, interests, live note, photo paths)
+    in the report's \code{content}, and, when the request is a say-hi or chat between the two users, the
+    last 20 messages the reported person sent in it; any other request is dropped. Then files the report
+    through \code{private.file_report}, which every report goes through. Its checks: signed in; not the
+    caller (\code{cannot report yourself}); the target exists (\code{not available}); the reason is one of
+    the six values (\code{invalid reason}); the details are at most 500 characters of clean text
+    (\code{invalid details}). A second report of the same thing (the same person, message or event)
+    within a day returns without a new row, so a double tap files one report; otherwise fewer than ten
+    reports by the caller in 24 hours (\code{too many reports}). Records whether the report counts towards
+    the automatic hide (\cref{sec:blocking-reporting}). Sets the reported profile to \code{hidden}, and
+    ends everything the person is in, once three different users' counted reports that are not yet
+    reviewed name it; a per-person lock makes reports sent at once still count. \\
+  \code{report_message}\newline{\scriptsize message\_id, reason, details}
+  & Reports one group-chat message. Refused (\code{content not available}) unless the message exists
+    and the caller is in its event. Files a report about its sender through \code{private.file_report},
+    with \code{message_id}, \code{event_id} and a copy of the body, send time and event title. \\
+  \code{report_event}\newline{\scriptsize event\_id, reason, details}
+  & Reports an event. Refused (\code{content not available}) unless the caller joined it or the map would
+    list it for them (not blocked, started at most 3 hours ago, within 50\,km of the position the server
+    holds). Files a report about its host through \code{private.file_report}, with \code{event_id} and a
+    copy of the emoji, title, description, start and creation times. \\
   \code{delete_account}
   & If the caller's profile is hidden or suspended, puts their email address on the ban list
     (\cref{sec:signup-checks}). Returns the caller's chat partner, if any, to \code{open}, then deletes the
@@ -225,7 +237,9 @@ function that can change a given table.
     \code{my_status} & R & R & R & & & & & & \\
     \code{block_user} & & U & U & & & & I & & \\
     \code{blocked_list} & R & & & & & & R & & \\
-    \code{report_user} & RU & UD & RU & & & RD & & RI & \\
+    \code{report_user} & RU & RUD & RU & R & & RD & & RI & \\
+    \code{report_message} & RU & UD & RU & R & R & RD & & RI & \\
+    \code{report_event} & RU & UD & RU & R & R & RD & R & RI & \\
     \code{delete_account} & RD\textsuperscript{*} & U & R & & & & & U & \\
     \code{events_near} & R & R & & & R & R & R & & \\
     \code{create_event} & R & & & & RI & RI & & & \\

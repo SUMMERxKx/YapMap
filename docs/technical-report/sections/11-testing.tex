@@ -107,6 +107,13 @@ partners lose the card from \code{request_person} and can read none of the profi
 or the gallery photo; that the restricted person still reads their own photos but gets no card or photos
 of the people they met; and that \code{restore_user} makes the card and photos visible to both partners again.
 
+The fifth file, \code{supabase/tests/report_context_test.sql}, has 37 checks for the
+\code{report_context} migration: a report of a group message, an event or a person keeps its ids and the
+server's copy of the content; the caller's own message, a 1:1 message, a message or event the caller
+cannot see and a stranger's request are refused or dropped; the copy stays after the person edits or deletes the content, after the owner removes
+it as \code{docs/legal/moderation.md} describes, and after the account is deleted; and no user can read
+reports through the API.
+
 \section{Pre-merge review pipeline}
 
 Recent changes reach \code{main} through a pre-push pipeline, \code{no-mistakes}, which reviews the change

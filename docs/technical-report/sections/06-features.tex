@@ -214,8 +214,10 @@ summarises who may do what.
 \label{sec:feature-safety}
 
 Every surface that shows another person (the person sheet, the incoming request, the chat and the event
-sheet) has a menu with \ui{Report} and \ui{Block}; in a group chat, a long press on a message offers the
-same. Blocking asks for confirmation, then takes effect on the server first: the block is recorded and any
+sheet) has a menu with \ui{Report} and \ui{Block}; on an event the menu also offers \ui{Report this event},
+and in a group chat a long press on a message offers \ui{Report} (the message or its sender) and
+\ui{Block}. A report from a message or an event is about that message or event, and one from a say-hi or
+chat carries its request, so the server can keep a copy of what was reported. Blocking asks for confirmation, then takes effect on the server first: the block is recorded and any
 request or chat between the two is ended. The app then drops the person from the nearby list, the map and
 any request or chat on screen. \ui{Report} offers six reasons, an optional comment of up to 500 characters
 and \ui{Also block}, which is ticked by default. The form says that every report is reviewed and that the
@@ -238,7 +240,7 @@ opens, so a restored account comes back by itself and the delete screen says wha
 \implemented
   {\code{SafetyMenu}, \code{(app)/report/[id]}, \code{(app)/blocked}, long press in \code{(app)/group/[id]}}
   {\code{blockUser}, \code{unblockUser}, \code{reportUser}; \code{api.block}, \code{api.unblock}, \code{api.blockedList}, \code{api.report}}
-  {\code{block_user}, \code{blocked_list}, \code{report_user}; delete policy on \code{blocks}; block checks in every function that involves two users; the word-filter triggers}
+  {\code{block_user}, \code{blocked_list}, \code{report_user}, \code{report_message}, \code{report_event}; delete policy on \code{blocks}; block checks in every function that involves two users; the word-filter triggers}
 
 \section{Settings, signing out and deleting the account}
 

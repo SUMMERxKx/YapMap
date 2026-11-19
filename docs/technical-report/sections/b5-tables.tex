@@ -107,13 +107,16 @@ which has no delete policy on that table. The four \emph{Triggers} rows are the 
   \code{id} & \code{uuid}, primary key, default \code{gen_random_uuid()} \\
   \code{reporter}, \code{reported} & \code{uuid}, nullable, reference \code{profiles}, set to null on delete, so a report outlives both accounts \\
   \code{reported_hash} & \code{text}; SHA-256 of the reported id, set by the trigger \code{reports_reported_hash} \\
-  \code{counts_toward_hide} & \code{boolean}, default false; whether the report counted towards the automatic hide (\code{report_user}) \\
+  \code{counts_toward_hide} & \code{boolean}, default false; whether the report counted towards the automatic hide (\code{private.file_report}) \\
+  \code{about} & \code{text}, default \code{person}; one of \code{person}, \code{message}, \code{event} \\
+  \code{message_id}, \code{event_id} & \code{uuid}, nullable; the reported message or event, plain ids that outlive it \\
+  \code{content} & \code{jsonb}, nullable; the server's copy of what was reported (\code{docs/legal/moderation.md} lists the keys) \\
   \code{request_id} & \code{uuid}, nullable, references \code{chat_requests}, set to null on delete \\
   \code{reason} & \code{text}; one of \code{inappropriate-photo}, \code{harassment}, \code{unsafe}, \code{spam-or-fake}, \code{under-18}, \code{other} \\
   \code{details} & \code{text}, default empty, at most 500 characters; clean text \\
   \code{created_at} & \code{timestamptz}, default \code{now()} \\
   \code{reviewed_at}, \code{action} & \code{timestamptz}, \code{text}; nullable; set when the owner reviews the report, by hand or by \code{private.suspend_user} \\
-  \emph{Indexes} & \code{reports_reported_idx}; \code{reports_reporter_idx}; \code{reports_request_idx} \\
+  \emph{Indexes} & \code{reports_reported_idx}; \code{reports_reporter_idx}; \code{reports_request_idx}; \code{reports_message_idx} and \code{reports_event_idx}, partial \\
   \emph{Policies} & none: no direct access \\[3pt]
   \tablehead{private.location\_changes: times of location changes}
   \code{user_id} & \code{uuid}, references \code{profiles} \\
