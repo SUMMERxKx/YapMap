@@ -32,7 +32,8 @@ supabase test db      # runs the pgTAP checks in supabase/tests against the loca
 
 `supabase/tests/` holds SQL checks for server rules a modified app could otherwise get around
 (typed text, double say-hi, reports, the event limit, photo uploads, and in `safety_test.sql`
-the nearby cells, report trust, restricted accounts, the sign-up hook and the event position). Each file runs in a
+the nearby cells, report trust, restricted accounts, the sign-up hook and the event position, and
+in `restricted_visibility_test.sql` the cards and photos of hidden or suspended people). Each file runs in a
 transaction that is rolled back. `parallel_limits_test.sql` also sends calls at the same moment
 from separate connections (dblink) to show the daily event and report limits hold; the people it
 signs up there are saved for real, so it deletes them at its start and end. They are one of the checks in `docs/RELEASING.md`), so run them yourself after changing those rules.
