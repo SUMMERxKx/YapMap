@@ -96,7 +96,7 @@ export default function Chat() {
         onBack={() => router.back()}
         trailing={
           <>
-            <SafetyMenu userId={other.id} firstName={displayName(other)} />
+            <SafetyMenu userId={other.id} firstName={displayName(other)} reportContext={{ requestId: chat.id }} />
             <Button label={endLabel} variant="secondary" size="compact" onPress={end} />
           </>
         }>

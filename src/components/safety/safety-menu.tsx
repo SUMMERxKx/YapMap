@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import type { ReportContext } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
 import { blockUser } from '@/state/store';
 import { useTheme } from '@/theme';
@@ -15,18 +16,24 @@ import { useGuardedPress } from '@/components/ui/press-feedback';
 type Props = {
   userId: string;
   firstName: string;
+  reportContext?: ReportContext; // the event, say-hi or chat the menu is on, so the report keeps it
   onBlocked?: () => void; // e.g. close the screen the person was on
 };
 
 /** The corner "..." menu. Report and Block are always two taps away. */
-export function SafetyMenu({ userId, firstName, onBlocked }: Props) {
+export function SafetyMenu({ userId, firstName, reportContext, onBlocked }: Props) {
   const [open, setOpen] = useState(false);
   const { colors, radius, spacing } = useTheme();
   const insets = useSafeAreaInsets();
 
+  let reportLabel = `Report ${firstName}`;
+  if (reportContext?.eventId) {
+    reportLabel = 'Report this event';
+  }
+
   const report = () => {
     setOpen(false);
-    router.push({ pathname: '/report/[id]', params: { id: userId, name: firstName } });
+    router.push({ pathname: '/report/[id]', params: { ...reportContext, id: userId, name: firstName } });
   };
 
   const block = () => {
@@ -71,7 +78,7 @@ export function SafetyMenu({ userId, firstName, onBlocked }: Props) {
               paddingBottom: insets.bottom + spacing.lg,
               paddingTop: spacing.sm,
             }}>
-            <MenuItem icon="flag-outline" label={`Report ${firstName}`} onPress={report} />
+            <MenuItem icon="flag-outline" label={reportLabel} onPress={report} />
             <MenuItem icon="person-remove-outline" label={`Block ${firstName}`} onPress={block} danger />
             <MenuItem icon="close" label="Cancel" onPress={() => setOpen(false)} />
           </View>

@@ -90,3 +90,9 @@ export type ReportReason =
   | 'spam-or-fake'
   | 'under-18'
   | 'other';
+
+/**
+ * What a report is about besides the person: one message, one event, or the say-hi or chat it came
+ * from. Only ids go to the server, which copies the content itself from the real rows.
+ */
+export type ReportContext = { messageId?: string; eventId?: string; requestId?: string };

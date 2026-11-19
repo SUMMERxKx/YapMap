@@ -64,9 +64,9 @@ export default function GroupChat() {
   const moderate = (message: Message) =>
     Alert.alert(message.senderName, undefined, [
       {
-        text: `Report ${message.senderName}`,
+        text: 'Report this message',
         onPress: () => {
-          const params = { id: message.senderId, name: message.senderName };
+          const params = { id: message.senderId, name: message.senderName, messageId: message.id };
           router.push({ pathname: '/report/[id]', params });
         },
       },

@@ -33,8 +33,8 @@ Safety reports made by you or about you are kept, without your account linked to
 can still act on them. If your account was hidden or suspended when you deleted it, we keep a
 scrambled (hashed) copy of your email address so it can't be used to sign up again.
 
-Removing account links does not make report details anonymous: details may still identify
-you or someone else. These safety records can remain after account deletion. Reports are
+Removing account links does not make report details anonymous: details, and the copy of the
+reported profile, message or event a report keeps, may still identify you or someone else. These safety records can remain after account deletion. Reports are
 kept so we can act if someone comes back; banned email hashes are kept until we lift the ban.
 
 Copies in our hosting provider's backups expire within

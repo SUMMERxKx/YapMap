@@ -308,11 +308,15 @@ export type Database = {
       };
       reports: {
         Row: {
+          about: string;
           action: string | null;
+          content: Json | null;
           counts_toward_hide: boolean;
           created_at: string;
           details: string;
+          event_id: string | null;
           id: string;
+          message_id: string | null;
           reason: string;
           reported: string | null;
           reported_hash: string;
@@ -322,11 +326,15 @@ export type Database = {
         };
         ComputedFields: never;
         Insert: {
+          about?: string;
           action?: string | null;
+          content?: Json | null;
           counts_toward_hide?: boolean;
           created_at?: string;
           details?: string;
+          event_id?: string | null;
           id?: string;
+          message_id?: string | null;
           reason: string;
           reported?: string | null;
           reported_hash: string;
@@ -335,11 +343,15 @@ export type Database = {
           reviewed_at?: string | null;
         };
         Update: {
+          about?: string;
           action?: string | null;
+          content?: Json | null;
           counts_toward_hide?: boolean;
           created_at?: string;
           details?: string;
+          event_id?: string | null;
           id?: string;
+          message_id?: string | null;
           reason?: string;
           reported?: string | null;
           reported_hash?: string;
@@ -394,6 +406,8 @@ export type Database = {
       leave_event: { Args: { event_id: string }; Returns: undefined };
       my_status: { Args: Record<PropertyKey, never>; Returns: Json };
       nearby: { Args: Record<PropertyKey, never>; Returns: Json[] };
+      report_event: { Args: { details?: string; event_id: string; reason: string }; Returns: undefined };
+      report_message: { Args: { details?: string; message_id: string; reason: string }; Returns: undefined };
       report_user: {
         Args: { details?: string; reason: string; request_id?: string; target: string };
         Returns: undefined;
