@@ -6,8 +6,9 @@
 -- 'removed' ban that deleting or restoring another account with the same address doesn't lift,
 -- and a session left signed in after its account is gone can't upload a photo. Bans kept from an
 -- old deletion while hidden or suspended are tidied away, and other old bans stay. Only safety
--- reports (and that removal ban) are kept, without the account linked. Run against
--- the local stack:
+-- reports (and that removal ban) are kept, without the account linked. Sign-in activity records
+-- are not deleted with the account but by the scheduled cleanup once they are 7 days old, for
+-- everyone. Run against the local stack:
 --
 --   supabase start
 --   supabase test db
@@ -18,7 +19,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(56);
+select plan(57);
 
 -- 1 deletes their account. 2 chatted with 1 and joined the event 1 hosts. 3 hosts an event 1
 -- joined. 4 signed up and uploaded photos but never saved a profile. 5 is suspended. 6 sent 1 a
@@ -50,6 +51,8 @@ $$;
 
 -- Every table in the app's and Supabase's own schemas whose rows still mention `needle`
 -- anywhere (an id, a photo path, an email address, a sign-in record), with how many rows.
+-- auth.audit_log_entries is left out because the scheduled cleanup deletes its rows after 7 days,
+-- which is checked at the end.
 create function pg_temp.tables_mentioning(needle text) returns setof text
 language plpgsql as $$
 declare
@@ -59,6 +62,7 @@ begin
   for rel in
     select c.oid::regclass from pg_class c join pg_namespace s on s.oid = c.relnamespace
     where c.relkind in ('r', 'p') and s.nspname in ('public', 'private', 'auth', 'storage')
+      and c.oid <> 'auth.audit_log_entries'::regclass
   loop
     execute format('select count(*) from %s x where to_jsonb(x)::text like %L', rel, '%' || needle || '%')
       into found;
@@ -222,8 +226,6 @@ select is((select count(*) from private.photo_uploads where user_id = pg_temp.id
   '1''s upload times are gone');
 select is((select count(*) from auth.flow_state where user_id = pg_temp.id_of(1))::int, 0,
   '1''s sign-in flows are gone');
-select is((select count(*) from auth.audit_log_entries where payload ->> 'actor_id' = pg_temp.id_of(1)::text)::int, 0,
-  '1''s sign-in audit records are gone');
 select is((select count(*) from auth.sessions where user_id = pg_temp.id_of(1))::int, 0,
   '1''s sessions are gone');
 
@@ -470,6 +472,22 @@ select is(
   (select reason from private.banned_identities where email_hash = private.email_hash('gone2@example.test')),
   'suspended: spam',
   'a suspension ban of an account that still exists is left as it is'
+);
+
+-- Sign-in activity records ------------------------------------------------------------------
+
+insert into auth.audit_log_entries (id, payload, ip_address, created_at)
+values
+  ('00000000-0000-0000-0000-000000000681', '{"action": "login"}', '192.0.2.1', now() - interval '8 days'),
+  ('00000000-0000-0000-0000-000000000682', '{"action": "login"}', '192.0.2.1', now() - interval '6 days');
+select private.expire_stale();
+select ok(
+  not exists (select 1 from auth.audit_log_entries where id = '00000000-0000-0000-0000-000000000681'),
+  'the scheduled cleanup deletes sign-in activity records older than 7 days'
+);
+select ok(
+  exists (select 1 from auth.audit_log_entries where id = '00000000-0000-0000-0000-000000000682'),
+  'the scheduled cleanup keeps sign-in activity records newer than 7 days'
 );
 
 select * from finish();

@@ -160,12 +160,13 @@ Pick one, and always finish with step 4.
 
   It refuses (`photos not removed`) while any file is left in their folder, and `no such account`
   for an id with no account. It deletes the account the same way as **Delete account** in the app:
-  their profile, messages, events, chats, blocks, sign-in records and upload times. The `true`
+  their profile, messages, events, chats, blocks, sign-in flows and upload times. The records of
+  when they signed in go within 7 days, as everyone's do (`private.expire_stale`). The `true`
   keeps their email address on the ban list with the reason `removed`, replacing the suspension
   ban. A `removed` ban stays even if they later delete another account with the same address, so
   they can't sign up again with it. The reports about them stay too, without the account linked,
-  as the record of why. Don't delete the user in **Authentication → Users**: that leaves sign-in
-  records behind.
+  as the record of why. Don't delete the user in **Authentication → Users**: that skips the photo
+  check and leaves sign-in flows behind.
 
   To ban an address by hand, use the reason `removed`, so deleting an account doesn't lift it.
   Any other reason is lifted when an account with that address is deleted. Bans from before

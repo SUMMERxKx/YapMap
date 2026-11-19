@@ -27,7 +27,7 @@ days, the same way as in the app, then reply to let you know.
 Everything in your account is deleted from the live service, whether or not your account is on
 hold:
 
-- your account, email address and password, and the records of when you signed in
+- your account, email address and password
 - your profile and every photo you uploaded, including old and replaced ones
 - your live session, your last known area and the times you went live or moved
 - every say-hi request and 1:1 chat you were part of, with all their messages, for both of you
@@ -43,7 +43,7 @@ details, and the copy of the reported profile, message or event a report keeps (
 last 20 messages the reported person sent, for a report made from a say-hi or chat), may still
 identify you or someone else. Nothing else is kept.
 
-Copies in our hosting provider's backups expire within
-7 days (daily backups kept on the Supabase Pro plan). The safety reports described above can
+The records of when you signed in are removed within 7 days, for everyone. Copies in our hosting
+provider's backups expire within 7 days (daily backups kept on the Supabase Pro plan). The safety reports described above can
 remain after those backups expire. See the
 [Privacy Policy](https://yap.samarxkx.dev/privacy) for the full retention details.

@@ -5,11 +5,15 @@
 -- and group chats, their event memberships, every group message they sent and every block made by
 -- them or against them.
 --
--- Three things were left behind before this:
+-- Four things were left behind before this:
 --   * private.photo_uploads, the upload times kept for the 40-a-day limit, which has no link to
 --     the account, so the rows stayed until the daily cleanup.
---   * auth.flow_state and auth.audit_log_entries, the sign-in records Supabase Auth keeps under
---     the user's id without a link that deletes them with the user.
+--   * auth.flow_state, the sign-in flows Supabase Auth keeps under the user's id without a link
+--     that deletes them with the user.
+--   * auth.audit_log_entries, the sign-in activity records Supabase Auth keeps with no link to the
+--     user at all. Finding one person's records there means reading the whole table, which would
+--     make a deletion slow once the table grows. So the scheduled cleanup (private.expire_stale)
+--     now deletes every record older than 7 days, for everyone, the same window as the backups.
 --   * Photo files. Supabase doesn't let SQL delete storage files (deleting the row would leave the
 --     file itself behind), so the app removes every file in the person's folder through the
 --     Storage API first. Now the server checks that the folder is empty and refuses to delete the
@@ -67,7 +71,6 @@ begin
   end if;
   delete from private.photo_uploads where user_id = target;
   delete from auth.flow_state where user_id = target;
-  delete from auth.audit_log_entries where payload ->> 'actor_id' = target::text;
 
   delete from auth.users where id = target;
 end;
@@ -150,6 +153,36 @@ $$;
 revoke execute on function private.tidy_old_bans () from public, anon, authenticated;
 
 select private.tidy_old_bans();
+
+-- As before (20261026180208_safety_fixes.sql), plus deleting sign-in activity records older than
+-- 7 days.
+create or replace function private.expire_stale()
+returns void
+language sql security definer set search_path = ''
+as $$
+  delete from public.availability where expires_at <= now();
+  update public.chat_requests r set status = 'expired'
+  where r.status = 'pending'
+    and (
+      r.expires_at <= now()
+      or not exists (
+        select 1 from public.availability a
+        where a.user_id = r.from_user and a.expires_at > now()
+      )
+    );
+  update public.chat_requests r set status = 'cancelled', ended_at = now()
+  where r.status = 'accepted'
+    and not exists (
+      select 1 from public.availability a
+      where a.user_id in (r.from_user, r.to_user) and a.expires_at > now()
+    );
+  delete from private.location_changes where changed_at <= now() - interval '10 minutes';
+  delete from private.event_posts where posted_at <= now() - interval '24 hours';
+  delete from private.call_counts where window_start <= now() - interval '1 hour';
+  delete from private.signup_ips where created_at <= now() - interval '24 hours';
+  delete from private.photo_uploads where uploaded_at <= now() - interval '24 hours';
+  delete from auth.audit_log_entries where created_at <= now() - interval '7 days';
+$$;
 
 comment on table private.banned_identities is
   'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created. '

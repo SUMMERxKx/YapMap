@@ -164,7 +164,7 @@ message in parentheses where one applies.
     removes every file there through the Storage API before calling it. Returns the caller's chat partner,
     if any, to \code{open}, deletes any ban on the caller's email address except one with the reason
     \code{removed}, their upload times and their
-    Auth sign-in flows and audit records, then deletes the caller's Auth user, which cascades through every
+    Auth sign-in flows, then deletes the caller's Auth user, which cascades through every
     table except \code{reports}, where the caller's id becomes null (\cref{sec:flow-delete}). \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
   \code{set_map_position}\newline{\scriptsize lat, lng}
@@ -464,6 +464,9 @@ time-based rules hold even when no app is open:
   \item It deletes entries older than a day from \code{private.event_posts},
     \code{private.signup_ips} and \code{private.photo_uploads}, and call counts from windows more than an
     hour old. Last known positions are kept.
+  \item It deletes Supabase Auth's sign-in activity records (\code{auth.audit_log_entries}) older than
+    seven days, for every user. Deleting an account leaves them to this step, because they have no column
+    that finds one user's records without reading the whole table.
 \end{enumerate}
 
 Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do

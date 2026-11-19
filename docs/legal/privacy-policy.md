@@ -145,7 +145,8 @@ someone's safety.
 | Location-change times | 10 minutes |
 | Hashed IP addresses of sign-ups | 1 day |
 | Photo upload times | 1 day, or until you delete your account |
-| Profile, photos, chats, messages, events, blocks, sign-in records | You delete your account (or we remove it for breaking the rules) |
+| Profile, photos, chats, messages, events, blocks | You delete your account (or we remove it for breaking the rules) |
+| Records of when you signed in | 7 days |
 | Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
 | Banned email addresses (hashed) | Bans from a removal for breaking the rules, or added by hand: until we lift the ban. Bans from a suspension: until we lift the ban, or an account with that email address is deleted |
 | Email codes | They expire (within an hour) |
@@ -157,7 +158,7 @@ someone's safety.
 In the app: **Profile → Settings (gear) → Delete account**, then confirm the deletion. This
 deletes, straight away and whether or not your account is on hold:
 
-- your account, email address and password, and the records of when you signed in
+- your account, email address and password
 - your profile and every photo you uploaded, including old and replaced ones
 - your live session, your last known area and the times you went live or moved
 - every say-hi request and 1:1 chat you were part of, with all their messages, for both of you
@@ -172,7 +173,8 @@ linked to them, so we can still act on them. Removing account links does not mak
 details anonymous: details, and the copy of the reported profile, message or event a report
 keeps (with up to the last 20 messages the reported person sent, for a report made from a
 say-hi or chat), may still identify you or someone else. Nothing else is kept.
-Copies in backups expire within 7 days.
+The records of when you signed in are removed within 7 days, for everyone. Copies in backups
+expire within 7 days.
 
 If you can't use the app, email **support@samarxkx.dev** from the address you signed up with
 and we'll delete your account within 30 days. The steps are also at
