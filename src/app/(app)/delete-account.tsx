@@ -1,6 +1,6 @@
-// Delete account, from Settings or the account-on-hold screen: says exactly what is deleted, and
-// only lets the button work once you've typed your first name, so nobody deletes their account
-// with a stray tap.
+// Delete account, from Settings, the account-on-hold screen or profile setup: says exactly what is
+// deleted, and only lets the button work once you've typed your first name (or DELETE, before
+// there is a profile), so nobody deletes their account with a stray tap.
 
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -28,21 +28,32 @@ const DELETED = [
   'Your block list',
 ];
 
-/** Whether what was typed is the name, ignoring capitals and spaces around it. */
-function matchesName(typed: string, name: string) {
+// Before profile setup is finished there is no profile yet, only photos a save may have left.
+const DELETED_DURING_SETUP = ['Any photos you added during profile setup'];
+
+// What to type when there is no first name to type yet.
+const CONFIRM_WORD = 'DELETE';
+
+/** Whether what was typed is the expected word, ignoring capitals and spaces around it. */
+function matchesWord(typed: string, word: string) {
   const comparable = (text: string) => text.trim().normalize('NFC').toLowerCase();
-  return comparable(name) !== '' && comparable(typed) === comparable(name);
+  return comparable(word) !== '' && comparable(typed) === comparable(word);
 }
 
 export default function DeleteAccount() {
   const { colors, spacing } = useTheme();
-  const firstName = useStore((state) => state.profile?.firstName ?? '');
+  const hasProfile = useStore((state) => state.profile !== null);
+  const firstName = useStore((state) => state.profile?.firstName ?? '').trim();
   // On hold (hidden or suspended): the server keeps a hash of the email address, so it can't sign up again.
   const restricted = useStore((state) => state.restricted);
   let signIn = 'Your sign-in: your email address and password';
   if (restricted) signIn = 'Your password';
   const [typed, setTyped] = useState('');
-  const confirmed = matchesName(typed, firstName);
+  // The first name when the profile has one, otherwise the word DELETE.
+  const byName = firstName !== '';
+  const word = byName ? firstName : CONFIRM_WORD;
+  const confirmed = matchesWord(typed, word);
+  const deleted = hasProfile ? DELETED : DELETED_DURING_SETUP;
 
   // The account may have been put on hold since the app last asked, which changes what is kept.
   useEffect(() => {
@@ -51,8 +62,8 @@ export default function DeleteAccount() {
 
   // Said once they've typed as much as the name holds, so it doesn't flash while typing.
   let mismatch: string | null = null;
-  if (!confirmed && typed.trim().length >= firstName.trim().length && typed.trim() !== '') {
-    mismatch = "That isn't your first name as it is on your profile.";
+  if (!confirmed && typed.trim().length >= word.length && typed.trim() !== '') {
+    mismatch = byName ? "That isn't your first name as it is on your profile." : `Type ${CONFIRM_WORD} to confirm.`;
   }
 
   const remove = async () => {
@@ -75,7 +86,7 @@ export default function DeleteAccount() {
             variant="destructive"
             onPress={remove}
             disabled={!confirmed}
-            accessibilityHint="Type your first name above first"
+            accessibilityHint={byName ? 'Type your first name above first' : `Type ${CONFIRM_WORD} above first`}
           />
           <Button label="Keep my account" variant="ghost" onPress={() => router.back()} />
         </>
@@ -90,7 +101,7 @@ export default function DeleteAccount() {
         <AppText variant="label" color="textSecondary" accessibilityRole="header">
           WHAT IS DELETED
         </AppText>
-        {[...DELETED, signIn].map((item) => (
+        {[...deleted, signIn].map((item) => (
           <View key={item} style={[styles.item, { gap: spacing.md }]}>
             <View style={[styles.bullet, { backgroundColor: colors.destructive, marginTop: spacing.sm }]} />
             <AppText style={styles.itemText}>{item}</AppText>
@@ -110,13 +121,14 @@ export default function DeleteAccount() {
 
       <View style={{ gap: spacing.sm }}>
         <AppText>
-          To confirm, type your first name: <AppText variant="bodyStrong">{firstName}</AppText>
+          {byName ? 'To confirm, type your first name: ' : 'To confirm, type '}
+          <AppText variant="bodyStrong">{word}</AppText>
         </AppText>
         <TextField
-          label="Your first name"
+          label={byName ? 'Your first name' : `Type ${CONFIRM_WORD}`}
           value={typed}
           onChangeText={setTyped}
-          autoCapitalize="words"
+          autoCapitalize={byName ? 'words' : 'characters'}
           autoCorrect={false}
           autoComplete="off"
           spellCheck={false}

@@ -1,4 +1,5 @@
-// Setup greeting: the hello and the 18+ confirmation before the questions start.
+// Setup greeting: the hello and the 18+ confirmation before the questions start, and a way to
+// delete the account for someone who doesn't want to go on.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
@@ -33,6 +34,13 @@ export default function SetupStart() {
             disabled={!draft.isAdult}
           />
           <SwitchAccountButton />
+          {/* The account already exists, so it can be deleted before the profile is finished. */}
+          <Button
+            label="Delete account"
+            variant="destructiveSoft"
+            size="compact"
+            onPress={() => router.push('/profile-setup/delete-account')}
+          />
         </>
       }>
       <View style={[styles.center, { gap: spacing.md, paddingHorizontal: spacing.sm }]}>
