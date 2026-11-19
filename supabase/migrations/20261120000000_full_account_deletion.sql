@@ -30,10 +30,11 @@
 -- private.restore_user keeps a 'removed' ban too, and a photo can't be uploaded into the folder of
 -- an account that no longer exists, so a session still signed in elsewhere can't leave one behind.
 --
--- Bans already on the list follow the same rules (private.tidy_old_bans, run once below). A ban
--- from the old deletion while hidden or suspended is deleted, because nothing is kept after a
--- person deletes their account. A suspension ban whose account is gone came from the old way of
--- removing someone (suspend, then delete in Authentication), so it is relabelled 'removed'.
+-- Bans already on the list are tidied once (private.tidy_old_bans, run below). A ban whose reason
+-- starts with 'deleted while', left by the old deletion of a hidden or suspended account, is
+-- deleted, because nothing is kept after a person deletes their account. Every other ban is left
+-- as it is. A ban from before this change that should be permanent, such as an earlier owner
+-- removal or a ban added by hand, has to be relabelled 'removed' by hand (docs/legal/moderation.md).
 
 create function private.delete_user(target uuid, keep_ban boolean default false)
 returns void
@@ -144,9 +145,6 @@ returns void
 language sql security definer set search_path = ''
 as $$
   delete from private.banned_identities where reason like 'deleted while %';
-  update private.banned_identities b set reason = 'removed'
-  where b.reason like 'suspended: %'
-    and not exists (select 1 from auth.users u where private.email_hash(u.email) = b.email_hash);
 $$;
 
 revoke execute on function private.tidy_old_bans () from public, anon, authenticated;

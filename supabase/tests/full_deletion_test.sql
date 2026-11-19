@@ -4,8 +4,8 @@
 -- email address goes too. The owner's private.delete_user, used for email requests and removals,
 -- deletes the same way and can't be called by anyone signed in or signed out. A removal keeps a
 -- 'removed' ban that deleting or restoring another account with the same address doesn't lift,
--- and a session left signed in after its account is gone can't upload a photo. Bans from before
--- this change are tidied to the same rules. Only safety
+-- and a session left signed in after its account is gone can't upload a photo. Bans kept from an
+-- old deletion while hidden or suspended are tidied away, and other old bans stay. Only safety
 -- reports (and that removal ban) are kept, without the account linked. Run against
 -- the local stack:
 --
@@ -463,8 +463,8 @@ select ok(
 );
 select is(
   (select reason from private.banned_identities where email_hash = private.email_hash('removed-before@example.test')),
-  'removed',
-  'a suspension ban whose account is gone, an old removal, is relabelled removed'
+  'suspended: threats',
+  'a suspension ban whose account is gone is left as it is, for the owner to relabel by hand'
 );
 select is(
   (select reason from private.banned_identities where email_hash = private.email_hash('gone2@example.test')),

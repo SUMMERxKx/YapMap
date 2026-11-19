@@ -169,14 +169,18 @@ Pick one, and always finish with step 4.
 
   To ban an address by hand, use the reason `removed`, so deleting an account doesn't lift it.
   Any other reason is lifted when an account with that address is deleted. Bans from before
-  November 2026 were tidied the same way: a suspension ban whose account was already gone became
-  `removed`, and bans kept from deleting a hidden or suspended account were deleted. To lift a `removed`
-  ban, delete the row:
+  November 2026 were tidied once: bans whose reason starts with `deleted while`, kept from deleting
+  a hidden or suspended account, were deleted, and every other ban was left as it is. Any ban from
+  before then that should be permanent (an earlier owner removal or a ban added by hand) must be
+  relabelled `removed` by hand with the update below. To lift a `removed` ban, delete the row:
 
   ```sql
   -- ban an address by hand
   insert into private.banned_identities (email_hash, reason)
   values (private.email_hash('<email address>'), 'removed');
+  -- make a ban from before November 2026 permanent
+  update private.banned_identities set reason = 'removed'
+  where email_hash = private.email_hash('<email address>');
   -- lift a ban
   delete from private.banned_identities where email_hash = private.email_hash('<email address>');
   ```
