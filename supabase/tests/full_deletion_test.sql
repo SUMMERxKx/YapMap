@@ -1,7 +1,9 @@
 -- Checks for 20261120000000_full_account_deletion.sql: deleting an account leaves no row and no
 -- photo of the person anywhere in the database, removes their chats for both people, and works
 -- for an account that never finished profile setup and for a suspended one, whose ban on their
--- email address goes too. Only safety reports are kept, without the account linked. Run against
+-- email address goes too. The owner's private.delete_user, used for email requests and removals,
+-- deletes the same way and can't be called by anyone signed in or signed out. Only safety reports
+-- are kept, without the account linked. Run against
 -- the local stack:
 --
 --   supabase start
@@ -13,14 +15,14 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(32);
+select plan(41);
 
 -- 1 deletes their account. 2 chatted with 1 and joined the event 1 hosts. 3 hosts an event 1
 -- joined. 4 signed up and uploaded photos but never saved a profile. 5 is suspended. 6 sent 1 a
--- say-hi, blocked 1 and was blocked by 1.
+-- say-hi, blocked 1 and was blocked by 1. 7 is suspended and then removed by the owner.
 insert into auth.users (id, email)
 select ('00000000-0000-0000-0000-0000000006' || lpad(n::text, 2, '0'))::uuid, 'gone' || n || '@example.test'
-from generate_series(1, 6) as n;
+from generate_series(1, 7) as n;
 
 insert into public.profiles (id, first_name, last_name, gender, intro, interests, is_adult, photo_path, photo_paths)
 select id, 'Person', 'Tester', 'prefer-not', 'Here to test.', array['Coffee', 'Books', 'Music'], true,
@@ -75,7 +77,7 @@ $$;
 -- Each upload is also recorded in private.photo_uploads by the storage trigger.
 insert into storage.objects (bucket_id, name)
 select 'photos', pg_temp.id_of(p) || f.name
-from (values (1), (2), (3), (4), (5), (6)) as people (p)
+from (values (1), (2), (3), (4), (5), (6), (7)) as people (p)
 cross join (values ('/profile-1.jpg'), ('/profile-1-small.jpg'), ('/gallery-1.jpg'), ('/gallery-2.jpg')) as f (name);
 
 insert into storage.objects (bucket_id, name)
@@ -321,6 +323,53 @@ select is_empty(
 select ok(
   not exists (select 1 from private.banned_identities where email_hash = private.email_hash('gone5@example.test')),
   'the ban on 5''s email address is deleted with the account'
+);
+
+-- The owner removes someone ---------------------------------------------------------------------
+
+select pg_temp.act_as(7);
+set local role authenticated;
+select throws_ok(
+  $$ select private.delete_user(pg_temp.id_of(7)) $$,
+  '42501', null, 'a signed-in person can''t call private.delete_user, even for themselves'
+);
+reset role;
+set local role anon;
+select throws_ok(
+  $$ select private.delete_user(pg_temp.id_of(7)) $$,
+  '42501', null, 'a signed-out caller can''t call private.delete_user'
+);
+reset role;
+select ok(exists (select 1 from auth.users where id = pg_temp.id_of(7)), 'the refused calls leave 7''s account');
+
+select private.suspend_user(pg_temp.id_of(7));
+select ok(
+  exists (select 1 from private.banned_identities where email_hash = private.email_hash('gone7@example.test')),
+  '7 is suspended and their email address is on the ban list'
+);
+
+set local role service_role;
+select throws_ok(
+  $$ select private.delete_user(pg_temp.id_of(7)) $$,
+  'photos not removed',
+  'the owner''s deletion also refuses while any photo file is still in the folder'
+);
+reset role;
+select pg_temp.remove_photos(7);
+set local role service_role;
+select lives_ok($$ select private.delete_user(pg_temp.id_of(7)) $$, 'the owner deletes 7 with the service role');
+reset role;
+select is_empty(
+  $$ select * from pg_temp.tables_mentioning(pg_temp.id_of(7)::text) $$,
+  'no row anywhere mentions 7''s id'
+);
+select is_empty(
+  $$ select * from pg_temp.tables_mentioning('gone7@example.test') $$,
+  'no row anywhere mentions 7''s email address'
+);
+select ok(
+  not exists (select 1 from private.banned_identities where email_hash = private.email_hash('gone7@example.test')),
+  'the ban on 7''s email address is deleted with the account'
 );
 
 select * from finish();

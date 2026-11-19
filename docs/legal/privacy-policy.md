@@ -86,7 +86,8 @@ change a few times in 10 minutes, and it is never shown to anyone.
   on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
   that person posted in a group chat they are both in) or have used Yap for at least 3 days.
 - **Banned email addresses.** If we suspend an account, we keep a scrambled (hashed) copy of its
-  email address so it can't sign up again, until we lift the ban or the account is deleted.
+  email address so it can't sign up again, until we lift the ban or an account with that email
+  address is deleted.
 - **Text checks.** Intros, interests, notes, event text and messages are checked against a
   short list of slurs and abusive words when you save or send them. Text that fails is
   refused, not stored.
@@ -145,7 +146,7 @@ someone's safety.
 | Photo upload times | 1 day, or until you delete your account |
 | Profile, photos, chats, messages, events, blocks, sign-in records | You delete your account (or we remove it for breaking the rules) |
 | Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
-| Banned email addresses (hashed) | Until we lift the ban, or the account is deleted |
+| Banned email addresses (hashed) | Until we lift the ban, or an account with that email address is deleted |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
 | Backups | Daily backups kept for 7 days on the Supabase Pro plan |

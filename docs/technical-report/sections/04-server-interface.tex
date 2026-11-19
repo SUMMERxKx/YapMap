@@ -159,7 +159,8 @@ message in parentheses where one applies.
     holds). Files a report about its host through \code{private.file_report}, with \code{event_id} and a
     copy of the emoji, title, description, start and creation times. \\
   \code{delete_account}
-  & Refuses (\code{photos not removed}) while any file is left in the caller's photo folder. The client
+  & Runs \code{private.delete_user} for the caller. It refuses (\code{photos not removed}) while any file
+    is left in the caller's photo folder; the client
     removes every file there through the Storage API before calling it. Returns the caller's chat partner,
     if any, to \code{open}, deletes any ban on the caller's email address, their upload times and their
     Auth sign-in flows and audit records, then deletes the caller's Auth user, which cascades through every
@@ -423,8 +424,8 @@ refuses an unknown profile (\code{no such profile}), then:
   \item through \code{private.end_activity}, ends every chat they are in, returning the other person to
     \code{open} if still live, cancels their waiting requests, and deletes their live session and event
     memberships, so they cannot post in group chats either;
-  \item puts their email address on the ban list until the suspension is lifted or the account is
-    deleted, so signing up again with it is refused (\cref{sec:signup-checks}).
+  \item puts their email address on the ban list until the suspension is lifted or an account with
+    that address is deleted, so signing up again with it is refused (\cref{sec:signup-checks}).
   \item marks every open report about them as reviewed, with \code{note} (default \code{suspended}) as
     the action.
 \end{enumerate}
@@ -432,7 +433,11 @@ refuses an unknown profile (\code{no such profile}), then:
 \code{private.restore_user(target)} lifts a suspension or an automatic hide: it sets the status back to
 \code{active}, makes the person a member again of the events they still host (\code{end_activity} took
 them out), takes the email address off the ban list, and marks every open report about the person
-as reviewed (action \code{restored}), so reports already reviewed cannot hide them again. \code{docs/legal/moderation.md} describes
+as reviewed (action \code{restored}), so reports already reviewed cannot hide them again.
+
+\code{private.delete_user(target)} is the deletion \code{delete_account} runs. The owner runs it from the SQL
+editor, or with the service role, for an email deletion request or a removal; execution is revoked from
+\code{anon} and \code{authenticated}. \code{docs/legal/moderation.md} describes
 the owner's daily review: the queries that list open reports and what the reported person posted, and
 the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through
 removing one message or event, to suspending or deleting the account.

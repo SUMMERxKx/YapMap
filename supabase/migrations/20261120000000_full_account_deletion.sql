@@ -20,6 +20,42 @@
 -- linked, as before. Nothing else is. Deleting a hidden or suspended account no longer puts its
 -- email address on the ban list, and a ban already on the list for the person's email address (from
 -- a suspension, or added by hand) is removed with the account.
+--
+-- The cleanup lives in private.delete_user, so the owner runs the same deletion for an email
+-- request or a removal (select private.delete_user('<id>') in the SQL editor, or with the
+-- service role; docs/legal/moderation.md). public.delete_account calls it for the signed-in person.
+
+create function private.delete_user(target uuid)
+returns void
+language plpgsql security definer set search_path = ''
+as $$
+begin
+  if exists (
+    select 1 from storage.objects o
+    where o.bucket_id = 'photos' and o.name like target::text || '/%'
+  ) then
+    raise exception 'photos not removed';
+  end if;
+
+  update public.availability a set state = 'open'
+  from public.chat_requests r
+  where r.status = 'accepted' and target in (r.from_user, r.to_user)
+    and a.user_id = case when r.from_user = target then r.to_user else r.from_user end
+    and a.state = 'chatting';
+
+  delete from private.banned_identities b
+  using auth.users u
+  where u.id = target and b.email_hash = private.email_hash(u.email);
+  delete from private.photo_uploads where user_id = target;
+  delete from auth.flow_state where user_id = target;
+  delete from auth.audit_log_entries where payload ->> 'actor_id' = target::text;
+
+  delete from auth.users where id = target;
+end;
+$$;
+
+revoke execute on function private.delete_user (uuid) from public, anon, authenticated;
+grant execute on function private.delete_user (uuid) to service_role;
 
 create or replace function public.delete_account()
 returns void
@@ -29,27 +65,11 @@ declare
   uid uuid := (select auth.uid());
 begin
   if uid is null then raise exception 'not signed in'; end if;
-
-  if exists (
-    select 1 from storage.objects o
-    where o.bucket_id = 'photos' and o.name like uid::text || '/%'
-  ) then
-    raise exception 'photos not removed';
-  end if;
-
-  update public.availability a set state = 'open'
-  from public.chat_requests r
-  where r.status = 'accepted' and uid in (r.from_user, r.to_user)
-    and a.user_id = case when r.from_user = uid then r.to_user else r.from_user end
-    and a.state = 'chatting';
-
-  delete from private.banned_identities b
-  using auth.users u
-  where u.id = uid and b.email_hash = private.email_hash(u.email);
-  delete from private.photo_uploads where user_id = uid;
-  delete from auth.flow_state where user_id = uid;
-  delete from auth.audit_log_entries where payload ->> 'actor_id' = uid::text;
-
-  delete from auth.users where id = uid;
+  perform private.delete_user(uid);
 end;
 $$;
+
+comment on table private.banned_identities is
+  'Hashes (private.email_hash) of email addresses refused at sign-up by public.before_user_created: '
+  'suspended people, and any the owner adds by hand. A row goes when the ban is lifted '
+  '(private.restore_user) or when an account with that email address is deleted (private.delete_user).';
