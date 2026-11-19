@@ -78,7 +78,8 @@ change a few times in 10 minutes, and it is never shown to anyone.
 
 - **People you block**, so you never see each other.
 - **Reports you make** (who, the reason, any details you add, and a copy of the profile, message or event you
-  reported, as it was then) and reports made about you. We
+  reported, as it was then. A report made from a say-hi or chat also keeps a copy of up to the
+  last 20 messages the reported person sent in it) and reports made about you. We
   read reports to keep Yap safe (see our [Community Guidelines](https://yap.samarxkx.dev/guidelines)). A profile is hidden until we
   have reviewed it when three different people report it who really interacted with that person
   on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
@@ -160,7 +161,8 @@ was hidden or suspended when you deleted it, a scrambled copy of your email addr
 it can't be used to sign up again.
 
 Removing account links does not make report details anonymous: details, and the copy of the
-reported profile, message or event a report keeps, may still identify you or someone else. Reports can remain after deletion so we can act if someone comes back,
+reported profile, message or event a report keeps (with up to the last 20 messages the reported
+person sent, for a report made from a say-hi or chat), may still identify you or someone else. Reports can remain after deletion so we can act if someone comes back,
 and banned email hashes remain until we lift the ban. Copies in backups expire within
 7 days.
 
