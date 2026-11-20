@@ -1,7 +1,7 @@
 \chapter{Migration history}
 \label{app:migrations}
 
-The database is defined by fourteen migrations in \code{supabase/migrations}. Each file is named
+The database is defined by fifteen migrations in \code{supabase/migrations}. Each file is named
 \code{<version>_<name>.sql}, and the migrations apply in version order. This report refers to each by its
 name (\cref{tab:migrations}), listed in the order they apply, with its version below it. Later migrations
 replace earlier definitions; the descriptions in this report always refer to the latest one.
@@ -14,7 +14,7 @@ contents did not change. The Migration files check in CI (\code{scripts/check-mi
 a rename only when the file stays byte for byte the same, and fails any edit or deletion of an existing
 migration. The two migrations of 26 October 2026 are applied to the hosted project with
 \code{supabase db push}, which keeps the file versions, together with switching on the Before User
-Created hook in the dashboard.
+Created hook in the dashboard. \code{report_context} is applied the same way.
 
 \begingroup\tablefont
 \begin{longtable}{@{}L{60mm}L{\dimexpr\linewidth-60mm-2\tabcolsep\relax}@{}}
@@ -44,5 +44,6 @@ Created hook in the dashboard.
   \code{safety_fixes}\newline{\scriptsize 20261026180208} & The October 2026 QA report's fixes: live positions stored as cell centres (\code{cell_center}) and a fixed nearby distance, the accuracy clamped, \code{nearby} and \code{events_near} limited per minute (\code{call_counts}, \code{count_call}); \code{require_active} and \code{account restricted} in every function a user acts through; unreviewed reports counting towards the automatic hide only after a real interaction or from an established account (\code{counts_toward_hide}), with the hide ending everything the person is in (\code{end_activity}); reports kept after a deletion (\code{reported_hash}); the ban list, the throwaway-domain table, the per-IP sign-up log and the Before User Created hook \code{before_user_created}; suspension and deletion while restricted banning the email, and \code{restore_user}; the last known position (\code{last_positions}, written by \code{set_map_position} and \code{go_green}, read by \code{my_position}) used by \code{events_near} and \code{join_event}, which lose their position arguments, and checked by the reach rule; host photos only for members; the \code{events_emoji_category} check; photos limited to 1.5\,MiB, 16 files and 40 uploads a day (\code{photo_uploads}); \code{expire_stale} pruning the new tables \\
   \code{disposable_email_domains}\newline{\scriptsize 20261026180218} & About 9\,900 throwaway email domains from the public-domain disposable-email-domains list, loaded into \code{private.disposable_email_domains} \\
   \code{restricted_visibility}\newline{\scriptsize 20261119120000} & Store readiness item C4: \code{person_card} returns nothing for a hidden or suspended person, and \code{request_person} and the non-owner paths of \code{can_see_photo} need both people to be active, so a past chat or meeting partner can no longer fetch a restricted person's card or sign fresh URLs for their photos; restoring the person makes both visible again \\
+  \code{report_context}\newline{\scriptsize 20261119180607} & Reports keep what was reported: the \code{about}, \code{message_id}, \code{event_id} and \code{content} columns on \code{reports}; \code{private.file_report}, the checks and automatic hide every report goes through, with a repeat dropped only when it is about the same person, message or event; \code{report_message} and \code{report_event}, which refuse content the caller cannot see; \code{report_user} copying the person's profile and, from a say-hi or chat, the last 20 messages they sent in it \\
 \end{longtable}
 \endgroup

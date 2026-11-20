@@ -21,6 +21,7 @@ import type {
   NearbyPerson,
   OutgoingRequest,
   Profile,
+  ReportContext,
   ReportReason,
 } from '@/data/types';
 import { cleanLine, cleanLines } from '@/lib/clean-text';
@@ -988,8 +989,8 @@ export async function unblockUser(userId: string) {
   void refreshNearby(); // they may be live nearby
 }
 
-export async function reportUser(userId: string, reason: ReportReason, details: string) {
-  await api.report(userId, reason, cleanLines(details));
+export async function reportUser(userId: string, reason: ReportReason, details: string, context: ReportContext = {}) {
+  await api.report(userId, reason, cleanLines(details), context);
 }
 
 // ---------------------------------------------------------------- map events

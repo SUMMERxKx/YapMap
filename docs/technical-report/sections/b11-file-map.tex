@@ -41,7 +41,7 @@ describes the files in \code{src/app} individually.
   \code{CODEOWNERS}, \code{pull_request_template.md} & The owner reviews every pull request; what a pull request description covers \\
   \midrule
   \multicolumn{2}{@{}l}{\textsf{\textbf{Backend}}} \\
-  \code{supabase/migrations/*.sql} & The fourteen migrations, each named \code{<version>_<name>.sql} with the version the hosted project recorded (\cref{app:migrations}) \\
+  \code{supabase/migrations/*.sql} & The fifteen migrations, each named \code{<version>_<name>.sql} with the version the hosted project recorded (\cref{app:migrations}) \\
   \code{supabase/tests/*.sql} & pgTAP checks run by \code{supabase test db}, locally and in CI \\
   \code{supabase/config.toml} & Local stack configuration only (\cref{tab:local-stack}) \\
   \code{supabase/README.md} & How to change the database (\cref{tab:migration-workflow}) \\
@@ -113,7 +113,7 @@ describes the files in \code{src/app} individually.
   \code{profile/photo-grid.tsx} & Further photo slots, three per row \\
   \code{profile/profile-form.tsx} & Single-page profile form \\
   \code{profile/setup-step.tsx} & One setup question per screen with progress \\
-  \code{safety/safety-menu.tsx} & \ui{Report} and \ui{Block} menu \\
+  \code{safety/safety-menu.tsx} & \ui{Report} and \ui{Block} menu, with \ui{Report this event} on an event \\
   \code{ui/*} & Shared primitives: \code{app-text}, \code{badge}, \code{button}, \code{card}, \code{checkbox}, \code{chip}, \code{empty-state}, \code{form-section}, \code{glass-backdrop}, \code{info-note}, \code{list-row}, \code{offline-banner}, \code{password-field}, \code{press-feedback}, \code{radio-option}, \code{screen}, \code{screen-header}, \code{skeleton}, \code{text-field}, \code{toggle-row}, \code{top-bar} \\
 \end{longtable}
 \endgroup

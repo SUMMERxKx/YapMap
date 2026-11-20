@@ -1,4 +1,5 @@
-// Report someone (and optionally block them at the same time).
+// Report someone (and optionally block them at the same time). When it opens from a message or an
+// event, the report is about that message or event, and the server keeps a copy of it.
 
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
@@ -13,13 +14,19 @@ import { Screen } from '@/components/ui/screen';
 import { TopBar } from '@/components/ui/top-bar';
 import { TextField } from '@/components/ui/text-field';
 import { LIMITS, REPORT_REASONS } from '@/data/constants';
-import type { ReportReason } from '@/data/types';
+import type { ReportContext, ReportReason } from '@/data/types';
 import { errorMessage } from '@/lib/error-message';
 import { blockUser, reportUser } from '@/state/store';
 import { useTheme } from '@/theme';
 
 export default function Report() {
-  const { id, name = 'this person' } = useLocalSearchParams<{ id: string; name?: string }>();
+  const {
+    id,
+    name = 'this person',
+    messageId,
+    eventId,
+    requestId,
+  } = useLocalSearchParams<{ id: string; name?: string; messageId?: string; eventId?: string; requestId?: string }>();
   const { spacing } = useTheme();
   const [reason, setReason] = useState<ReportReason | null>(null);
   const [details, setDetails] = useState('');
@@ -31,7 +38,8 @@ export default function Report() {
     if (!reason) return;
     setSending(true);
     try {
-      await reportUser(id, reason, details.trim());
+      const context: ReportContext = { messageId, eventId, requestId };
+      await reportUser(id, reason, details.trim(), context);
     } catch (error) {
       Alert.alert("Couldn't send the report", errorMessage(error, 'Try again.'));
       setSending(false);
@@ -62,6 +70,13 @@ export default function Report() {
     );
   }
 
+  let title = `Report ${name}`;
+  if (messageId) {
+    title = `Report ${name}'s message`;
+  } else if (eventId) {
+    title = `Report ${name}'s event`;
+  }
+
   let submitLabel = 'Submit report';
   if (alsoBlock) {
     submitLabel = 'Submit report and block';
@@ -82,7 +97,7 @@ export default function Report() {
       <TopBar trailing={<IconButton icon="close" label="Close" onPress={() => router.back()} />} />
       <View style={{ gap: spacing.sm, marginBottom: spacing.sm }}>
         <AppText variant="title" accessibilityRole="header">
-          Report {name}
+          {title}
         </AppText>
       {/* Improvement: no promised response time. A two-person team can't guarantee "within 1 hour". */}
         <AppText color="textSecondary">

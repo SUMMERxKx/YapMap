@@ -72,7 +72,7 @@ of \code{resetPassword}, the error is always reported as \code{INVALID_CODE}.
   \code{block(userId)} & rpc \code{block_user} & --- \\
   \code{unblock(userId)} & delete own \code{blocks} row & --- \\
   \code{blockedList()} & rpc \code{blocked_list} & \texttt{\{id, firstName, lastInitial\}[]} \\
-  \code{report(userId, reason, details)} & rpc \code{report_user} (no request ID) & --- \\
+  \code{report(userId, reason, details, context)} & rpc \code{report_message} when the context has a message ID, \code{report_event} when it has an event ID, otherwise \code{report_user} with the context's request ID & --- \\
   \code{deleteAccount()} & storage \code{list} (pages of 100) and \code{remove}; rpc \code{delete_account}; \code{auth.signOut} & --- \\
   \midrule
   \multicolumn{3}{@{}l}{\textsf{\textbf{Events}}} \\

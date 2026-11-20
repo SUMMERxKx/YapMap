@@ -173,10 +173,10 @@ cannot be bypassed.
   \multicolumn{3}{@{}l}{\textsf{\textbf{Accounts and safety}}} \\
   Password & at least 8 characters & \code{PASSWORD_MIN_LENGTH}; Supabase Auth setting \\
   Emailed code & 8 digits; resend after 60\,s & email templates; \code{verify.tsx} \\
-  Automatic hiding & 3 distinct reporters with reports not yet reviewed, who really interacted with the person (a chat between them, even one that has ended, a say-hi from the person, or the person's message in a group chat both are in) or whose accounts are at least 3 days old with no open report & \code{report_user} \\
+  Automatic hiding & 3 distinct reporters with reports not yet reviewed, who really interacted with the person (a chat between them, even one that has ended, a say-hi from the person, or the person's message in a group chat both are in) or whose accounts are at least 3 days old with no open report & \code{private.file_report} \\
   Sign-ups & at most 20 per IP address in 24 hours; no banned or throwaway email addresses & \code{public.before_user_created} (auth hook) \\
-  Report details & at most 500 characters & \code{report_user}; check constraints \\
-  Reports & 1 per person reported per day (a repeat keeps the first); at most 10 people a day & \code{report_user} \\
+  Report details & at most 500 characters & \code{private.file_report}; check constraints \\
+  Reports & 1 per person, message or event reported per day (a repeat keeps the first); at most 10 a day & \code{private.file_report} \\
   Word filter & whole words from \code{private.blocked_words}, also with look-alike digits and symbols; intro, interests, live note, event title and details, messages & word-filter triggers (\code{private.refuse_blocked_words}) \\
   Report review & at least once every 24 hours & the owner, by hand (\code{docs/legal/moderation.md}) \\
   Housekeeping & every minute & \code{pg_cron} job \code{yap-expire-stale} \\

@@ -95,7 +95,14 @@ export default function EventDetails() {
 
   let safetyMenu = null;
   if (!hostedByMe) {
-    safetyMenu = <SafetyMenu userId={event.host.id} firstName={hostName} onBlocked={() => router.back()} />;
+    safetyMenu = (
+      <SafetyMenu
+        userId={event.host.id}
+        firstName={hostName}
+        eventId={event.id}
+        onBlocked={() => router.back()}
+      />
+    );
   }
 
   let mainButton;

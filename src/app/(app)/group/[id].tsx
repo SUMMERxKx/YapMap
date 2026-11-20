@@ -61,14 +61,31 @@ export default function GroupChat() {
     if (message.senderId === event.host.id) router.back();
   };
 
-  const moderate = (message: Message) =>
-    Alert.alert(message.senderName, undefined, [
+  // Android alerts show at most three buttons, so Report asks what to report in a second alert.
+  const chooseReport = (message: Message) =>
+    Alert.alert('What are you reporting?', undefined, [
       {
-        text: `Report ${message.senderName}`,
+        text: 'This message',
+        onPress: () => {
+          const params = { id: message.senderId, name: message.senderName, messageId: message.id };
+          router.push({ pathname: '/report/[id]', params });
+        },
+      },
+      {
+        text: message.senderName,
         onPress: () => {
           const params = { id: message.senderId, name: message.senderName };
           router.push({ pathname: '/report/[id]', params });
         },
+      },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+
+  const moderate = (message: Message) =>
+    Alert.alert(message.senderName, undefined, [
+      {
+        text: 'Report',
+        onPress: () => chooseReport(message),
       },
       {
         text: `Block ${message.senderName}`,

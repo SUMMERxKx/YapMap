@@ -1,6 +1,6 @@
 # Yap Privacy Policy
 
-**Last updated:** 18 November 2026
+**Last updated:** 19 November 2026
 
 Yap is an app for meeting people who are nearby, in person. It is made by Samar Khajuria
 ("we", "us"). This policy explains what Yap keeps about you, why, who helps us run it, how
@@ -77,7 +77,9 @@ change a few times in 10 minutes, and it is never shown to anyone.
 ### Safety
 
 - **People you block**, so you never see each other.
-- **Reports you make** (who, the reason, any details you add) and reports made about you. We
+- **Reports you make** (who, the reason, any details you add, and a copy of the profile, message or event you
+  reported, as it was then. A report made from a say-hi or chat also keeps a copy of up to the
+  last 20 messages the reported person sent in it) and reports made about you. We
   read reports to keep Yap safe (see our [Community Guidelines](https://yap.samarxkx.dev/guidelines)). A profile is hidden until we
   have reviewed it when three different people report it who really interacted with that person
   on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
@@ -158,8 +160,9 @@ made or that were made about you are kept without your account linked to them. I
 was hidden or suspended when you deleted it, a scrambled copy of your email address is kept so
 it can't be used to sign up again.
 
-Removing account links does not make report details anonymous: details may still identify
-you or someone else. Reports can remain after deletion so we can act if someone comes back,
+Removing account links does not make report details anonymous: details, and the copy of the
+reported profile, message or event a report keeps (with up to the last 20 messages the reported
+person sent, for a report made from a say-hi or chat), may still identify you or someone else. Reports can remain after deletion so we can act if someone comes back,
 and banned email hashes remain until we lift the ban. Copies in backups expire within
 7 days.
 

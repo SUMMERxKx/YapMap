@@ -126,11 +126,11 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Event start & 5 minutes ago to 7 days ahead & \code{create_event} \\
   Events created & 5 per 24 hours, deleted ones included & \code{create_event}, \code{private.event_posts} \\
   Join distance & 5000\,m & \code{join_event} \\
-  Report details & 500 characters & \code{report_user}, check \\
-  Reporters before hiding & 3 distinct, counting only reports that count & \code{report_user} \\
-  Established account & 3 days old, no open report & \code{report_user} \\
+  Report details & 500 characters & \code{private.file_report}, check \\
+  Reporters before hiding & 3 distinct, counting only reports that count & \code{private.file_report} \\
+  Established account & 3 days old, no open report & \code{private.file_report} \\
   Sign-ups per IP address & 20 per 24 hours & \code{before_user_created} \\
-  Reports & 1 per person reported per day; 10 people per day & \code{report_user} \\
+  Reports & 1 per person, message or event reported per day; 10 per day & \code{private.file_report} \\
   Interests & 3 to 5 different, each 1 to 30 characters & \code{valid_interests}, check \\
   Stacked accents & at most 3 on one letter & \code{is_clean_text}, checks \\
   Files per user & 16 & storage insert policy \\

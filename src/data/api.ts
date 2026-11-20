@@ -14,7 +14,7 @@ import { SUPPORT_EMAIL } from '@/config/links';
 import { INTEREST_RANGE, PASSWORD_MIN_LENGTH } from './constants';
 import { supabase } from './supabase-client';
 
-import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportReason } from './types';
+import type { Gender, MapEvent, Message, NearbyPerson, Profile, ReportContext, ReportReason } from './types';
 
 // ---------------------------------------------------------------- auth
 
@@ -179,6 +179,7 @@ const SERVER_REFUSALS: Record<string, string> = {
   'invalid details': "Some of the details can't be saved. Remove any unusual characters and try again.",
   'invalid reason': 'Pick a reason for the report.',
   'too many reports': "You've reported a lot of people today. Try again tomorrow, or block anyone who bothers you.",
+  'content not available': "That message or event is gone, or you can't see it any more. You can still report the person from the same menu.",
 };
 
 // The table rules (check constraints in supabase/migrations) the app can run into, by name.
@@ -918,8 +919,20 @@ export async function blockedList(): Promise<BlockedPerson[]> {
   return (data ?? []) as BlockedPerson[];
 }
 
-export async function report(userId: string, reason: ReportReason, details: string) {
-  const { error } = await supabase.rpc('report_user', { target: userId, reason, details });
+/**
+ * Reports a message or an event when the context names one (the server finds its sender or host),
+ * otherwise the person, with the say-hi or chat it came from.
+ */
+export async function report(userId: string, reason: ReportReason, details: string, context: ReportContext = {}) {
+  let call;
+  if (context.messageId) {
+    call = supabase.rpc('report_message', { message_id: context.messageId, reason, details });
+  } else if (context.eventId) {
+    call = supabase.rpc('report_event', { event_id: context.eventId, reason, details });
+  } else {
+    call = supabase.rpc('report_user', { target: userId, reason, details, request_id: context.requestId });
+  }
+  const { error } = await call;
   if (error) throw new Error(friendlyRpcError(error));
 }
 
