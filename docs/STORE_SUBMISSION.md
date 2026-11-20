@@ -2,9 +2,58 @@
 
 Everything needed to build Yap for the stores and fill in their forms, in order. The everyday
 flow (the checks, versioning, shipping database changes, rollback) is in [`RELEASING.md`](RELEASING.md). The answers
-below match what the app and database do as of October 2026; if the app starts collecting
+below match what the app and database do as of November 2026. If the app starts collecting
 something new, update this file, `docs/legal/privacy-policy.md` (and its published copy
 `site/privacy.html`) and `expo.ios.privacyManifests` in `app.json` together.
+
+## Closed launch: an invite-only beta
+
+Yap launches as an invite-only beta, first for invited testers in Kamloops, BC. Vancouver may
+come next. Kamloops is a limit on who is invited, not something the app enforces: there is no
+region lock or geofence, so an invited tester can use Yap anywhere. The public pages say the
+same: the support home (`site/index.html`), the terms (sections 1 and 6) and the privacy
+policy ("Beta testing").
+
+**iPhone: TestFlight.**
+
+- **Internal testing** is for up to 100 App Store Connect users on the team. Builds reach them
+  without review. Use it for your own phones.
+- **External testing** is for up to 10,000 testers. The first build goes to Beta App Review once
+  it is added to an external group, and Apple may review later builds too. Apple needs a beta
+  app description, a feedback email (`support@samarxkx.dev`) and beta review information with
+  sign-in details for a review account (section 6).
+- Invite Kamloops testers **by email** rather than a public link, because anyone with a public
+  link can join. If you do use one, set a tester limit and share it only with people you invite.
+- Testers send feedback and screenshots from the TestFlight app, and crash reports appear in
+  App Store Connect. The privacy policy covers both ("Beta testing").
+
+**Android: Google Play closed testing.**
+
+- Upload the `.aab` to a **closed testing** track (Test and release → Testing → Closed testing).
+  Add testers with an email list or a Google Group, then send them the track's opt-in link. Only
+  people on the list can join.
+- Set the track's countries to **Canada**. That limits where the test is offered on Play, not
+  where the app works.
+- Google reviews closed testing releases before testers get them. Finish the app content
+  declarations first: privacy policy, app access (section 6), ads, content rating and target
+  audience (section 5), Data safety (section 4, required on closed tracks too) and the child
+  safety standards URL.
+- A new personal Play account needs a closed test with at least 12 testers opted in for 14 days
+  in a row before it can apply for production. The Kamloops beta can be that test if testers
+  stay opted in. Internal testing does not count.
+
+**What the stores review.** Beta App Review and Play's closed track review check the build
+against the same rules as a public release: user-generated content safety (report, block,
+terms), privacy disclosures, account deletion and working review access. Everything below
+applies to the beta as well.
+
+**Tester invitations.** Say that Yap is an invite-only beta for adults 18 and over, link the
+terms (https://yap.samarxkx.dev/terms) and privacy policy (https://yap.samarxkx.dev/privacy),
+and explain how to send feedback (TestFlight, or `support@samarxkx.dev`). Also tell testers that
+the TestFlight and Google Play tester lists are kept by Apple and Google, separate from Yap, so
+deleting their Yap account does not take them off. To be removed, they email
+`support@samarxkx.dev` or tell us when they leave the beta, and we remove them within 30 days.
+Never promise verified profiles or a selfie check.
 
 ## 0. One-time setup
 
@@ -105,7 +154,7 @@ selfie code is parked on the `future/face-verification` branch.
 | --- | --- | --- | --- |
 | App name | 30 chars | 30 chars | `Yap: Meet People Nearby` (plain "Yap" is probably taken) |
 | Subtitle / short description | 30 chars | 80 chars | `Say hi to people near you` / `See who nearby is up for a chat, say hi, and meet in person.` |
-| Promotional text | 170 chars | – | `Turn green when you're up for a chat. See who nearby is too, say hi, and go talk in person. No distances, no exact locations.` |
+| Promotional text | 170 chars | – | `Turn green when you're up for a chat. See who nearby is too, say hi, and go talk in person. No distances and no personal location pins.` |
 | Description | 4000 chars | 4000 chars | From the README's first paragraphs and "How it works" |
 | Keywords | 100 chars | – | `meet,nearby,chat,friends,people,campus,cafe,events,social,talk` |
 | Category | Social Networking | Social | |
@@ -141,13 +190,24 @@ identity: yes**, **used for tracking: no**.
 | User Content | **Emails or Text Messages** | Chat and group messages |
 | User Content | **Other User Content** | Intro, interests, live note, events, reports |
 | Identifiers | **User ID** | The account id |
-| Other Data | **Other Data Types** | Gender (and whether it is shown), the 18+ confirmation |
+| Other Data | **Other Data Types** | Gender (and whether it is shown), the 18+ confirmation, and the hashed sign-up IP address and hosting request logs, used only for security, sign-up limits and fixing problems |
 
 Not collected: Health, Financial, Contacts, Browsing or Search History, Purchases, Usage Data,
-Diagnostics (no analytics or crash reporting SDK), Sensitive Info (there are no selfies, face
-checks or verification in this release), Device ID / advertising data. **Tracking: no.** These match `NSPrivacyCollectedDataTypes` in `app.json`, which also
+Sensitive Info (there are no selfies, face checks or verification in this release), Device ID and
+advertising data. **Tracking: no.** These match `NSPrivacyCollectedDataTypes` in `app.json`, which also
 declares the "required reason" APIs that React Native and Expo use (UserDefaults, file
 timestamps, disk space, system boot time).
+
+**Diagnostics and identifiers on iPhone.** These answers hold for iOS only, and only because the
+iOS build has no third-party code that collects diagnostics or device identifiers. The map is
+Apple Maps: `react-native-maps` adds Google Maps on iOS only when its Google pods are installed,
+and Yap does not install them. Apple says developers are not responsible for disclosing data
+Apple itself collects, which covers MapKit, crash reports from people who share analytics with
+developers, and TestFlight feedback. Do not copy these answers to Play, where Google's Maps SDK
+collects diagnostics and an identifier (section 4). Recheck both whenever an SDK is added.
+Apple asks for IP addresses to be declared by how they are used, and App Functionality includes
+security and fraud prevention, so the IP-based records sit under Other Data Types above.
+Source: https://developer.apple.com/app-store/app-privacy-details/
 
 ## 4. Google Play: Data safety
 
@@ -157,25 +217,49 @@ Play Console → Policy and programs → App content → Data safety.
 - **Is all of the user data collected by your app encrypted in transit?** Yes.
 - **Do you provide a way for users to request that their data is deleted?** Yes. Delete-account
   URL: https://yap.samarxkx.dev/delete-account
-- **Shared with third parties:** none. (Supabase and Resend process data for us as service
-  providers, which Google does not count as sharing.)
+- **Shared with third parties:** yes, for the Google Maps rows below. On Android the map is
+  Google's Maps SDK, which sends that data to Google, and Google uses it to improve its own
+  services. That goes beyond processing on our instructions, so the service provider exception
+  does not cover it. Supabase and Resend process data for us as service providers, which Google
+  does not count as sharing.
 
-Collected types (for each: **collected, not shared, not processed ephemerally, required**,
-purpose **App functionality** and **Account management** where it says so):
+None of this data is processed ephemerally. Yap's own data:
 
-| Category | Type | Purpose |
-| --- | --- | --- |
-| Location | Precise location | App functionality |
-| Personal info | Name | App functionality, Account management |
-| Personal info | Email address | Account management |
-| Personal info | User IDs | App functionality, Account management |
-| Personal info | Other info (gender, 18+ confirmation) | App functionality |
-| Photos and videos | Photos | App functionality |
-| Messages | Other in-app messages | App functionality |
-| App activity | Other user-generated content (intro, interests, notes, events, reports) | App functionality |
+| Category | Type | Required or optional | Shared | Purpose |
+| --- | --- | --- | --- | --- |
+| Location | Precise location | Optional: only going live, Nearby and the map use it | No | App functionality |
+| Personal info | Name | Required | No | App functionality, Account management |
+| Personal info | Email address | Required | No | Account management |
+| Personal info | User IDs | Required | No | App functionality, Account management |
+| Personal info | Other info (gender, 18+ confirmation) | Required (gender can be "prefer not", the 18+ confirmation cannot be skipped) | No | App functionality |
+| Photos and videos | Photos | Required | No | App functionality |
+| Messages | Other in-app messages | Optional | No | App functionality |
+| App activity | Other user-generated content (intro, interests, notes, events, reports) | Required (intro and interests complete a profile) | No | App functionality, Fraud prevention, security, and compliance |
+| Device or other IDs | Device or other IDs (the IP address: hashed at sign-up and kept 1 day, and in hosting request logs) | Required | No | App functionality, Fraud prevention, security, and compliance |
 
-Not collected: financial info, health, contacts, calendar, audio, files, web browsing, app
-info and performance (no crash logs or diagnostics), device or other IDs.
+Collected by Google's Maps SDK on Android whenever the map is shown. People cannot turn it off
+in the app, so mark it required:
+
+| Category | Type | What Google collects | Shared | Purpose |
+| --- | --- | --- | --- | --- |
+| App info and performance | Crash logs | Stack traces and crash metrics | Yes (Google) | Analytics |
+| App info and performance | Diagnostics | Request metadata such as device model, system version and SDK version | Yes (Google) | Analytics |
+| Device or other IDs | Device or other IDs | A pseudonymous Maps SDK identifier, plus the device's IP address | Yes (Google) | Analytics |
+| App activity | App interactions | Map panning and zooming. Google collects these when the app uses the map camera, which `src/app/(app)/(tabs)/map.tsx` does with `animateToRegion` | Yes (Google) | Analytics |
+
+Play has no IP address type, so the IP address goes with Device or other IDs, once in Yap's own
+table for security and fixing problems, and once here for what Google collects. Play asks for
+Approximate location when a location is inferred from an IP address, and Google's page does not
+say the Maps SDK does that, so Approximate location is not declared.
+
+Source: Google's [Maps SDK for Android data disclosure](https://developers.google.com/maps/documentation/android-sdk/play-data-disclosure). It covers only the latest SDK
+version. Yap resolves `com.google.android.gms:play-services-maps` **19.1.0**, the default in
+`react-native-maps` 1.29.11 (`node_modules/react-native-maps/android/build.gradle`), which the app
+does not override. Recheck the page and the release build's dependency tree
+(`./gradlew :app:dependencies` after `npx expo prebuild`) whenever either changes.
+
+Not collected: financial info, health, contacts, calendar, audio, files, web browsing and the
+advertising ID.
 
 ## 5. Content rating and audience
 

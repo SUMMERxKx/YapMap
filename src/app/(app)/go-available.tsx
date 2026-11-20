@@ -83,8 +83,9 @@ export default function GoAvailable() {
   } else {
     locationNote = (
       <InfoNote tone="green" icon="shield-checkmark-outline" title="Your location stays private.">
-        It's only used to find people in this place while you're available. Nobody sees where you are, and
-        when you stop, only the area of about 100 m you were last in is kept.
+        It's only used to find people in this place while you're available. Nobody sees your exact location
+        or distance, but being nearby, and your note, can show you're close. When you stop, only the area of
+        about 100 m you were last in is kept.
       </InfoNote>
     );
     mainButton = <Button label={confirmLabel} onPress={confirm} loading={busy} haptic />;

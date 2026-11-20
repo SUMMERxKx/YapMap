@@ -1,6 +1,6 @@
 # Yap Terms of Service
 
-**Last updated:** 18 November 2026
+**Last updated:** 20 November 2026
 
 These terms are an agreement between you and Samar Khajuria ("we", "us"), who makes Yap. By
 creating an account or using Yap, you agree to them, to our
@@ -14,6 +14,9 @@ the app (Settings → Community guidelines). If you don't agree, please don't us
   from Yap before.
 - One account per person. Keep your password to yourself; you are responsible for what
   happens on your account.
+- Yap is an **invite-only beta**. For now it is open only to people we invite, starting in
+  Kamloops, British Columbia, and you install it through Apple's TestFlight or a Google Play
+  closed test. Other places, such as Vancouver, may follow later.
 
 ## 2. The rules
 
@@ -64,6 +67,10 @@ Yap is provided **"as is" and "as available"**, without warranties of any kind, 
 law allows. We don't promise that Yap will always be available, error-free, or that you will
 find someone to talk to.
 
+Yap is a beta. Features may change, stop working or be removed, and the beta may pause or end
+at any time. We may also end your place in the beta, for example when a round of testing ends.
+If you send us feedback, we may use it to improve Yap without owing you anything.
+
 ## 7. Limitation of liability
 
 As far as the law allows, we are not liable for any indirect, incidental, special or
@@ -85,7 +92,7 @@ courts.
 
 ## 10. App stores
 
-If you got Yap from the Apple App Store or Google Play, these terms are between you and us,
+If you got Yap from the Apple App Store, Apple's TestFlight or Google Play, these terms are between you and us,
 not Apple or Google. Apple and Google aren't responsible for Yap or its content, and have no
 obligation to provide support for it. If Yap fails to meet a warranty that applies by law, you
 may tell Apple, and Apple may refund the purchase price (Yap is free, so that is zero); beyond
@@ -93,7 +100,7 @@ that, Apple has no warranty obligation. Apple and Google aren't responsible for 
 about Yap, including product liability, legal or regulatory claims, or claims that Yap
 infringes someone's intellectual property. Apple and its subsidiaries are third-party
 beneficiaries of these terms and may enforce them against you. You must also follow the
-terms of the store you downloaded Yap from, and you confirm that you are not in a country under
+terms of the store or testing service you got Yap from, and you confirm that you are not in a country under
 a government embargo and are not on any government list of prohibited or restricted parties.
 
 ## 11. Contact

@@ -28,7 +28,7 @@ const PAGES: Page[] = [
     key: 'nearby',
     icon: 'people',
     title: 'See who’s around',
-    body: 'People near you who are live can see you, and you can see them. Nobody sees exactly where you are.',
+    body: 'People near you who are live can see you, and you can see them. Nobody sees your exact location or distance, but being nearby, and your note, can show you’re close.',
   },
   {
     key: 'chat',
