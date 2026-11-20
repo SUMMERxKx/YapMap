@@ -207,6 +207,7 @@ text, and an action that failed can simply be tried again.
     \textsf{\textbf{Timer}} & \textsf{\textbf{Period or delay}} & \textsf{\textbf{Owner}} \\
     \midrule
     Housekeeping job & every minute & \code{pg_cron}, \code{expire_stale} \\
+    Sign-in record pruning & daily at 03:00 & \code{pg_cron}, \code{prune_audit_log} \\
     Request answer window & 5 minutes & \code{chat_requests.expires_at} \\
     Nearby refresh & every 20\,s, foreground only & \code{useNearbyPolling} \\
     Answer poll & every 7\,s & \code{waitForAnswer} \\

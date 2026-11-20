@@ -20,25 +20,30 @@ Your account is deleted straight away.
 
 Email **support@samarxkx.dev** from the email address you use for Yap, with the subject
 "Delete my account". We'll confirm the request came from you and delete the account within 30
-days, then reply to let you know.
+days, the same way as in the app, then reply to let you know.
 
 ## What gets deleted
 
-The following is deleted from the live service: your email address and password, your profile and all your
-photos, your live session, every say-hi request and chat you were part of and their messages,
-the events you host and their group chats, your event memberships and group messages, and the
-people you blocked.
+Everything in your account is deleted from the live service, whether or not your account is on
+hold:
 
-Safety reports made by you or about you are kept, without your account linked to them, so we
-can still act on them. If your account was hidden or suspended when you deleted it, we keep a
-scrambled (hashed) copy of your email address so it can't be used to sign up again.
+- your account, email address and password
+- your profile and every photo you uploaded, including old and replaced ones
+- your live session, your last known area and the times you went live or moved
+- every say-hi request and 1:1 chat you were part of, with all their messages, for both of you
+- the events you host, with their members and group chats
+- your event memberships and every message you sent in other people's group chats
+- the people you blocked, and blocks other people made against you
+- any ban on your email address from a suspension, including one from another account with the
+  same address (a ban from an account we removed for breaking the rules, or one we added by hand, stays)
 
-Removing account links does not make report details anonymous: details, and the copy of the
-reported profile, message or event a report keeps (with up to the last 20 messages the reported
-person sent, for a report made from a say-hi or chat), may still identify you or someone else. These safety records can remain after account deletion. Reports are
-kept so we can act if someone comes back; banned email hashes are kept until we lift the ban.
+Only safety reports made by you or about you are kept, without your account linked to them, so
+we can still act on them. Removing account links does not make report details anonymous:
+details, and the copy of the reported profile, message or event a report keeps (with up to the
+last 20 messages the reported person sent, for a report made from a say-hi or chat), may still
+identify you or someone else. Nothing else is kept.
 
-Copies in our hosting provider's backups expire within
-7 days (daily backups kept on the Supabase Pro plan). The retained safety records
-described above can remain after those backups expire. See the
+The records of when you signed in are removed within 7 days, for everyone. Copies in our hosting
+provider's backups expire within 7 days (daily backups kept on the Supabase Pro plan). The safety reports described above can
+remain after those backups expire. See the
 [Privacy Policy](https://yap.samarxkx.dev/privacy) for the full retention details.

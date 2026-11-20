@@ -137,6 +137,7 @@ summarises the ones that shape behaviour; this appendix is the full list.
   Uploads per user & 40 per 24 hours & storage insert policy \\
   Event-post log & 24 hours & \code{expire_stale} \\
   Location-change log & 10 minutes & \code{expire_stale} \\
+  Auth sign-in activity records & 6 days, pruned daily, so at most 7 days & \code{prune_audit_log} \\
   Photo object size & 1\,572\,864 bytes & bucket \\
   Photo types & \code{image/jpeg}, \code{image/png}, \code{image/webp} & bucket \\
   Further photos & 6 & \code{profiles_photo_paths_max} \\

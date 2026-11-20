@@ -1,14 +1,14 @@
 # Yap Privacy Policy
 
-**Last updated:** 19 November 2026
+**Last updated:** 20 November 2026
 
 Yap is an app for meeting people who are nearby, in person. It is made by Samar Khajuria
 ("we", "us"). This policy explains what Yap keeps about you, why, who helps us run it, how
 long it is kept and how to delete it.
 
 The short version: we keep what you put in your profile, the chats and events you take part
-in, and your blocks, for as long as you have an account. Safety reports and ban email hashes
-can remain after deletion, as described below. We only ever store
+in, and your blocks, for as long as you have an account. When you delete your account, all of
+it is deleted. Only safety reports are kept, without your account linked, as described below. We only ever store
 your location as an area of about 100 metres, and keep only the last one, to check that the next
 one is somewhere you could have travelled to. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
 
@@ -65,7 +65,8 @@ These are kept until either person deletes their account.
   event. It is not your own location.
 - **Who joined each event** and **the group chat messages**.
 
-Events and their group chats are kept until the host deletes the event or their account.
+Events and their group chats are kept until the host deletes the event or their account. The
+messages you sent in other people's group chats are deleted when you delete your account.
 When you use the map, your phone sends its location and we store your **area** (the centre of
 the square of about 100 metres it falls in). The map lists events around your newest area, from
 the map or from going live, for 2 hours after it was set, and joining an event checks you are
@@ -84,9 +85,10 @@ change a few times in 10 minutes, and it is never shown to anyone.
   have reviewed it when three different people report it who really interacted with that person
   on Yap (a chat between them, even one that has ended, a say-hi from that person, or a message
   that person posted in a group chat they are both in) or have used Yap for at least 3 days.
-- **Banned email addresses.** If we suspend an account, or an account is deleted while it is
-  hidden or suspended, we keep a scrambled (hashed) copy of its email address so it can't sign
-  up again.
+- **Banned email addresses.** If we suspend an account, or remove one for breaking the rules, we
+  keep a scrambled (hashed) copy of its email address so it can't sign up again. We can also ban an
+  address by hand. When an account is deleted, only a ban from a removal or one we added by hand
+  is kept, until we lift it. Deleting your own account removes a ban from your own suspension.
 - **Text checks.** Intros, interests, notes, event text and messages are checked against a
   short list of slurs and abusive words when you save or send them. Text that fails is
   refused, not stored.
@@ -141,10 +143,12 @@ someone's safety.
 | Live area and note | You get off, or your time runs out (deleted within a minute) |
 | Last known area (from the map or going live) | Until a newer one replaces it, or you delete your account; the map uses it for 2 hours |
 | Location-change times | 10 minutes |
-| Hashed IP addresses of sign-ups, and photo upload times | 1 day |
+| Hashed IP addresses of sign-ups | 1 day |
+| Photo upload times | 1 day, or until you delete your account |
 | Profile, photos, chats, messages, events, blocks | You delete your account (or we remove it for breaking the rules) |
+| Records of when you signed in | 7 days |
 | Reports | Kept after either person deletes their account, without the account linked, so we can act if someone comes back |
-| Banned email addresses (hashed) | Until we lift the ban |
+| Banned email addresses (hashed) | Bans from a removal for breaking the rules, or added by hand: until we lift the ban. Bans from a suspension: until we lift the ban, or an account with that email address is deleted |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
 | Backups | Daily backups kept for 7 days on the Supabase Pro plan |
@@ -152,19 +156,25 @@ someone's safety.
 ## Deleting your account
 
 In the app: **Profile → Settings (gear) → Delete account**, then confirm the deletion. This
-deletes, straight away:
-your account and email address, your profile and all your photos, your live session, every
-say-hi request and chat you were part of and their messages, the events you host and their
-group chats, your event memberships and group messages, and your blocks. Safety reports you
-made or that were made about you are kept without your account linked to them. If your account
-was hidden or suspended when you deleted it, a scrambled copy of your email address is kept so
-it can't be used to sign up again.
+deletes, straight away and whether or not your account is on hold:
 
-Removing account links does not make report details anonymous: details, and the copy of the
-reported profile, message or event a report keeps (with up to the last 20 messages the reported
-person sent, for a report made from a say-hi or chat), may still identify you or someone else. Reports can remain after deletion so we can act if someone comes back,
-and banned email hashes remain until we lift the ban. Copies in backups expire within
-7 days.
+- your account, email address and password
+- your profile and every photo you uploaded, including old and replaced ones
+- your live session, your last known area and the times you went live or moved
+- every say-hi request and 1:1 chat you were part of, with all their messages, for both of you
+- the events you host, with their members and group chats
+- your event memberships and every message you sent in other people's group chats
+- the people you blocked, and blocks other people made against you
+- any ban on your email address from a suspension (a ban from an account we removed for breaking
+  the rules, or one we added by hand, stays)
+
+Only safety reports you made, or that were made about you, are kept, without your account
+linked to them, so we can still act on them. Removing account links does not make report
+details anonymous: details, and the copy of the reported profile, message or event a report
+keeps (with up to the last 20 messages the reported person sent, for a report made from a
+say-hi or chat), may still identify you or someone else. Nothing else is kept.
+The records of when you signed in are removed within 7 days, for everyone. Copies in backups
+expire within 7 days.
 
 If you can't use the app, email **support@samarxkx.dev** from the address you signed up with
 and we'll delete your account within 30 days. The steps are also at

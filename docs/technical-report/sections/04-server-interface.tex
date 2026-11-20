@@ -159,11 +159,13 @@ message in parentheses where one applies.
     holds). Files a report about its host through \code{private.file_report}, with \code{event_id} and a
     copy of the emoji, title, description, start and creation times. \\
   \code{delete_account}
-  & If the caller's profile is hidden or suspended, puts their email address on the ban list
-    (\cref{sec:signup-checks}). Returns the caller's chat partner, if any, to \code{open}, then deletes the
-    caller's Auth user, which cascades through every table except \code{reports}, where the caller's id
-    becomes null (\cref{sec:flow-delete}). The client removes the caller's photos through the Storage API
-    before calling it. \\[3pt]
+  & Runs \code{private.delete_user} for the caller. It refuses (\code{photos not removed}) while any file
+    is left in the caller's photo folder. The client
+    removes every file there through the Storage API before calling it. Returns the caller's chat partner,
+    if any, to \code{open}, deletes any ban on the caller's email address except one with the reason
+    \code{removed}, their upload times and their
+    Auth sign-in flows, then deletes the caller's Auth user, which cascades through every
+    table except \code{reports}, where the caller's id becomes null (\cref{sec:flow-delete}). \\[3pt]
   \multicolumn{2}{@{}l}{\textsf{\textbf{Map events}}} \\[2pt]
   \code{set_map_position}\newline{\scriptsize lat, lng}
   & Stores the centre of the position's cell as the caller's last known position, which the map uses for
@@ -254,7 +256,8 @@ function that can change a given table.
   \end{tabular}
   \par\smallskip\raggedright\footnotesize\textsuperscript{*}\,\code{delete_account} deletes the
   \code{auth.users} row; the cascade removes the profile and every row that references it, and sets
-  the user's id to null in \code{reports}.
+  the user's id to null in \code{reports}. Before that it deletes the user's rows in
+  \code{private.banned_identities} (except a \code{removed} ban) and \code{private.photo_uploads}, which have no foreign key.
   \textsuperscript{\dag}\,By cascade from the deleted event; \code{leave_event} by its host deletes in the same way.
   Not shown: \code{create_event} also inserts into \code{private.event_posts}; \code{set_map_position}
   and \code{go_green} write \code{private.last_positions}, which they, \code{events_near} and
@@ -335,6 +338,7 @@ caller, or reads no tables at all.
   \code{valid_interests(interests)} & True for 3 to 5 different one-line interests of 1 to 30 characters in a plain list; used by a check constraint \\
   \code{my_photo_count()} & How many files the caller has in the \code{photos} bucket; used by the storage insert policy, which cannot read \code{storage.objects} itself \\
   \code{my_uploads_today()} & How many photos the caller uploaded in the last day; used by the storage insert policy \\
+  \code{my_account_exists()} & Whether the caller's account still exists. The storage insert policy uses it, so a session left signed in after a deletion cannot upload \\
   \code{record_photo_upload()} & Trigger on \code{storage.objects}: records each upload to the \code{photos} bucket in \code{private.photo_uploads} \\
   \code{can_see_photo(object name)} & Used by the storage read policy (\cref{sec:photo-privacy}); executable by signed-in users \\
   \code{has_blocked_word(input)} & True if the text contains a word from \code{private.blocked_words} (\cref{sec:word-filter}) \\
@@ -344,6 +348,7 @@ caller, or reads no tables at all.
   \code{ban_email_of(user, reason)} & Puts a user's email address on \code{private.banned_identities} \\
   \code{set_reported_hash()} & Trigger on \code{reports}: stores a hash of the reported id, which outlives the account \\
   \code{expire_stale()} & The minute job (\cref{sec:housekeeping}) \\
+  \code{prune_audit_log()} & The daily job that deletes Auth sign-in activity records (\cref{sec:housekeeping}) \\
 \end{longtable}
 \endgroup
 
@@ -422,16 +427,25 @@ refuses an unknown profile (\code{no such profile}), then:
   \item through \code{private.end_activity}, ends every chat they are in, returning the other person to
     \code{open} if still live, cancels their waiting requests, and deletes their live session and event
     memberships, so they cannot post in group chats either;
-  \item puts their email address on the ban list, so deleting the account and signing up again with it
-    is refused (\cref{sec:signup-checks});
+  \item puts their email address on the ban list until the suspension is lifted or an account with
+    that address is deleted, so signing up again with it is refused (\cref{sec:signup-checks}).
   \item marks every open report about them as reviewed, with \code{note} (default \code{suspended}) as
     the action.
 \end{enumerate}
 
 \code{private.restore_user(target)} lifts a suspension or an automatic hide: it sets the status back to
 \code{active}, makes the person a member again of the events they still host (\code{end_activity} took
-them out), takes the email address off the ban list, and marks every open report about the person
-as reviewed (action \code{restored}), so reports already reviewed cannot hide them again. \code{docs/legal/moderation.md} describes
+them out), takes the email address off the ban list unless the ban's reason is \code{removed}, and marks every open report about the person
+as reviewed (action \code{restored}), so reports already reviewed cannot hide them again.
+
+\code{private.delete_user(target, keep_ban)} is the deletion \code{delete_account} runs, with \code{keep_ban}
+false. It refuses an id with no account (\code{no such account}). The owner runs it from the SQL editor, or
+with the service role, for an email deletion request (\code{keep_ban} false) or a removal (\code{keep_ban}
+true). Execution is revoked from \code{anon} and \code{authenticated}. With \code{keep_ban} false it deletes
+the bans on the person's email address except one with the reason \code{removed}, so deleting one's own
+account lifts one's own suspension ban but never a removal. With \code{keep_ban} true it leaves a ban with
+the reason \code{removed}, which outlives the account. \code{delete_account} returns without error when the
+caller's account is already gone, so a repeated request does not fail. \code{docs/legal/moderation.md} describes
 the owner's daily review: the queries that list open reports and what the reported person posted, and
 the statements for each outcome, from marking reports reviewed and showing a hidden profile again, through
 removing one message or event, to suspending or deleting the account.
@@ -456,6 +470,12 @@ time-based rules hold even when no app is open:
 Because the job runs once a minute, a row can outlive its end time by up to a minute. The functions do
 not rely on the job for correctness: they compare end times with \code{now()} themselves, and
 \code{send_request} expires the caller's own timed-out request before it counts waiting requests.
+
+A second \code{pg_cron} job, \code{yap-prune-audit-log}, runs \code{private.prune_audit_log()} once a day
+at 03:00. It deletes Supabase Auth's sign-in activity records (\code{auth.audit_log_entries}) older than
+six days, for every user, so none is older than seven days. Deleting an account leaves them to this job,
+because they have no column that finds one user's records without reading the whole table. It is kept
+apart from the minute job so that a slow or failing run on the Auth table never holds up the minute job.
 
 \section{Realtime publication}
 \label{sec:realtime-publication}

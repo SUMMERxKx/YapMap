@@ -261,7 +261,8 @@ allowed only for photos of someone the reader can currently see (\cref{sec:photo
 \paragraph{Scheduled work} A \code{pg_cron} job named \code{yap-expire-stale} runs
 \code{private.expire_stale()} every minute. It ends live sessions whose time is up, expires unanswered
 requests, ends chats in which neither person is live, and prunes the location-change log
-(\cref{sec:housekeeping}).
+(\cref{sec:housekeeping}). A second job, \code{yap-prune-audit-log}, runs \code{private.prune_audit_log()}
+once a day and deletes Supabase Auth's sign-in activity records older than six days.
 
 \paragraph{Authentication and email} Supabase Auth provides email and password accounts. \ui{Confirm
 email} is switched on, the minimum password length is 8, and the email templates for sign-up
