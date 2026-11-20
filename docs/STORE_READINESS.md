@@ -211,6 +211,8 @@ Private review notes should explain:
 | Device test scope · Needs work | Cover fresh and existing signup, denied camera/location, approximate location, map render, offline/reconnect, session expiry, two-way chat, blocking, reporting, hidden/suspended accounts, event flows, text filtering, deletion and rerun after app restart. Confirm large text and screen-reader access for safety controls. Inspect Play pre-launch results and TestFlight crashes. |
 | Licenses and updates · Needs work | Regenerate and check Acknowledgements after the SDK upgrade using `npm run licenses -- --check`. `runtimeVersion` follows app version, but `expo-updates` is absent from dependencies, so an OTA rollback channel is not configured. Plan a store hotfix and backend-compatible rollout. |
 
+On 20 November 2026 (UTC), `20261119120000_restricted_visibility.sql`, `20261119180607_report_context.sql` and `20261120000000_full_account_deletion.sql` were applied to the hosted project `qiyipqpigacsljfdclql` with `supabase db push`, and `supabase migration list` then showed all 16 local migrations applied remotely.
+
 ## 9. Corrections to the existing submission guide
 
 | Status | Guide statement | Current correction |
