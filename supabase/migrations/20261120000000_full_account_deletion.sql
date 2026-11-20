@@ -7,7 +7,7 @@
 --
 -- Four things were left behind before this:
 --   * private.photo_uploads, the upload times kept for the 40-a-day limit, which has no link to
---     the account, so the rows stayed until the daily cleanup.
+--     the account, so the rows stayed for up to a day, until private.expire_stale pruned them.
 --   * auth.flow_state, the sign-in flows Supabase Auth keeps under the user's id without a link
 --     that deletes them with the user.
 --   * auth.audit_log_entries, the sign-in activity records Supabase Auth keeps with no link to the
