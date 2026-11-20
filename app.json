@@ -130,7 +130,7 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "Yap uses your location while the app is open: when you go live, to find people who are live in the same place, and on the map, to show events near you. Other people never see where you are.",
+          "locationWhenInUsePermission": "Yap uses your location while the app is open to find people live near you and show events nearby. Your exact location and distance are never shown, but being nearby, and what you write in a note, can show you are close.",
           "locationAlwaysAndWhenInUsePermission": false,
           "locationAlwaysPermission": false,
           "motionUsagePermission": false,

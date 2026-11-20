@@ -36,7 +36,7 @@ const RULES = [
   },
   {
     title: 'Meet safely',
-    body: 'Meet in public places, tell a friend where you are, and leave whenever you want to. Yap never shows anyone where you are.',
+    body: 'Meet in public places, tell a friend where you are, and leave whenever you want to. Yap never shows your exact location or how far away you are, but being nearby can show that you are close, so share meeting details only when you are ready.',
   },
 ];
 

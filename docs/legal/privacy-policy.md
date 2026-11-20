@@ -6,11 +6,17 @@ Yap is an app for meeting people who are nearby, in person. It is made by Samar 
 ("we", "us"). This policy explains what Yap keeps about you, why, who helps us run it, how
 long it is kept and how to delete it.
 
+Yap is an invite-only beta. It is open first to invited testers in Kamloops, British Columbia,
+who install it through Apple's TestFlight or a Google Play closed test. "Beta testing" below
+explains what that adds.
+
 The short version: we keep what you put in your profile, the chats and events you take part
 in, and your blocks, for as long as you have an account. When you delete your account, all of
 it is deleted. Only safety reports are kept, without your account linked, as described below. We only ever store
 your location as an area of about 100 metres, and keep only the last one, to check that the next
-one is somewhere you could have travelled to. Nobody else ever sees where you are. We don't sell your data, show ads, or track you across other apps.
+one is somewhere you could have travelled to. Nobody else sees your exact location or how far
+away you are, but people live near you can tell that you are close, and a note you write can
+say where you are. We don't sell your data, show ads, or track you across other apps.
 
 Questions or requests: **support@samarxkx.dev**.
 
@@ -93,24 +99,42 @@ change a few times in 10 minutes, and it is never shown to anyone.
   short list of slurs and abusive words when you save or send them. Text that fails is
   refused, not stored.
 
+### Beta testing
+
+- **Your tester invitation.** To invite you, we add the email address you give us to Apple's
+  TestFlight or to a Google Play tester list. It stays there while you are a tester. Ask us and
+  we'll remove it.
+- **Crash reports and feedback.** If your phone's settings allow it, Apple and Google share
+  crash reports and app performance data with us, with your device model and system version.
+  Feedback and screenshots you choose to send through TestFlight also reach us, with your
+  device details. We use them only to fix problems.
+
 ### Technical information
 
 - Our hosting provider keeps **short-lived logs of requests** to our servers, which include
   your IP address, the time and the app's version, to keep the service secure and fix
   problems. We don't use them to profile you.
+- **Google Maps on Android.** The map on Android is drawn by Google's Maps SDK, which
+  sends Google your device's IP address, crash reports and stack traces, device details (such
+  as the model and system version), a pseudonymous identifier the SDK creates to count its daily
+  users and, depending on how the map is used, map interactions such as panning and zooming.
+  Google uses this to run and improve its services, under [Google's privacy policy](https://policies.google.com/privacy). Google lists what it collects
+  in its [Maps SDK data disclosure](https://developers.google.com/maps/documentation/android-sdk/play-data-disclosure). On iPhone the map is Apple Maps, run by Apple under Apple's privacy policy.
 - **On your phone**, the app stores your sign-in session, a few settings (such as the map
   distance you chose and how many times you've seen the chat safety tip) and a cache of photos. These are
   removed when you sign out or delete the app.
 
 ### What we don't collect
 
-No contacts, no advertising identifiers, no analytics or tracking, no background location,
-no microphone, and no payment details. Yap has no ads and no in-app purchases.
+No contacts, no advertising identifiers, no tracking, no background location, no microphone,
+and no payment details. Yap has no ads, no in-app purchases, and no analytics or crash
+reporting tools of its own. Google Maps on Android collects the data described above.
 
 ## Who sees what
 
 - **People nearby who are live at the same time** see your profile card and note. They never
-  see your location or distance.
+  see your location on a map or how far away you are, but seeing you there tells them you are
+  close, and your note can say where to find you.
 - **Someone you said hi to, or who said hi to you**, sees your profile while the request is
   waiting and during and after a chat.
 - **People who can see an event you host** (on the map within 50 km of their own area) see
@@ -119,20 +143,23 @@ no microphone, and no payment details. Yap has no ads and no in-app purchases.
 
 ## Who helps us run Yap
 
-We use these services to run the app. They only process your data on our behalf, under their
-own security and privacy terms, and we don't let them use it for anything else.
+We use these services to run the app. Supabase and Resend only process your data on our behalf,
+under their own security and privacy terms, and we don't let them use it for anything else.
+Apple and Google run their maps, app stores and beta testing services under their own privacy
+policies.
 
 | Service | What it does | What it handles |
 | --- | --- | --- |
 | **Supabase** | Database, sign-in, photo storage and live updates | Everything listed above |
 | **Resend** | Sends our emails | Your email address and the code in the email |
 | **Expo** (650 Industries) | Builds the app and delivers it to the stores | No personal data about you |
-| **Apple Maps** (iPhone) / **Google Maps** (Android) | Draws the map | The map area you look at and your device's IP address, under Apple's and Google's own privacy policies |
-| **Apple App Store / Google Play** | Delivers and updates the app | Covered by Apple's and Google's own privacy policies |
+| **Apple Maps** (iPhone) / **Google Maps** (Android) | Draws the map | The map area you look at and your device's IP address. On Android, Google's Maps SDK also collects crash data, device details, an SDK identifier and map interactions (see "Technical information"). Both under Apple's and Google's own privacy policies |
+| **Apple App Store and TestFlight / Google Play** | Delivers the app and its beta tests, and updates it | Your tester email address, crash reports and any feedback you send, under Apple's and Google's own privacy policies |
 
 Our Supabase project is hosted in AWS ca-central-1, Canada (Central). Your data may be processed in other countries where these providers operate.
 
-We **don't sell or rent your data**, and we don't share it with anyone else unless the law
+We **don't sell or rent your data**. Apart from what Apple and Google collect through the map,
+the stores and TestFlight, as described above, we don't share it with anyone else unless the law
 requires it (for example, a valid order from a court or the police) or it is needed to protect
 someone's safety.
 
@@ -151,6 +178,8 @@ someone's safety.
 | Banned email addresses (hashed) | Bans from a removal for breaking the rules, or added by hand: until we lift the ban. Bans from a suspension: until we lift the ban, or an account with that email address is deleted |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
+| Tester email address (beta) | While you are a tester, or until you ask us to remove it |
+| What Google Maps collects on Android | Kept by Google under its own privacy policy |
 | Backups | Daily backups kept for 7 days on the Supabase Pro plan |
 
 ## Deleting your account
@@ -172,7 +201,9 @@ Only safety reports you made, or that were made about you, are kept, without you
 linked to them, so we can still act on them. Removing account links does not make report
 details anonymous: details, and the copy of the reported profile, message or event a report
 keeps (with up to the last 20 messages the reported person sent, for a report made from a
-say-hi or chat), may still identify you or someone else. Nothing else is kept.
+say-hi or chat), may still identify you or someone else. Nothing else is kept in Yap. Your beta tester invitation is separate
+from your account: it stays in TestFlight or Google Play until you leave the beta or ask us to
+remove it.
 The records of when you signed in are removed within 7 days, for everyone. Copies in backups
 expire within 7 days.
 
