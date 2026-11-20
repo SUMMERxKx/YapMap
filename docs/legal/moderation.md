@@ -214,9 +214,7 @@ select private.delete_user('<id>');
 
 ## Removing a beta tester
 
-Within 30 days of someone deleting their account (in the app or by email), leaving the beta and
-telling us, or asking us, remove their email address from both tester lists. In App Store
-Connect, open the app, then **TestFlight**, find the tester and remove them. In Play Console, open
-the closed test, then **Testers**, and take the address off the email list or the Google Group.
-Deleting an account in the app doesn't email us, so once a month compare both tester lists with
-the email addresses in `auth.users` and remove testers whose account is gone.
+Within 30 days of a tester asking to be removed, or telling us they left the beta, remove their
+email address from both tester lists. In App Store Connect, open the app, then **TestFlight**,
+find the tester and remove them. In Play Console, open the closed test, then **Testers**, and take
+the address off the email list or the Google Group.

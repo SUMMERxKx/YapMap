@@ -49,8 +49,11 @@ applies to the beta as well.
 
 **Tester invitations.** Say that Yap is an invite-only beta for adults 18 and over, link the
 terms (https://yap.samarxkx.dev/terms) and privacy policy (https://yap.samarxkx.dev/privacy),
-and explain how to send feedback (TestFlight, or `support@samarxkx.dev`). Never promise verified
-profiles or a selfie check.
+and explain how to send feedback (TestFlight, or `support@samarxkx.dev`). Also tell testers that
+the TestFlight and Google Play tester lists are kept by Apple and Google, separate from Yap, so
+deleting their Yap account does not take them off. To be removed, they email
+`support@samarxkx.dev` or tell us when they leave the beta, and we remove them within 30 days.
+Never promise verified profiles or a selfie check.
 
 ## 0. One-time setup
 

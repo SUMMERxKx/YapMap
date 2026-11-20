@@ -102,8 +102,10 @@ change a few times in 10 minutes, and it is never shown to anyone.
 ### Beta testing
 
 - **Your tester invitation.** To invite you, we add the email address you give us to Apple's
-  TestFlight or to a Google Play tester list. It stays there until we remove it. We remove it
-  within 30 days when you delete your account, leave the beta and tell us, or ask us.
+  TestFlight or to a Google Play tester list. Those lists are kept by Apple and Google, separate
+  from Yap. Deleting your Yap account removes your Yap data but cannot remove you from those lists
+  automatically. Email **support@samarxkx.dev**, or tell us when you leave the beta, and we remove
+  your tester invite within 30 days.
 - **Crash reports and feedback.** If your phone's settings allow it, Apple and Google share
   crash reports and app performance data with us, with your device model and system version.
   Feedback and screenshots you choose to send through TestFlight also reach us, with your
@@ -178,7 +180,7 @@ someone's safety.
 | Banned email addresses (hashed) | Bans from a removal for breaking the rules, or added by hand: until we lift the ban. Bans from a suspension: until we lift the ban, or an account with that email address is deleted |
 | Email codes | They expire (within an hour) |
 | Server request logs | Removed automatically by our hosting provider after a few days |
-| Tester email address (beta) | Until we remove it, within 30 days of you deleting your account, leaving the beta and telling us, or asking us |
+| Tester email address (beta) | Kept by Apple and Google, separate from Yap, until we remove it, within 30 days of you asking us or telling us you left the beta. Deleting your Yap account does not remove it automatically |
 | What Google Maps collects on Android | Kept by Google under its own privacy policy |
 | Backups | Daily backups kept for 7 days on the Supabase Pro plan |
 
@@ -201,9 +203,10 @@ Only safety reports you made, or that were made about you, are kept, without you
 linked to them, so we can still act on them. Removing account links does not make report
 details anonymous: details, and the copy of the reported profile, message or event a report
 keeps (with up to the last 20 messages the reported person sent, for a report made from a
-say-hi or chat), may still identify you or someone else. Nothing else is kept in Yap. Your beta tester invitation is separate
-from your account: your email address stays in TestFlight or Google Play testing until we remove
-it. We remove it within 30 days when you delete your account, leave the beta and tell us, or ask us.
+say-hi or chat), may still identify you or someone else. Nothing else is kept in Yap. The TestFlight and Google Play tester
+lists are kept by Apple and Google, separate from Yap. Deleting your Yap account removes your Yap
+data but cannot remove you from those lists automatically. Email **support@samarxkx.dev**, or tell us when
+you leave the beta, and we remove your tester invite within 30 days.
 The records of when you signed in are removed within 7 days, for everyone. Copies in backups
 expire within 7 days.
 
