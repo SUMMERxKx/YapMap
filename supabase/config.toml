@@ -30,7 +30,7 @@ port = 54323
 api_url = "http://127.0.0.1"
 
 # Emails are not sent: read them in the local mail viewer at http://127.0.0.1:54324.
-[inbucket]
+[local_smtp]
 enabled = true
 port = 54324
 
