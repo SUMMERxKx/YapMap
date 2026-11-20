@@ -42,8 +42,8 @@ we can still act on them. Removing account links does not make report details an
 details, and the copy of the reported profile, message or event a report keeps (with up to the
 last 20 messages the reported person sent, for a report made from a say-hi or chat), may still
 identify you or someone else. Nothing else is kept in Yap. Your beta tester invitation is separate
-from your account: it stays in TestFlight or Google Play until you leave the beta or ask us to
-remove it.
+from your account: your email address stays in TestFlight or Google Play testing until we remove
+it. We remove it within 30 days when you delete your account, leave the beta and tell us, or ask us.
 
 The records of when you signed in are removed within 7 days, for everyone. Copies in our hosting
 provider's backups expire within 7 days (daily backups kept on the Supabase Pro plan). The safety reports described above can

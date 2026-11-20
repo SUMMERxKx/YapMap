@@ -232,6 +232,7 @@ None of this data is processed ephemerally. Yap's own data:
 | Photos and videos | Photos | Required | No | App functionality |
 | Messages | Other in-app messages | Optional | No | App functionality |
 | App activity | Other user-generated content (intro, interests, notes, events, reports) | Required (intro and interests complete a profile) | No | App functionality, Fraud prevention, security, and compliance |
+| Device or other IDs | Device or other IDs (the IP address: hashed at sign-up and kept 1 day, and in hosting request logs) | Required | No | App functionality, Fraud prevention, security, and compliance |
 
 Collected by Google's Maps SDK on Android whenever the map is shown. People cannot turn it off
 in the app, so mark it required:
@@ -243,7 +244,8 @@ in the app, so mark it required:
 | Device or other IDs | Device or other IDs | A pseudonymous Maps SDK identifier, plus the device's IP address | Yes (Google) | Analytics |
 | App activity | App interactions | Map panning and zooming. Google collects these when the app uses the map camera, which `src/app/(app)/(tabs)/map.tsx` does with `animateToRegion` | Yes (Google) | Analytics |
 
-Play has no IP address type, so the IP address goes with Device or other IDs. Play asks for
+Play has no IP address type, so the IP address goes with Device or other IDs, once in Yap's own
+table for security and fixing problems, and once here for what Google collects. Play asks for
 Approximate location when a location is inferred from an IP address, and Google's page does not
 say the Maps SDK does that, so Approximate location is not declared.
 
